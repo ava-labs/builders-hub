@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
+import { EXPLORER_API_BASE } from '@/lib/pchain-explorer';
 
-const UPSTREAM_URL = 'https://52.203.183.9.sslip.io/api/validators';
+const UPSTREAM_URL = `${EXPLORER_API_BASE}/api/mainnet/fleet/validators`;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 const FETCH_TIMEOUT = 15000;
 

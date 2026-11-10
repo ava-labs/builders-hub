@@ -7,7 +7,7 @@ This tutorial demonstrates how to set up infrastructure to monitor an instance o
 
 - [Prometheus](https://prometheus.io/) to gather and store data
 - [`node_exporter`](https://github.com/prometheus/node_exporter) to get information about the machine,
-- AvalancheGo's [Metrics API](/docs/api-reference/metrics-api) to get information about the node
+- AvalancheGo's [Metrics RPC](/docs/rpcs/other/metrics-rpc) (`/ext/metrics`) to get information about the node
 - [Grafana](https://grafana.com/) to visualize data on a dashboard.
 - A set of pre-made [Avalanche dashboards](https://github.com/ava-labs/avalanche-monitoring/tree/main/grafana/dashboards)
 
@@ -21,7 +21,7 @@ This page covers how to *collect* metrics. Once you're set up, see [Key Metrics 
 - Shell access to the machine running the node
 - Administrator privileges on the machine
 
-This tutorial assumes you have Ubuntu 20.04 or later running on your node. Other Linux flavors that use `systemd` for running services and `apt-get` for package management might work but have not been tested. Community members have reported it works on Debian 10 and later versions.
+This tutorial assumes that your node runs Ubuntu 22.04 or 24.04, the versions that the AvalancheGo README supports. Other Linux distributions that use `systemd` for services and `apt-get` for packages can work, but we did not test them.
 
 ### Caveat: Security
 
@@ -282,31 +282,7 @@ Currently, there is only one additional dashboard: Avalanche L1s. If your node i
 ./monitoring-installer.sh --5
 ```
 
-This will add the Avalanche L1s dashboard. It allows you to monitor operational data for any Avalanche L1 that is synced on the node. There is an Avalanche L1 switcher that allows you to switch between different Avalanche L1s. As there are many Avalanche L1s and not every node will have all of them, by default, it comes populated only with Spaces and WAGMI Avalanche L1s that exist on Fuji testnet:
-
-![Avalanche L1s switcher](/images/monitoring3.png)
-
-To configure the dashboard and add any Layer 1s that your node is syncing, you will need to edit the dashboard. Select the `dashboard settings` icon (image of a cog) in the upper right corner of the dashboard display and switch to `Variables` section and select the `subnet` variable. It should look something like this:
-
-![Variables screen](/images/monitoring4.png)
-
-The variable format is:
-
-```bash
-L1 name:<BlockchainID>
-```
-
-and the separator between entries is a comma. Entries for Spaces and WAGMI look like:
-
-```bash
-Spaces (Fuji) : 2ebCneCbwthjQ1rYT41nhd7M76Hc6YmosMAQrTFhBq8qeqh6tt, WAGMI (Fuji) : 2AM3vsuLoJdGBGqX2ibE8RGEq4Lg7g4bot6BT1Z7B9dH5corUD
-```
-
-<Callout title="Note">
-The dashboard variable is still named `subnet` for backward compatibility, but it represents Avalanche L1 blockchains.
-</Callout>
-
-After editing the values, press `Update` and then click `Save dashboard` button and confirm. Press the back arrow in the upper left corner to return to the dashboard. New values should now be selectable from the dropdown and data for the selected Avalanche L1 will be shown in the panels.
+This adds the L1 dashboard. Its title in Grafana is `Subnets`. It shows operational data for each chain that the node syncs. Use the `Chain` selector at the top of the dashboard to select a chain. The selector reads the `chain` label of the node metrics from Prometheus, so it lists every chain that the node runs. You do not need to edit the dashboard.
 
 Updating
 -----------------------------------------------

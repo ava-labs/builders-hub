@@ -184,5 +184,6 @@ export const BRUSH_PROPS = {
   tickFormatter: () => "",
 } as const;
 
+// d is a UTC day: format it in UTC, or it reads as the previous day west of UTC
 export const dayLabel = (d: string) =>
-  new Date(`${d}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  new Date(`${d}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });

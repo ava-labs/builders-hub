@@ -7,10 +7,10 @@ Dive deeper into ICM contracts and kickstart your journey in building cross-chai
 </Callout>
 
 <Callout title="Note">
- Note: All example applications in the [examples](https://github.com/ava-labs/icm-services/tree/example-sequential-message-app/contracts/sequential-delivery-example) directory are meant for education purposes only and are not audited. The example contracts are not intended for use in production environments.
+ Note: All example applications in the [examples](https://github.com/ava-labs/icm-contracts/tree/v1.0.1/contracts/src/CrossChainApplications/examples/ExampleMessenger) directory are meant for education purposes only and are not audited. The example contracts are not intended for use in production environments.
 </Callout>
 
-This section walks through how to build an example cross-chain application on top of ICM contracts, recreating the `ExampleCrossChainMessenger` [contract](https://github.com/ava-labs/icm-services/tree/example-sequential-message-app/contracts/sequential-delivery-example) that sends arbitrary string data from one chain to another. Note that this tutorial is meant for education purposes only. The resulting code is not intended for use in production environments.
+This section walks through how to build an example cross-chain application on top of ICM contracts, recreating the `ExampleCrossChainMessenger` [contract](https://github.com/ava-labs/icm-contracts/tree/v1.0.1/contracts/src/CrossChainApplications/examples/ExampleMessenger) that sends arbitrary string data from one chain to another. Note that this tutorial is meant for education purposes only. The resulting code is not intended for use in production environments.
 
 Step 1: Create Initial Contract
 --------------------------------------------------------------------------------------------
@@ -318,7 +318,7 @@ And finally, change `receiveTeleporterMessage` to `_receiveTeleporterMessage`, m
 -          require(msg.sender == address(teleporterMessenger), "Unauthorized.");
 ```
 
-`MyExampleCrossChainMessenger` is now a working cross-chain dApp built on top of ICM contracts! Full example [here](https://github.com/ava-labs/icm-services/tree/example-sequential-message-app/contracts/sequential-delivery-example).
+`MyExampleCrossChainMessenger` is now a working cross-chain dApp built on top of ICM contracts! Full example [here](https://github.com/ava-labs/icm-contracts/tree/v1.0.1/contracts/src/CrossChainApplications/examples/ExampleMessenger).
 
 Step 6: Testing
 ------------------------------------------------------------

@@ -11,6 +11,7 @@ import {
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
+import { Alert } from '@/components/toolbox/components/Alert';
 import { useEERCDeployment } from '@/hooks/eerc/useEERCDeployment';
 import { useEERCBalance } from '@/hooks/eerc/useEERCBalance';
 import { useEERCAuditorAndTokenId } from '@/hooks/eerc/useEERCAuditorAndTokenId';
@@ -24,6 +25,17 @@ import {
 } from '@/lib/eerc/balanceValidation';
 import { EERCToolShell } from './shared/EERCToolShell';
 import { EERCTxLink } from './shared/EERCTxLink';
+import {
+  Choice,
+  ChoiceGroup,
+  Disclosure,
+  EmptyBoard,
+  HairlineGrid,
+  INLINE_LINK,
+  ProgressList,
+  Reading,
+  progressFrom,
+} from './shared/ui';
 import { ENCRYPTED_ERC_SOURCES, EERC_COMMIT } from '@/lib/eerc/contractSources';
 import type { ERC20Meta, Hex } from '@/lib/eerc/types';
 
@@ -31,14 +43,28 @@ const metadata: ConsoleToolMetadata = {
   title: 'Private Transfer',
   description: (
     <>
-      Send encrypted tokens to another registered address. Amounts are ElGamal-encrypted to each recipient; a Groth16
-      proof convinces the contract the sender had sufficient balance without revealing how much.
+      Send encrypted tokens to another registered address. The amount is encrypted to the recipient, and a Groth16 proof
+      shows you had enough balance without revealing how much.
     </>
   ),
   toolRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
 };
 
 type Mode = 'standalone' | 'converter';
+
+const TRANSFER_PHASES = [
+  { key: 'lookup', label: 'Look up the recipient’s public key' },
+  { key: 'proving', label: 'Generate the transfer proof (5–20s)' },
+  { key: 'submitting', label: 'Submit the transaction' },
+  { key: 'confirming', label: 'Wait for confirmation' },
+] as const;
+
+const LOADING_TEXT: Partial<Record<ReturnType<typeof useEERCTransfer>['status'], string>> = {
+  lookup: 'Checking recipient…',
+  proving: 'Generating proof…',
+  submitting: 'Submitting…',
+  confirming: 'Confirming…',
+};
 
 function PrivateTransfer() {
   const standalone = useEERCDeployment('standalone');
@@ -97,10 +123,12 @@ function PrivateTransfer() {
 
   if (availableModes.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50 p-6 text-sm">
-        <p className="font-medium mb-1 text-zinc-900 dark:text-zinc-100">No Encrypted ERC deployment on this chain.</p>
-        <p className="text-zinc-600 dark:text-zinc-400">Switch to Avalanche Fuji or deploy your own.</p>
-      </div>
+      <EmptyBoard
+        eyebrow="No deployment on this chain"
+        action={{ href: '/console/encrypted-erc/deploy', label: 'Deploy your own' }}
+      >
+        There&apos;s no Encrypted ERC deployment on this chain. Switch to Avalanche Fuji or deploy your own.
+      </EmptyBoard>
     );
   }
 
@@ -114,6 +142,8 @@ function PrivateTransfer() {
     if (amountCents === null) parseError = 'Amount must be positive';
   }
   const recipientValid = recipient.length > 0 && isAddress(recipient);
+  const exceedsBalance =
+    amountCents !== null && balance.decryptedCents !== null && amountCents > balance.decryptedCents;
 
   const encBalance = balance.raw
     ? ([balance.raw.eGCT.c1[0], balance.raw.eGCT.c1[1], balance.raw.eGCT.c2[0], balance.raw.eGCT.c2[1]] as [
@@ -147,195 +177,186 @@ function PrivateTransfer() {
         {
           label: 'transfer() source',
           href: `https://github.com/ava-labs/EncryptedERC/blob/${EERC_COMMIT}/contracts/EncryptedERC.sol`,
-          icon: <BookOpen className="w-3.5 h-3.5" />,
+          icon: <BookOpen />,
         },
       ]}
     >
       {availableModes.length > 1 && (
-        <div className="flex items-center gap-1 p-1 rounded-lg bg-zinc-100 dark:bg-zinc-800/60 w-fit">
+        <ChoiceGroup label="Deployment">
           {availableModes.map((m) => (
-            <button
+            <Choice
               key={m}
-              type="button"
-              onClick={() => setMode(m)}
-              className={
-                mode === m
-                  ? 'px-3 py-1.5 text-xs font-medium rounded-md bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-sm'
-                  : 'px-3 py-1.5 text-xs font-medium rounded-md text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
-              }
-            >
-              {m === 'standalone' ? 'Standalone' : 'Converter'}
-            </button>
+              selected={mode === m}
+              onSelect={() => setMode(m)}
+              title={m === 'standalone' ? 'Standalone' : 'Converter'}
+              hint={m === 'standalone' ? 'Native private token' : 'Wraps an ERC20'}
+            />
           ))}
-        </div>
+        </ChoiceGroup>
       )}
 
       {mode === 'converter' && supportedTokens.length > 1 && (
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[10px] uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Token:</span>
+        <ChoiceGroup label="Token" cols={supportedTokens.length > 2 ? 3 : 2}>
           {supportedTokens.map((t) => (
-            <button
+            <Choice
               key={t.address}
-              type="button"
-              onClick={() => setToken(t)}
-              className={
-                token?.address === t.address
-                  ? 'px-3 py-1 text-xs rounded-full bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
-                  : 'px-3 py-1 text-xs rounded-full border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800'
-              }
-            >
-              {t.symbol}
-            </button>
+              selected={token?.address === t.address}
+              onSelect={() => setToken(t)}
+              title={t.symbol}
+              hint={`${t.address.slice(0, 6)}…${t.address.slice(-4)}`}
+            />
           ))}
-        </div>
+        </ChoiceGroup>
       )}
 
-      <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 p-3 flex items-center justify-between">
-        <div className="text-[10px] uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-          Your encrypted balance
-        </div>
-        <div className="font-mono text-sm text-zinc-900 dark:text-zinc-100">
-          {balance.formatted ?? '—'} <span className="text-zinc-500 dark:text-zinc-400 text-[11px]">{symbol}</span>
-        </div>
-      </div>
+      <HairlineGrid cols={2}>
+        <Reading
+          label="Your encrypted balance"
+          value={balance.formatted ?? '—'}
+          unit={symbol}
+          loading={balance.isLoading && balance.formatted === null}
+          sub="Decrypted in this browser"
+        />
+        <Reading
+          label="Auditor"
+          value={aud.isLoading ? '…' : aud.isAuditorSet ? 'Set' : 'Not set'}
+          sub={aud.isAuditorSet ? 'Can read this amount' : 'Required to send'}
+        />
+      </HairlineGrid>
 
       {balance.error && (
-        <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/10 p-3 text-xs text-red-700 dark:text-red-400">
+        <Alert variant="error">
           {balance.error}
           {balance.validationError && (
             <>
               {' '}
-              <Link href="/console/encrypted-erc/register" className="underline font-medium">
+              <Link href="/console/encrypted-erc/register" className={INLINE_LINK}>
                 Open Register
               </Link>
               .
             </>
           )}
-        </div>
+        </Alert>
       )}
 
       {!aud.isAuditorSet && !aud.isLoading && (
-        <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/10 p-3 text-xs text-amber-700 dark:text-amber-300">
-          Auditor public key not set — transfers will revert. Visit{' '}
-          <Link href="/console/encrypted-erc/deploy/auditor" className="underline font-medium">
+        <Alert variant="warning">
+          The auditor public key isn&apos;t set, so transfers will revert. Open{' '}
+          <Link href="/console/encrypted-erc/deploy/auditor" className={INLINE_LINK}>
             Set Auditor
           </Link>{' '}
           first.
-        </div>
+        </Alert>
       )}
 
-      <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 space-y-3">
-        <Input label="Recipient EVM address" value={recipient} onChange={setRecipient} placeholder="0x..." />
-        {recipient && !recipientValid && (
-          <div className="text-[11px] text-red-600 dark:text-red-400">Invalid EVM address</div>
-        )}
-
+      <div className="flex flex-col [&>div]:mb-4">
         <Input
-          label={`Amount (${symbol})`}
+          label="Recipient EVM address"
+          value={recipient}
+          onChange={setRecipient}
+          placeholder="0x..."
+          className="font-mono"
+          error={recipient && !recipientValid ? 'Invalid EVM address' : null}
+        />
+        <Input
+          label="Amount"
           value={amountText}
           onChange={setAmountText}
           placeholder="0.00"
           type="number"
           step="0.01"
+          unit={symbol}
+          className="font-mono"
+          error={
+            parseError ??
+            (exceedsBalance && balance.decryptedCents !== null
+              ? `Exceeds balance (${Scalar.parseEERCBalance(balance.decryptedCents)}).`
+              : null)
+          }
         />
-        {parseError && <div className="text-[11px] text-red-600 dark:text-red-400">{parseError}</div>}
-        {amountCents !== null && balance.decryptedCents !== null && amountCents > balance.decryptedCents && (
-          <div className="text-[11px] text-red-600 dark:text-red-400">
-            Exceeds balance ({Scalar.parseEERCBalance(balance.decryptedCents)}).
-          </div>
-        )}
-
-        {tr.error && (
-          <div className="text-[11px] text-red-600 dark:text-red-400">
-            {tr.error}
-            {(tr.error === EERC_BALANCE_PROOF_MISMATCH_MESSAGE || tr.error === EERC_PRIVATE_KEY_INVALID_MESSAGE) && (
-              <>
-                {' '}
-                <Link href="/console/encrypted-erc/register" className="underline font-medium">
-                  Open Register
-                </Link>
-                .
-              </>
-            )}
-            {tr.error === EERC_BALANCE_UNINITIALIZED_MESSAGE && (
-              <>
-                {' '}
-                <Link href="/console/encrypted-erc/deposit" className="underline font-medium">
-                  Open Deposit
-                </Link>
-                .
-              </>
-            )}
-          </div>
-        )}
-        {tr.status === 'success' && tr.txHash && (
-          <div className="text-[11px]">
-            <EERCTxLink chainId={activeChainId} txHash={tr.txHash}>
-              Transfer confirmed — {tr.txHash.slice(0, 10)}...
-            </EERCTxLink>
-          </div>
-        )}
-
-        <Button
-          variant="primary"
-          loading={busy}
-          disabled={!canSubmit}
-          onClick={() => {
-            // `== null` (loose) catches BOTH null and undefined — the
-            // strict `=== null` form leaked an undefined `tokenId` /
-            // `auditorPublicKey` into transferPrivate, which then tried
-            // to coerce them via BigInt() and threw "Cannot convert
-            // undefined to a BigInt" with no useful surface in the UI.
-            if (
-              !canSubmit ||
-              encBalance == null ||
-              amountCents == null ||
-              balance.decryptedCents == null ||
-              aud.auditorPublicKey == null ||
-              aud.tokenId == null
-            )
-              return;
-            tr.transfer({
-              to: recipient as Hex,
-              amountCents,
-              encryptedBalance: encBalance,
-              decryptedBalance: balance.decryptedCents,
-              auditorPublicKey: aud.auditorPublicKey,
-              tokenId: aud.tokenId,
-            }).catch(() => {
-              /* surfaced via tr.error */
-            });
-          }}
-        >
-          {tr.status === 'lookup'
-            ? 'Checking recipient...'
-            : tr.status === 'proving'
-              ? 'Generating proof (5–20s)...'
-              : tr.status === 'submitting'
-                ? 'Submitting tx...'
-                : tr.status === 'confirming'
-                  ? 'Confirming...'
-                  : 'Send privately'}
-        </Button>
       </div>
 
-      <details className="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 p-3 text-xs">
-        <summary className="cursor-pointer font-medium text-zinc-800 dark:text-zinc-200">
-          What happens during a private transfer?
-        </summary>
-        <div className="space-y-2 pt-2 text-zinc-600 dark:text-zinc-400 leading-relaxed">
-          <p>
-            We encrypt the amount three times — to the sender, recipient, and auditor — and then prove in zero knowledge
-            that sender balance ≥ amount, all three encryptions are consistent, and the sender&apos;s new balance is
-            correctly derived.
-          </p>
-          <p>
-            The proof uses the TRANSFER circuit (ptau 15, ~36 MB zkey). Proof generation is CPU-heavy — expect 5-20
-            seconds depending on device. It runs entirely in your browser; no server ever sees the amount or your BJJ
-            private key.
-          </p>
-        </div>
-      </details>
+      {(busy || tr.status === 'success') && (
+        <ProgressList steps={progressFrom(TRANSFER_PHASES, tr.status, tr.status === 'success')} />
+      )}
+
+      {tr.error && (
+        <Alert variant="error">
+          {tr.error}
+          {(tr.error === EERC_BALANCE_PROOF_MISMATCH_MESSAGE || tr.error === EERC_PRIVATE_KEY_INVALID_MESSAGE) && (
+            <>
+              {' '}
+              <Link href="/console/encrypted-erc/register" className={INLINE_LINK}>
+                Open Register
+              </Link>
+              .
+            </>
+          )}
+          {tr.error === EERC_BALANCE_UNINITIALIZED_MESSAGE && (
+            <>
+              {' '}
+              <Link href="/console/encrypted-erc/deposit" className={INLINE_LINK}>
+                Open Deposit
+              </Link>
+              .
+            </>
+          )}
+        </Alert>
+      )}
+      {tr.status === 'success' && tr.txHash && (
+        <Alert variant="success">
+          Transfer confirmed.{' '}
+          <EERCTxLink chainId={activeChainId} txHash={tr.txHash}>
+            {tr.txHash.slice(0, 10)}…
+          </EERCTxLink>
+        </Alert>
+      )}
+
+      <Button
+        variant="primary"
+        loading={busy}
+        loadingText={LOADING_TEXT[tr.status]}
+        disabled={!canSubmit}
+        onClick={() => {
+          // `== null` (loose) catches BOTH null and undefined — the
+          // strict `=== null` form leaked an undefined `tokenId` /
+          // `auditorPublicKey` into transferPrivate, which then tried
+          // to coerce them via BigInt() and threw "Cannot convert
+          // undefined to a BigInt" with no useful surface in the UI.
+          if (
+            !canSubmit ||
+            encBalance == null ||
+            amountCents == null ||
+            balance.decryptedCents == null ||
+            aud.auditorPublicKey == null ||
+            aud.tokenId == null
+          )
+            return;
+          tr.transfer({
+            to: recipient as Hex,
+            amountCents,
+            encryptedBalance: encBalance,
+            decryptedBalance: balance.decryptedCents,
+            auditorPublicKey: aud.auditorPublicKey,
+            tokenId: aud.tokenId,
+          }).catch(() => {
+            /* surfaced via tr.error */
+          });
+        }}
+      >
+        Send privately
+      </Button>
+
+      <Disclosure summary="What happens during a private transfer?">
+        <p>
+          The amount is encrypted three times: to you, the recipient, and the auditor. A zero-knowledge proof then shows
+          your balance covers the amount, the three encryptions agree, and your new balance is correct.
+        </p>
+        <p>
+          The proof uses the TRANSFER circuit (ptau 15, about a 36 MB zkey). It is CPU-heavy, so expect 5–20 seconds. It
+          runs entirely in your browser; no server sees the amount or your private key.
+        </p>
+      </Disclosure>
     </EERCToolShell>
   );
 }

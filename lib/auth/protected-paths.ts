@@ -21,7 +21,6 @@ export const PROTECTED_PATHS = [
   "/showcase",
   "/send-notifications",
   "/profile",
-  "/student-launchpad",
   "/grants/retro9000",
   // "/grants/avalanche-research-proposals": applications are closed, the page is read-only
   "/grants/team1-mini-grants/apply",

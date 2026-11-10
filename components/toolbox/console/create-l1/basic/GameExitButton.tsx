@@ -17,7 +17,7 @@ export function GameExitButton({ onExit }: { onExit: () => void }) {
         e.stopPropagation();
         onExit();
       }}
-      className="flex items-center gap-1 rounded-md border border-zinc-300/80 dark:border-zinc-700/80 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-sm px-1.5 py-1 text-[9px] font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors"
+      className="flex items-center gap-1 border border-zinc-300 bg-white dark:border-zinc-700 dark:bg-zinc-950 px-1.5 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors"
       aria-label="View games"
       title="View games"
     >

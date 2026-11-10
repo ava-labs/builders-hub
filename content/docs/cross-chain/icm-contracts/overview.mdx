@@ -46,7 +46,7 @@ The `ITeleporterReceiver` interface provides a single method. All contracts that
 ## Data Flow
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/ava-labs/icm-services/main/resources/TeleporterDataFlowDiagram.png" />/>
+  <img src="https://raw.githubusercontent.com/ava-labs/icm-services/main/icm-contracts/resources/TeleporterDataFlowDiagram.png" />/>
 </div>
 
 ## Properties
@@ -95,7 +95,7 @@ Once sent on chain, ICM messages cannot be re-signed by a new validator set in s
 
 ## TeleporterMessenger Contract Deployment
 
-**Do not deploy the `TeleporterMessenger` contract using `forge create`**. The `TeleporterMessenger` contract must be deployed to the same contract address on every chain. To achieve this, the contract can be deployed using a static transaction that uses Nick's method as documented in [this guide](https://github.com/ava-labs/icm-services/blob/main/utils/contract-deployment/README.md). Alternatively, if creating a new L1, the contract can be pre-allocated with the proper address and state in the new chain's [genesis file](https://build.avax.network/docs/virtual-machines/custom-precompiles#setting-the-genesis-allocation).
+**Do not deploy the `TeleporterMessenger` contract using `forge create`**. The `TeleporterMessenger` contract must be deployed to the same contract address on every chain. To achieve this, the contract can be deployed using a static transaction that uses Nick's method as documented in [this guide](https://github.com/ava-labs/icm-services/blob/main/icm-contracts/utils/contract-deployment/README.md). Alternatively, if creating a new L1, the contract can be pre-allocated with the proper address and state in the new chain's [genesis file](https://build.avax.network/docs/virtual-machines/custom-precompiles#setting-the-genesis-allocation).
 
 As an example, to include `TeleporterMessenger` `v1.0.0` in the genesis file, include the following values in the `alloc` settings, as documented at the link above. The `storage` values included below correspond to the two contract values that are initialized as part of the default constructor of `TeleporterMessenger`. These are the `ReentrancyGuard` values set in this [abstract contract](https://github.com/ava-labs/icm-services/blob/main/icm-contracts/avalanche/utilities/ReentrancyGuards.sol). Future versions of `TeleporterMessenger` may require different storage value initializations.
 ```json
@@ -126,13 +126,13 @@ The values above are taken from the `v1.0.0` [release artifacts](https://github.
 | `TeleporterRegistry`  | **0x7C43605E14F391720e1b37E49C78C4b03A488d98** | Mainnet C-Chain          |
 | `TeleporterRegistry`  | **0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228** | Fuji C-Chain             |
 
-- Using [Nick's method](https://yamenmerhi.medium.com/nicks-method-ethereum-keyless-execution-168a6659479c#), `TeleporterMessenger` deploys at a universal address across all chains, varying with each `teleporter` Major release. **Compatibility exists only between same-version `TeleporterMessenger` instances.** See [TeleporterMessenger Contract Deployment](https://github.com/ava-labs/icm-services/blob/main/utils/contract-deployment/README.md) and [Deploy TeleporterMessenger to an Avalanche L1](#deploy-teleportermessenger-to-an-avalanche-l1) for more details.
+- Using [Nick's method](https://yamenmerhi.medium.com/nicks-method-ethereum-keyless-execution-168a6659479c#), `TeleporterMessenger` deploys at a universal address across all chains, varying with each `teleporter` Major release. **Compatibility exists only between same-version `TeleporterMessenger` instances.** See [TeleporterMessenger Contract Deployment](https://github.com/ava-labs/icm-services/blob/main/icm-contracts/utils/contract-deployment/README.md) and [Deploy TeleporterMessenger to an Avalanche L1](#deploy-teleportermessenger-to-an-avalanche-l1) for more details.
 
 - `TeleporterRegistry` can be deployed to any address. See [Deploy TeleporterRegistry to an Avalanche L1](#deploy-teleporterregistry-to-an-avalanche-l1) for details. The table above enumerates the canonical registry addresses on the Mainnet and Fuji C-Chains.
 
 ## A Note on Versioning
 
-Release versions follow the [semver](https://semver.org/) convention of incompatible Major releases. A new Major version is released whenever the `TeleporterMessenger` bytecode is changed, and a new version of `TeleporterMessenger` is meant to be deployed. Due to the use of Nick's method to deploy the contract to the same address on all chains (see [TeleporterMessenger Contract Deployment](https://github.com/ava-labs/icm-services/blob/main/utils/contract-deployment/README.md) for details), this also means that new release versions would result in different `TeleporterMessenger` contract addresses. Minor and Patch versions may pertain to contract changes that do not change the `TeleporterMessenger` bytecode, or to changes in the test frameworks, and will only be included in tags.
+Release versions follow the [semver](https://semver.org/) convention of incompatible Major releases. A new Major version is released whenever the `TeleporterMessenger` bytecode is changed, and a new version of `TeleporterMessenger` is meant to be deployed. Due to the use of Nick's method to deploy the contract to the same address on all chains (see [TeleporterMessenger Contract Deployment](https://github.com/ava-labs/icm-services/blob/main/icm-contracts/utils/contract-deployment/README.md) for details), this also means that new release versions would result in different `TeleporterMessenger` contract addresses. Minor and Patch versions may pertain to contract changes that do not change the `TeleporterMessenger` bytecode, or to changes in the test frameworks, and will only be included in tags.
 
 ## Upgradability
 

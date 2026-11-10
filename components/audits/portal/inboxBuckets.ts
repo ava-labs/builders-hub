@@ -7,11 +7,14 @@ export type InboxBucket = "awaiting" | "quoted" | "won" | "closed";
 
 export interface InboxBucketInput {
   window_open: boolean;
-  own_quote: { status: string } | null;
+  /** display_status: the quote as the project reads it (visibility.ts). */
+  own_quote: { status: string; display_status: string } | null;
 }
 
 export function bucketOf(item: InboxBucketInput): InboxBucket {
   if (item.own_quote?.status === "accepted") return "won";
+  // Still stored submitted, but it can no longer be picked.
+  if (item.own_quote?.display_status === "expired") return "closed";
   if (item.own_quote && item.own_quote.status === "submitted" && item.window_open) return "quoted";
   if (item.window_open && !item.own_quote) return "awaiting";
   if (item.own_quote?.status === "submitted") return "quoted";

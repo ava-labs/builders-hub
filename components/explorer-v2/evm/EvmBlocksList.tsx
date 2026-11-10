@@ -4,17 +4,21 @@ import { useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
-import { Board, CellLabel, SectionHeader } from "@/components/explorer-v2/ui";
+import { Board, CellLabel, SectionHeader, feeInk } from "@/components/explorer-v2/ui";
 import { formatNumber, formatTime } from "@/components/explorer-v2/format";
 import { useEvmData, refreshMsForChain } from "./hooks";
 import { useHeadStream, cadence, CONTINUOUS_EXECUTION_CHAINS } from "./useHeadStream";
-import { Belt, MotionRow, Height, GasBar, PhaseTrack, RowSkeleton, ageShort, phaseOf, useFreeze, HEAD, ROW, INK, MUTED } from "./LiveBoards";
+import { Belt, MotionRow, Height, GasBar, PhaseTrack, RowSkeleton, ageShort, phaseOf, useFreeze, useOpening, HEAD, ROW, INK, MUTED } from "./LiveBoards";
+import { ExecutionLanes } from "./ExecutionLanes";
 import { LiveReadoutAt } from "./EvmOverviewStats";
 import { RANGE_DAYS } from "@/components/explorer-v2/time-range";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 import type { BlockListResponse } from "@/lib/evm-explorer";
 import { BlockRangeMap } from "./BlockRangeMap";
 import { readRpc } from "@/lib/explorer-rpc";
+import { BURN_CHAINS } from "@/lib/evm-burn";
+import { formatEther } from "./format";
+import { useBlockBurns } from "./useBlockBurns";
 
 /* The Blocks tab: the chain's pace, then the chain itself. A strip of
    live cadence readings (block time, blocks per minute, TPS, gas per
@@ -32,7 +36,8 @@ export function EvmBlocksList({ network }: { network: string }) {
   const [older, setOlder] = useState(0);
 
   const liveRpc = CONTINUOUS_EXECUTION_CHAINS.has(String(c.chainId)) ? readRpc(c.chainId, c.rpcUrl) : undefined;
-  const head = useHeadStream(liveRpc, { keep: 100, seed: LIVE_ROWS + 1, keepTxs: 0 });
+  // the receipts feed runs for the execution lanes: the blocks they ran in, one per transaction
+  const head = useHeadStream(liveRpc, { keep: 100, keepTxs: 240 });
   const live = head.heads.length > 0;
   const pace = cadence(head.heads, 60_000);
   const tip = head.tip;
@@ -97,10 +102,36 @@ export function EvmBlocksList({ network }: { network: string }) {
   const [hover, setHover] = useState(false);
   const frozen = useFreeze({ rows, tip, executedHeight: head.executedHeight }, hover);
   const shownRows = frozen.rows;
+  // the rows it opens with stand still (a page opened from memory has them at once)
+  const opening = useOpening(shownRows, (b) => String(b.number));
   const showRoot = tip?.settledHeight != null;
+  // the C-Chain burns every fee, tips included, so the burn is the receipts'
+  // sum, asked of the server once per change of the rows in view
+  const showBurn = BURN_CHAINS.has(String(c.chainId));
+  const burnOf = useBlockBurns(showBurn ? c.chainId : undefined, [...shownRows, ...history].map((b) => b.number));
   const cols = showRoot
-    ? "md:grid-cols-[8rem_9rem_3.5rem_minmax(0,1fr)_9rem_3.5rem]"
-    : "md:grid-cols-[8rem_9rem_3.5rem_minmax(0,1fr)_3.5rem]";
+    ? showBurn
+      ? "md:grid-cols-[8rem_9rem_3.5rem_7rem_minmax(0,1fr)_9rem_3.5rem]"
+      : "md:grid-cols-[8rem_9rem_3.5rem_minmax(0,1fr)_9rem_3.5rem]"
+    : showBurn
+      ? "md:grid-cols-[8rem_9rem_3.5rem_7rem_minmax(0,1fr)_3.5rem]"
+      : "md:grid-cols-[8rem_9rem_3.5rem_minmax(0,1fr)_3.5rem]";
+  const sym = c.nativeToken ?? "AVAX";
+  // "…" until the true sum arrives, so no row shows a wrong number; a
+  // failed request leaves the cell empty
+  const burnCell = (n: number) => {
+    const wei = burnOf(n);
+    return (
+      <span className={cn("font-mono text-[12.5px] tabular-nums text-right", feeInk)}>
+        {wei === "loading" && <span className="text-zinc-400 dark:text-zinc-500">…</span>}
+        {typeof wei === "bigint" && (
+          <>
+            {formatEther(wei.toString(), { decimals: 6 })} <span className="text-[11px] text-zinc-400 dark:text-zinc-500">{sym}</span>
+          </>
+        )}
+      </span>
+    );
+  };
 
   const clock = (ms: number, withMs: boolean) => (
     <>
@@ -149,6 +180,13 @@ export function EvmBlocksList({ network }: { network: string }) {
           </section>
         )}
 
+        {live && tip?.settledHeight != null && (
+          <section className="flex flex-col gap-4">
+            <SectionHeader label="Continuous Execution" />
+            <ExecutionLanes heads={head.heads} executedHeight={head.executedHeight} txs={head.streamTxs} live={head.live} base={base} />
+          </section>
+        )}
+
         {rows.length > 1 && (
           <section className="flex flex-col gap-4">
             <SectionHeader label="Block Map" />
@@ -163,6 +201,11 @@ export function EvmBlocksList({ network }: { network: string }) {
               <span>Height</span>
               <span>Time (UTC)</span>
               <span className="text-right">Txs</span>
+              {showBurn && (
+                <span className="text-right" title="Every fee in the block, tips included: the sum of gas used × effective gas price over its receipts. The C-Chain burns all of it.">
+                  Burn
+                </span>
+              )}
               <span>Gas</span>
               {showRoot && (
                 <span title="Every block here is final. Under Continuous Execution the state root is committed by a later block; this column shows whether that has happened yet.">
@@ -179,7 +222,7 @@ export function EvmBlocksList({ network }: { network: string }) {
               ))}
             <Belt rows={live ? LIVE_ROWS : shownRows.length}>
               {shownRows.map((b, i) => (
-                <MotionRow key={b.number} animateIn={live} overflow={i >= LIVE_ROWS}>
+                <MotionRow key={b.number} animateIn={live && !opening.has(String(b.number))} overflow={i >= LIVE_ROWS}>
                   <Link href={`${base}/block/${b.number}`} className={cn(ROW, cols)}>
                     <Height value={b.number} />
                     <span className={cn(MUTED, "text-zinc-500 dark:text-zinc-400")}>
@@ -187,6 +230,7 @@ export function EvmBlocksList({ network }: { network: string }) {
                       {clock(b.timestampMs, live)}
                     </span>
                     <span className={cn(INK, "md:text-right")}>{b.txCount}</span>
+                    {showBurn && burnCell(b.number)}
                     <span className="col-span-2 md:col-span-1">
                       <GasBar used={b.gasUsed} limit={b.gasLimit} />
                     </span>
@@ -211,6 +255,7 @@ export function EvmBlocksList({ network }: { network: string }) {
                 <Height value={b.number} />
                 <span className={cn(MUTED, "text-zinc-500 dark:text-zinc-400")}>{clock(b.timestamp * 1000, false)}</span>
                 <span className={cn(INK, "md:text-right")}>{b.txCount}</span>
+                {showBurn && burnCell(b.number)}
                 <span className="col-span-2 md:col-span-1">
                   <GasBar used={b.gasUsed} limit={b.gasLimit} />
                 </span>

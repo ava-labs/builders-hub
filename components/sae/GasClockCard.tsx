@@ -40,7 +40,7 @@ export function GasClockCard({ colors }: { colors: Colors }) {
           >
             ACP-176
           </Link>
-          {" "}introduced the gas rate R = 30M gas/sec. Continuous Execution uses R to convert gas consumed into elapsed time.
+          {" "}set the gas rate R to 2 × the gas target, which validators vote on. On Mainnet in October 2026, R is 8M gas/sec. Continuous Execution uses R to convert gas consumed into elapsed time.
         </p>
       </div>
       
@@ -113,7 +113,7 @@ export function GasClockCard({ colors }: { colors: Colors }) {
       
       {/* Simple footer */}
       <div className={`text-center text-[10px] ${colors.textMuted} font-mono pt-3 mt-auto`} style={{ borderTop: `1px solid ${colors.stroke}10` }}>
-        R = 30M gas/sec → gas consumed = time elapsed
+        R = 2 × gas target (8M gas/sec on Mainnet) → gas consumed = time elapsed
       </div>
     </div>
   )

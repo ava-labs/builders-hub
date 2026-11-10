@@ -10,6 +10,7 @@ import {
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
+import { Alert } from '@/components/toolbox/components/Alert';
 import { useEERCDeployment } from '@/hooks/eerc/useEERCDeployment';
 import { useEERCBalance } from '@/hooks/eerc/useEERCBalance';
 import { useEERCAuditorAndTokenId } from '@/hooks/eerc/useEERCAuditorAndTokenId';
@@ -23,6 +24,7 @@ import {
 } from '@/lib/eerc/balanceValidation';
 import { EERCToolShell } from './shared/EERCToolShell';
 import { EERCTxLink } from './shared/EERCTxLink';
+import { EmptyBoard, HairlineGrid, INLINE_LINK, ProgressList, Reading, progressFrom } from './shared/ui';
 import { ENCRYPTED_ERC_SOURCES, EERC_COMMIT } from '@/lib/eerc/contractSources';
 import type { ERC20Meta } from '@/lib/eerc/types';
 
@@ -30,11 +32,23 @@ const metadata: ConsoleToolMetadata = {
   title: 'Withdraw from Encrypted ERC',
   description: (
     <>
-      Unwrap your encrypted balance back to the underlying ERC20. The withdrawal amount becomes public (it leaves the
-      encrypted system), but your remaining balance stays private.
+      Turn your encrypted balance back into the underlying ERC20. The amount you withdraw becomes public; what&apos;s
+      left stays private.
     </>
   ),
   toolRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
+};
+
+const WITHDRAW_PHASES = [
+  { key: 'proving', label: 'Generate the withdrawal proof (5–10s)' },
+  { key: 'submitting', label: 'Submit the transaction' },
+  { key: 'confirming', label: 'Wait for confirmation' },
+] as const;
+
+const LOADING_TEXT: Partial<Record<ReturnType<typeof useEERCWithdraw>['status'], string>> = {
+  proving: 'Generating proof…',
+  submitting: 'Submitting…',
+  confirming: 'Confirming…',
 };
 
 function WithdrawBurn() {
@@ -70,12 +84,9 @@ function WithdrawBurn() {
 
   if (!deployment) {
     return (
-      <div className="rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50 p-6 text-sm">
-        <p className="font-medium mb-1 text-zinc-900 dark:text-zinc-100">No converter deployment on this chain.</p>
-        <p className="text-zinc-600 dark:text-zinc-400">
-          Withdraw only applies to converter mode. Switch to Avalanche Fuji to use the canonical converter.
-        </p>
-      </div>
+      <EmptyBoard eyebrow="No converter deployment on this chain">
+        Withdraw only applies to converter mode. Switch to Avalanche Fuji to use the demo converter.
+      </EmptyBoard>
     );
   }
 
@@ -87,6 +98,8 @@ function WithdrawBurn() {
     amountCents = parseEERCAmount(amountText);
     if (amountCents === null) parseError = 'Amount must be positive';
   }
+  const exceedsBalance =
+    amountCents !== null && balance.decryptedCents !== null && amountCents > balance.decryptedCents;
 
   const encBalance = balance.raw
     ? ([balance.raw.eGCT.c1[0], balance.raw.eGCT.c1[1], balance.raw.eGCT.c2[0], balance.raw.eGCT.c2[1]] as [
@@ -107,6 +120,7 @@ function WithdrawBurn() {
     encBalance !== null;
 
   const busy = wd.status === 'proving' || wd.status === 'submitting' || wd.status === 'confirming';
+  const symbol = `e${token?.symbol ?? ''}`;
 
   return (
     <EERCToolShell
@@ -115,123 +129,134 @@ function WithdrawBurn() {
         {
           label: 'withdraw() source',
           href: `https://github.com/ava-labs/EncryptedERC/blob/${EERC_COMMIT}/contracts/EncryptedERC.sol`,
-          icon: <BookOpen className="w-3.5 h-3.5" />,
+          icon: <BookOpen />,
         },
       ]}
     >
-      <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 p-3 flex items-center justify-between">
-        <div className="text-[10px] uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Encrypted balance</div>
-        <div className="font-mono text-sm text-zinc-900 dark:text-zinc-100">
-          {balance.formatted ?? '—'}{' '}
-          <span className="text-zinc-500 dark:text-zinc-400 text-[11px]">e{token?.symbol ?? ''}</span>
-        </div>
-      </div>
+      <HairlineGrid cols={2}>
+        <Reading
+          label="Encrypted balance"
+          value={balance.formatted ?? '—'}
+          unit={symbol}
+          loading={balance.isLoading && balance.formatted === null}
+          sub="Private until withdrawn"
+        />
+        <Reading
+          label="Becomes public"
+          value={amountCents !== null && amountCents > 0n ? Scalar.parseEERCBalance(amountCents) : '—'}
+          unit={symbol}
+          sub={`Returned as ${token?.symbol ?? 'the ERC20'}`}
+        />
+      </HairlineGrid>
 
       {balance.error && (
-        <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/10 p-3 text-xs text-red-700 dark:text-red-400">
+        <Alert variant="error">
           {balance.error}
           {balance.validationError && (
             <>
               {' '}
-              <Link href="/console/encrypted-erc/register" className="underline font-medium">
+              <Link href="/console/encrypted-erc/register" className={INLINE_LINK}>
                 Open Register
               </Link>
               .
             </>
           )}
-        </div>
+        </Alert>
       )}
 
       {!aud.isAuditorSet && !aud.isLoading && (
-        <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/10 p-3 text-xs text-amber-700 dark:text-amber-300">
-          Auditor public key not set — withdrawals will revert. Visit{' '}
-          <Link href="/console/encrypted-erc/deploy/auditor" className="underline font-medium">
+        <Alert variant="warning">
+          The auditor public key isn&apos;t set, so withdrawals will revert. Open{' '}
+          <Link href="/console/encrypted-erc/deploy/auditor" className={INLINE_LINK}>
             Set Auditor
           </Link>{' '}
           first.
-        </div>
+        </Alert>
       )}
 
-      <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 space-y-3">
+      <div className="[&>div]:mb-0">
         <Input
-          label={`Amount to withdraw (e${token?.symbol ?? ''})`}
+          label="Amount to withdraw"
           value={amountText}
           onChange={setAmountText}
           placeholder="0.00"
           type="number"
           step="0.01"
+          unit={symbol}
+          className="font-mono"
+          error={
+            parseError ??
+            (exceedsBalance && balance.decryptedCents !== null
+              ? `Exceeds balance (${Scalar.parseEERCBalance(balance.decryptedCents)}).`
+              : null)
+          }
         />
-        {parseError && <div className="text-[11px] text-red-600 dark:text-red-400">{parseError}</div>}
-        {amountCents !== null && balance.decryptedCents !== null && amountCents > balance.decryptedCents && (
-          <div className="text-[11px] text-red-600 dark:text-red-400">
-            Exceeds balance ({Scalar.parseEERCBalance(balance.decryptedCents)}).
-          </div>
-        )}
-        {wd.error && (
-          <div className="text-[11px] text-red-600 dark:text-red-400">
-            {wd.error}
-            {(wd.error === EERC_BALANCE_PROOF_MISMATCH_MESSAGE || wd.error === EERC_PRIVATE_KEY_INVALID_MESSAGE) && (
-              <>
-                {' '}
-                <Link href="/console/encrypted-erc/register" className="underline font-medium">
-                  Open Register
-                </Link>
-                .
-              </>
-            )}
-            {wd.error === EERC_BALANCE_UNINITIALIZED_MESSAGE && (
-              <>
-                {' '}
-                <Link href="/console/encrypted-erc/deposit" className="underline font-medium">
-                  Open Deposit
-                </Link>
-                .
-              </>
-            )}
-          </div>
-        )}
-        {wd.status === 'success' && wd.txHash && (
-          <div className="text-[11px]">
-            <EERCTxLink chainId={converter.chainId} txHash={wd.txHash}>
-              Withdrawn — {wd.txHash.slice(0, 10)}...
-            </EERCTxLink>
-          </div>
-        )}
-
-        <Button
-          variant="primary"
-          loading={busy}
-          disabled={!canSubmit}
-          onClick={() => {
-            if (
-              !canSubmit ||
-              encBalance === null ||
-              amountCents === null ||
-              balance.decryptedCents === null ||
-              aud.auditorPublicKey === null ||
-              aud.tokenId === null
-            )
-              return;
-            wd.withdraw({
-              amountCents,
-              encryptedBalance: encBalance,
-              decryptedBalance: balance.decryptedCents,
-              auditorPublicKey: aud.auditorPublicKey,
-              tokenId: aud.tokenId,
-            }).catch(() => {
-              /* surfaced via wd.error */
-            });
-          }}
-        >
-          {wd.status === 'proving'
-            ? 'Generating proof (5–10s)...'
-            : wd.status === 'submitting'
-              ? 'Submitting tx...'
-              : wd.status === 'confirming'
-                ? 'Confirming...'
-                : 'Withdraw'}
-        </Button>
       </div>
+
+      {(busy || wd.status === 'success') && (
+        <ProgressList steps={progressFrom(WITHDRAW_PHASES, wd.status, wd.status === 'success')} />
+      )}
+
+      {wd.error && (
+        <Alert variant="error">
+          {wd.error}
+          {(wd.error === EERC_BALANCE_PROOF_MISMATCH_MESSAGE || wd.error === EERC_PRIVATE_KEY_INVALID_MESSAGE) && (
+            <>
+              {' '}
+              <Link href="/console/encrypted-erc/register" className={INLINE_LINK}>
+                Open Register
+              </Link>
+              .
+            </>
+          )}
+          {wd.error === EERC_BALANCE_UNINITIALIZED_MESSAGE && (
+            <>
+              {' '}
+              <Link href="/console/encrypted-erc/deposit" className={INLINE_LINK}>
+                Open Deposit
+              </Link>
+              .
+            </>
+          )}
+        </Alert>
+      )}
+      {wd.status === 'success' && wd.txHash && (
+        <Alert variant="success">
+          Withdrawn.{' '}
+          <EERCTxLink chainId={converter.chainId} txHash={wd.txHash}>
+            {wd.txHash.slice(0, 10)}…
+          </EERCTxLink>
+        </Alert>
+      )}
+
+      <Button
+        variant="primary"
+        loading={busy}
+        loadingText={LOADING_TEXT[wd.status]}
+        disabled={!canSubmit}
+        onClick={() => {
+          if (
+            !canSubmit ||
+            encBalance === null ||
+            amountCents === null ||
+            balance.decryptedCents === null ||
+            aud.auditorPublicKey === null ||
+            aud.tokenId === null
+          )
+            return;
+          wd.withdraw({
+            amountCents,
+            encryptedBalance: encBalance,
+            decryptedBalance: balance.decryptedCents,
+            auditorPublicKey: aud.auditorPublicKey,
+            tokenId: aud.tokenId,
+          }).catch(() => {
+            /* surfaced via wd.error */
+          });
+        }}
+      >
+        Withdraw
+      </Button>
     </EERCToolShell>
   );
 }

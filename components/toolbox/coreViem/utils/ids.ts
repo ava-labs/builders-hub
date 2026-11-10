@@ -1,5 +1,5 @@
 import { fromBytes } from 'viem';
-import { utils } from '@avalabs/avalanchejs';
+import { utils } from '@avalanche-sdk/client/utils';
 
 /**
  * Parses an Avalanche NodeID string to its hex representation without the prefix and checksum

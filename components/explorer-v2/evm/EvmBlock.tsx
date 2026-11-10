@@ -5,15 +5,16 @@ import Link from "next/link";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
-import { Board, CellLabel, DetailSkeleton, HashChip, SectionHeader, SpecLine, SpecSheet, SubjectHeadline, HEAD, ROW, UNIT, INK, idInk, fnInk, feeInk, RowDoor } from "@/components/explorer-v2/ui";
+import { Board, CellLabel, DetailSkeleton, HashChip, SectionHeader, SpecLine, SpecSheet, SubjectHeadline, HEAD, ROW, UNIT, idInk, fnInk, feeInk, RowDoor } from "@/components/explorer-v2/ui";
 import { formatNumber, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { formatEther, formatNano } from "./format";
 import { FeedDown, useMethodNames } from "./bits";
 import { useEvmData, usePrice, usdOfWei } from "./hooks";
-import { NotFound, RailRow } from "./EvmTx";
+import { NotFound, RailRow } from "@/components/explorer-v2/detail-parts";
 import { PhaseTrack } from "./LiveBoards";
 import { useBlockLifecycle } from "./useBlockLifecycle";
 import { useRpcBlock } from "./useRpcBlock";
+import { useBlockBurns } from "./useBlockBurns";
 import { CONTINUOUS_EXECUTION_CHAINS } from "./useHeadStream";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 import { knownAddress, type BlockDetail } from "@/lib/evm-explorer";
@@ -109,7 +110,7 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
   // a segment and its row lights up, pick a group and the table narrows
   const [hover, setHover] = useState<string | null>(null);
   const [filter, setFilter] = useState<Set<string> | null>(null);
-  const nameOf = (addr: string) => tokens.get(addr.toLowerCase())?.symbol;
+  const nameOf = (addr: string) => tokens.get(addr.toLowerCase())?.symbol ?? knownAddress(addr, c.chainId)?.label;
   const shownTxs = b ? (filter ? b.transactions.filter((t) => filter.has(t.hash)) : b.transactions) : [];
   const burn = b ? knownAddress(b.miner) : undefined;
   const gasPct = b && b.gasLimit > 0 ? (b.gasUsed / b.gasLimit) * 100 : 0;
@@ -118,17 +119,24 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
   // the C-Chain burns every fee; sovereign L1s choose their own destination
   const burnsFees = String(c.chainId) === "43114" || String(c.chainId) === "43113";
 
-  // what the block cost, in the token and in dollars. Receipts give the
-  // exact sum (RPC path); the indexer path only knows gas × base fee,
-  // which on the C-Chain is the burn floor, so it is marked as such. Since
-  // Helicon the header's gasUsed is gas reserved, so use charged gas.
+  // what the block cost, in the token and in dollars. On the C-Chain the
+  // burn route's receipt sum, the same number the blocks list shows, and
+  // "…" until it arrives. Elsewhere, or if that route fails, the receipts
+  // on hand (RPC path); the indexer path only knows gas × base fee, the
+  // burn floor, so it is marked as such. Since Helicon the header's
+  // gasUsed is gas reserved, so use charged gas.
   const { price } = usePrice(c.chainId);
   const usd = price?.price ?? null;
-  const exactFees = b && b.transactions.length > 0 && b.transactions.every((t) => t.feeWei);
+  const burnOf = useBlockBurns(burnsFees ? c.chainId : undefined, b ? [b.number] : []);
+  const routeBurn = b ? burnOf(b.number) : undefined;
+  const burnPending = routeBurn === "loading";
+  const exactFees = typeof routeBurn === "bigint" || (b && b.transactions.length > 0 && b.transactions.every((t) => t.feeWei));
   const feesWei = b
-    ? exactFees
-      ? b.transactions.reduce((acc, t) => acc + BigInt(t.feeWei!), 0n)
-      : BigInt(chargedGas) * BigInt(b.baseFeePerGas || "0")
+    ? typeof routeBurn === "bigint"
+      ? routeBurn
+      : exactFees
+        ? b.transactions.reduce((acc, t) => acc + BigInt(t.feeWei!), 0n)
+        : BigInt(chargedGas) * BigInt(b.baseFeePerGas || "0")
     : 0n;
 
   return (
@@ -244,7 +252,7 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
                     {life.ready ? (
                       <span className="flex items-center gap-2.5">
                         <PhaseTrack phase={life.phase} label={false} />
-                        {life.settledBy ? `#${formatNumber(life.settledBy)}` : <span className="text-zinc-400 dark:text-zinc-500">pending</span>}
+                        {life.settledBy ? `#${formatNumber(life.settledBy)}` : <span className="text-zinc-400 dark:text-zinc-500">accepted</span>}
                       </span>
                     ) : (
                       "…"
@@ -262,7 +270,7 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
                   label={burnsFees ? "Fees Burned" : "Fees Paid"}
                   href={`${base}/gas`}
                   sub={
-                    feesWei > 0n ? (
+                    !burnPending && feesWei > 0n ? (
                       <>
                         {usdOfWei(feesWei, usd) ?? ""}
                         {!exactFees && b.transactions.length > 0 && (
@@ -272,7 +280,13 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
                     ) : undefined
                   }
                 >
-                  <span className={feeInk}>{formatEther(feesWei.toString(), { decimals: feesWei >= 10n ** 18n ? 3 : 5 })}</span> <span className={UNIT}>{sym}</span>
+                  {burnPending ? (
+                    "…"
+                  ) : (
+                    <>
+                      <span className={feeInk}>{formatEther(feesWei.toString(), { decimals: feesWei >= 10n ** 18n ? 3 : 5 })}</span> <span className={UNIT}>{sym}</span>
+                    </>
+                  )}
                 </RailRow>
                 <RailRow label="Base Fee" href={`${base}/gas/base-fee`}>
                   {b.baseFeePerGas && b.baseFeePerGas !== "0" ? formatNano(b.baseFeePerGas, sym) : "—"}
@@ -354,7 +368,8 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
                     </span>
                     <span className="col-span-2 flex min-w-0 items-center gap-1.5 font-mono text-[12px] text-zinc-500 md:col-span-1 dark:text-zinc-400">
                       <CellLabel>From → To</CellLabel>
-                      <span className="truncate">{truncate(t.from, 8)}</span>
+                      {/* the sender's column holds its 13 characters in every row, so the arrows and recipients line up */}
+                      <span className="w-[13ch] shrink-0 truncate">{truncate(t.from, 8)}</span>
                       <span className="shrink-0 text-zinc-300 dark:text-zinc-700">→</span>
                       {t.to && tokens.get(t.to.toLowerCase()) ? (
                         <TokenMark address={t.to} chainId={c.chainId} token={tokens.get(t.to.toLowerCase())!} size={14} />

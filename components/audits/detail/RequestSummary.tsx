@@ -1,6 +1,6 @@
 import type { OwnerRequestDetail } from "@/server/services/audits/visibility";
 import { DEPLOYMENT_TARGET_LABELS, URGENCY_LABELS } from "@/lib/audits/constants";
-import type { DeploymentTarget, UrgencyOption } from "@/lib/audits/status";
+import { formatUtcDeadline, type DeploymentTarget, type UrgencyOption } from "@/lib/audits/status";
 import { CARD, MONO_LABEL_SM } from "@/components/audits/shared/classes";
 import { formatIsoDate, lowerFirst } from "@/components/audits/shared/format";
 import { toAttachmentLinks } from "@/lib/audits/attachments";
@@ -15,6 +15,19 @@ function SummaryRow({ label, children }: { label: string; children: React.ReactN
   );
 }
 
+/** The contact fields the project shared with the firms at submit, named in
+    one line. A share counts only while its field still holds a value. */
+function sharedMarker(detail: OwnerRequestDetail): string | null {
+  const handle = Boolean(detail.contact_handle && detail.contact_handle_shared_at);
+  const calendar = Boolean(detail.contact_calendar_url && detail.contact_calendar_shared_at);
+  if (handle && calendar) {
+    return "Telegram and calendar link shared with the firms that receive this request";
+  }
+  if (handle) return "Telegram shared with the firms that receive this request";
+  if (calendar) return "Calendar link shared with the firms that receive this request";
+  return null;
+}
+
 /** What was sent to the firms, so the request page answers its own questions. */
 export function RequestSummary({ detail }: { detail: OwnerRequestDetail }) {
   const repos = parseRepos(detail.repos);
@@ -27,11 +40,13 @@ export function RequestSummary({ detail }: { detail: OwnerRequestDetail }) {
     : null;
   const timeline = [
     ...(detail.needed_by ? [`needed by ${formatIsoDate(detail.needed_by)}`] : []),
-    ...(detail.quote_deadline ? [`quotes close ${formatIsoDate(detail.quote_deadline)}`] : []),
+    ...(detail.quote_deadline ? [`quotes close ${formatUtcDeadline(detail.quote_deadline)}`] : []),
     ...(detail.urgency
       ? [lowerFirst(URGENCY_LABELS[detail.urgency as UrgencyOption] ?? "")]
       : []),
   ].filter(Boolean);
+
+  const shared = sharedMarker(detail);
 
   // narrowed = the project chose a subset (spec 7.2.5); the Firms row is
   // pre-approval only, after which the delivery rows speak.
@@ -109,7 +124,12 @@ export function RequestSummary({ detail }: { detail: OwnerRequestDetail }) {
             ))}
             {attachments.map((attachment) => (
               <li key={attachment.href} className="font-mono text-xs">
-                <a href={attachment.href} rel="noreferrer" className="underline underline-offset-2">
+                <a
+                  href={attachment.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline underline-offset-2"
+                >
                   {attachment.name}
                 </a>
               </li>
@@ -127,6 +147,9 @@ export function RequestSummary({ detail }: { detail: OwnerRequestDetail }) {
         {[detail.contact_name, detail.contact_email, detail.contact_handle]
           .filter(Boolean)
           .join(" · ")}
+        {/* The Telegram and calendar shares, recorded at submit, in every
+            status: firms that received the request may still hold them. */}
+        {shared ? <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{shared}</p> : null}
       </SummaryRow>
     </div>
   );

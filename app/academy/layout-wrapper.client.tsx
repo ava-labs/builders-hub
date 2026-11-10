@@ -3,13 +3,18 @@
 import { DocsLayout, type DocsLayoutProps } from 'fumadocs-ui/layouts/notebook';
 import type { ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
-import { useMemo } from 'react';
+import { createElement, useMemo } from 'react';
 import { NavbarDropdownInjector } from '@/components/navigation/navbar-dropdown-injector';
 import { ForceMobileSidebar } from '@/components/navigation/force-mobile-sidebar';
 import { DocsNavbarToggle } from '@/components/navigation/docs-navbar-toggle';
 import { AcademyLayoutClient } from './layout.client';
-import { AcademyBubbleNav } from '@/components/academy/shared/academy-bubble-nav';
 import { DecorativeGrid } from '@/components/ui/decorative-grid';
+import { withModuleNumbers } from '@/components/academy/sidebar/module-numbers';
+import { RevealActiveSidebarItem } from '@/components/academy/sidebar/reveal-active-sidebar-item';
+import { useMediaQuery } from 'fumadocs-core/utils/use-media-query';
+import { AcademySubNav, partMenu } from '@/components/academy/course/academy-subnav';
+import { COURSE_ICONS } from '@/components/academy/course/course-icons';
+import { academyCourseOfPathname } from '@/lib/academy/academy-programme';
 
 type Tree = DocsLayoutProps['tree'];
 
@@ -18,7 +23,6 @@ interface AcademyDocsLayoutWrapperProps {
     defaultTree: Tree;
     avalancheTree: Tree;
     blockchainTree: Tree;
-    entrepreneurTree: Tree;
     team1Tree: Tree;
 }
 
@@ -27,15 +31,11 @@ export function AcademyDocsLayoutWrapper({
     defaultTree,
     avalancheTree,
     blockchainTree,
-    entrepreneurTree,
     team1Tree,
 }: AcademyDocsLayoutWrapperProps) {
     const pathname = usePathname();
 
     const activeTree = useMemo(() => {
-        if (pathname.startsWith('/academy/entrepreneur')) {
-            return entrepreneurTree ?? defaultTree;
-        }
         if (pathname.startsWith('/academy/blockchain')) {
             return blockchainTree ?? defaultTree;
         }
@@ -46,28 +46,52 @@ export function AcademyDocsLayoutWrapper({
             return avalancheTree ?? defaultTree;
         }
         return defaultTree;
-    }, [pathname, defaultTree, avalancheTree, blockchainTree, entrepreneurTree, team1Tree]);
+    }, [pathname, defaultTree, avalancheTree, blockchainTree, team1Tree]);
+
+    // Below 1024 px the Academy shows fumadocs' drawer (components/navigation/force-mobile-sidebar.tsx).
+    const inDrawer = useMediaQuery('(max-width: 1023px)') === true;
+    const part = academyCourseOfPathname(pathname)?.part ?? null;
 
     const academyOptions: DocsLayoutProps = useMemo(
         () => ({
-            tree: activeTree,
+            tree: withModuleNumbers(activeTree),
             nav: {
                 enabled: false,
             },
             sidebar: {
                 collapsible: false,
+                // The sub-nav picks the part, so the desktop sidebar has no course dropdown; the drawer lists the
+                // current part's courses, as the docs drawer lists a section's pages
+                // (app/docs/docs-layout-wrapper.tsx:111-112).
+                // The sidebar names no course: it starts with the course's welcome page, under the part sub-nav.
+                // Pages outside the 13 (the Team1 courses) keep fumadocs' default course dropdown.
+                tabs: part
+                    ? inDrawer
+                        ? partMenu(part).map((item) => ({
+                              title: item.title,
+                              // The course's own icon at the docs config's icon size
+                              // (components/navigation/docs-nav-config.tsx:35): nothing in fumadocs sizes it.
+                              icon: createElement(COURSE_ICONS[item.id], { className: 'w-5 h-5' }),
+                              // The popover renders outside the Academy root (portalled to body), so the line
+                              // carries its own Academy scope for the tokens, as the landing's hover card does.
+                              description: <span data-academy="docs" className="text-ac-ink-3">{item.line}</span>,
+                              url: item.url,
+                          }))
+                        : false
+                    : undefined,
             },
         }),
-        [activeTree],
+        [activeTree, inDrawer, part],
     );
 
     return (
-        <div data-route-layout="academy">
+        <div data-route-layout="academy" data-academy="docs">
             <NavbarDropdownInjector />
             <ForceMobileSidebar />
             <AcademyLayoutClient />
             <DocsNavbarToggle />
-            <AcademyBubbleNav />
+            <AcademySubNav />
+            <RevealActiveSidebarItem />
             <DocsLayout {...academyOptions}>
                 {/*<span
                     className="absolute inset-0 z-[-1] h-[64rem] max-h-screen overflow-hidden"

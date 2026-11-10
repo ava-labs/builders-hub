@@ -1,0 +1,108 @@
+{
+  "schemaVersion": "trace-1",
+  "createdAt": "2026-10-05T03:25:04.974Z",
+  "payload": {
+    "actions": [
+      {
+        "name": "hover",
+        "summary": "hover over link \"Applications\"",
+        "target": {
+          "role": "link",
+          "name": "Applications"
+        }
+      },
+      {
+        "name": "tap",
+        "summary": "tap link \"Intro to Solidity Learn Solidity basics…\"",
+        "target": {
+          "role": "link",
+          "name": "Intro to Solidity Learn Solidity basics with Foundry 30 lessons · 1 h"
+        }
+      }
+    ],
+    "executor": {
+      "name": "e2e-default-agent",
+      "version": "2"
+    },
+    "recordedFor": {
+      "testId": "ai/journey-academy.e2e.ts::learner%20moves%20from%20Avalanche%20Fundamentals%20to%20Intro%20to%20Solidity%20with%20the%20part%20bar",
+      "targetId": "desktop",
+      "instructionDigest": "38df51022c7c6dbcc6f3064cba7fdda69bd0c2d3c0839673c51069cf73e09fbe",
+      "paramsDigest": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "callIndex": 0,
+      "agent": "default"
+    },
+    "summary": "Hovering Applications opened a card with Intro to Solidity, x402 Payments and Encrypted ERC. I tapped Intro to Solidity and landed on /academy/blockchain/solidity-foundry (\"Welcome to the course\").",
+    "startPath": "/academy/avalanche-l1/avalanche-fundamentals",
+    "endPath": "/academy/blockchain/solidity-foundry",
+    "endAnchors": [
+      {
+        "role": "link",
+        "name": "Welcome to the course"
+      },
+      {
+        "role": "link",
+        "name": "Avalanche Starter Kit"
+      },
+      {
+        "role": "link",
+        "name": "Set Up Avalanche Starter Kit"
+      },
+      {
+        "role": "link",
+        "name": "Close and Reopen Codespace"
+      },
+      {
+        "role": "link",
+        "name": "Networks"
+      },
+      {
+        "role": "link",
+        "name": "Pause and Resume"
+      },
+      {
+        "role": "link",
+        "name": "Building Programs on Blockchain"
+      },
+      {
+        "role": "link",
+        "name": "What is Solidity"
+      }
+    ],
+    "goneAnchors": [
+      {
+        "role": "link",
+        "name": "Welcome to the Course"
+      },
+      {
+        "role": "link",
+        "name": "Avalanche Consensus"
+      },
+      {
+        "role": "link",
+        "name": "Consensus Mechanisms"
+      },
+      {
+        "role": "link",
+        "name": "Snowman Consensus"
+      },
+      {
+        "role": "link",
+        "name": "Throughput vs. Time to Finality"
+      },
+      {
+        "role": "link",
+        "name": "Multi-Chain Architecture"
+      },
+      {
+        "role": "link",
+        "name": "The Primary Network"
+      },
+      {
+        "role": "link",
+        "name": "Avalanche L1s"
+      }
+    ],
+    "endWaitMs": 12395
+  }
+}

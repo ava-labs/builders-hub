@@ -161,48 +161,56 @@ export function StorageRequirements({
     return d;
   };
 
+  const tone = isArchival ? '#E6212F' : 'currentColor';
+  const reference = isArchival ? prunedRef : archivalRef;
+
   return (
-    <div className="border rounded-lg bg-white dark:bg-zinc-950 overflow-hidden mt-4">
-      <div className="border-b px-4 py-3 bg-zinc-50 dark:bg-zinc-900/50">
-        <h4 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Storage Requirements</h4>
+    <div className="mt-4 border border-zinc-200 bg-white/80 dark:border-zinc-800 dark:bg-zinc-950/80">
+      <div className="flex min-h-9 items-center justify-between gap-4 border-b border-zinc-200 bg-zinc-50/80 px-4 py-2 dark:border-zinc-800 dark:bg-zinc-900/40">
+        <h4 className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">
+          Storage Requirements
+        </h4>
+        <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+          {network === 'fuji' ? 'Fuji' : 'Mainnet'} · estimate
+        </span>
       </div>
 
-      <div className="p-4 space-y-5">
-        {/* Stats row */}
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-3xl font-semibold text-zinc-900 dark:text-zinc-100">
-              {formatStorage(estimate.initial)}
-            </div>
-            <div className="text-xs text-zinc-500">Initial</div>
-          </div>
-          <div className="text-right">
-            <div className="text-lg text-zinc-600 dark:text-zinc-400">
-              +{formatStorage(estimate.monthlyGrowth)}
-              <span className="text-xs text-zinc-400">/mo</span>
-            </div>
-            <div className="text-xs text-zinc-500">→ {formatStorage(estimate.oneYearTotal)} after 1 year</div>
-          </div>
+      <dl className="grid grid-cols-3 divide-x divide-zinc-200 border-b border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
+        <div className="flex flex-col gap-1 px-4 py-3">
+          <dt className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+            Initial
+          </dt>
+          <dd className="font-mono text-lg tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50">
+            {formatStorage(estimate.initial)}
+          </dd>
         </div>
+        <div className="flex flex-col gap-1 px-4 py-3">
+          <dt className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+            Growth
+          </dt>
+          <dd className="font-mono text-lg tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50">
+            +{formatStorage(estimate.monthlyGrowth)}
+            <span className="text-sm font-normal text-zinc-400 dark:text-zinc-500">/mo</span>
+          </dd>
+        </div>
+        <div className="flex flex-col gap-1 px-4 py-3">
+          <dt className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+            After 1 yr
+          </dt>
+          <dd className="font-mono text-lg tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50">
+            {formatStorage(estimate.oneYearTotal)}
+          </dd>
+        </div>
+      </dl>
 
+      <div className="flex flex-col gap-3 px-4 py-4">
         {/* Chart */}
-        <div className="relative h-32">
-          <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <defs>
-              <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor={isArchival ? '#ef4444' : '#3b82f6'} stopOpacity="0.2" />
-                <stop offset="100%" stopColor={isArchival ? '#ef4444' : '#3b82f6'} stopOpacity="0.02" />
-              </linearGradient>
-              <linearGradient id="refGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#a1a1aa" stopOpacity="0.1" />
-                <stop offset="100%" stopColor="#a1a1aa" stopOpacity="0.02" />
-              </linearGradient>
-            </defs>
-
+        <div className="relative h-32 text-zinc-900 dark:text-zinc-100">
+          <svg className="h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden>
             {/* Reference line (archival if pruned, pruned if archival) */}
-            <path d={generateArea(isArchival ? prunedRef : archivalRef)} fill="url(#refGradient)" />
+            <path d={generateArea(reference)} fill="#a1a1aa" fillOpacity="0.06" />
             <path
-              d={generatePath(isArchival ? prunedRef : archivalRef)}
+              d={generatePath(reference)}
               fill="none"
               stroke="#a1a1aa"
               strokeWidth="1"
@@ -211,24 +219,24 @@ export function StorageRequirements({
             />
 
             {/* Current config */}
-            <path d={generateArea(estimate)} fill="url(#areaGradient)" />
+            <path d={generateArea(estimate)} fill={tone} fillOpacity="0.08" />
             <path
               d={generatePath(estimate)}
               fill="none"
-              stroke={isArchival ? '#ef4444' : '#3b82f6'}
-              strokeWidth="2"
+              stroke={tone}
+              strokeWidth="1.5"
               vectorEffect="non-scaling-stroke"
             />
           </svg>
 
           {/* Y-axis labels */}
-          <div className="absolute left-0 top-0 bottom-0 flex flex-col justify-between text-[10px] text-zinc-400 pointer-events-none">
+          <div className="pointer-events-none absolute bottom-0 left-0 top-0 flex flex-col justify-between font-mono text-[10px] tabular-nums text-zinc-400">
             <span>{formatStorage(maxStorage)}</span>
             <span>0</span>
           </div>
 
           {/* X-axis labels */}
-          <div className="absolute left-6 right-0 bottom-0 flex justify-between text-[10px] text-zinc-400 pointer-events-none">
+          <div className="pointer-events-none absolute bottom-0 left-6 right-0 flex justify-between font-mono text-[10px] text-zinc-400">
             <span>Now</span>
             <span>6mo</span>
             <span>1yr</span>
@@ -236,58 +244,45 @@ export function StorageRequirements({
         </div>
 
         {/* Legend */}
-        <div className="flex items-center gap-4 text-xs">
+        <div className="flex items-center gap-4 font-mono text-[10px] uppercase tracking-[0.12em]">
           <div className="flex items-center gap-1.5">
-            <div className={`w-3 h-0.5 rounded-full ${isArchival ? 'bg-red-500' : 'bg-blue-500'}`} />
+            <span className={`h-0.5 w-3 ${isArchival ? 'bg-[#E6212F]' : 'bg-zinc-900 dark:bg-zinc-100'}`} aria-hidden />
             <span className="text-zinc-600 dark:text-zinc-400">Your config</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div
-              className="w-3 h-0.5 rounded-full bg-zinc-400"
-              style={{
-                backgroundImage:
-                  'repeating-linear-gradient(90deg, #a1a1aa 0, #a1a1aa 2px, transparent 2px, transparent 4px)',
-              }}
-            />
-            <span className="text-zinc-400">
-              {isArchival ? 'Pruned' : 'Archival'} (
-              {formatStorage(isArchival ? prunedRef.oneYearTotal : archivalRef.oneYearTotal)})
+            <span className="w-3 border-t border-dashed border-zinc-400" aria-hidden />
+            <span className="tabular-nums text-zinc-400">
+              {isArchival ? 'Pruned' : 'Archival'} ({formatStorage(reference.oneYearTotal)})
             </span>
           </div>
         </div>
+      </div>
 
-        {/* Tags */}
-        <div className="flex flex-wrap gap-1.5 pt-2 border-t border-zinc-100 dark:border-zinc-800">
-          <span
-            className={`px-2 py-0.5 rounded text-[10px] font-medium ${
-              pruningEnabled
-                ? 'bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-400'
-                : 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400'
-            }`}
-          >
-            {pruningEnabled ? 'Pruning ON' : 'Pruning OFF'}
-          </span>
-          <span
-            className={`px-2 py-0.5 rounded text-[10px] font-medium ${
-              stateSyncEnabled
-                ? 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-400'
-                : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400'
-            }`}
-          >
-            {stateSyncEnabled ? 'State Sync' : 'Full Replay'}
-          </span>
-          {!skipTxIndexing && (
-            <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
-              TX Index
-            </span>
-          )}
-          {debugEnabled && (
-            <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400">
-              Debug +20%
-            </span>
-          )}
-        </div>
+      {/* Tags */}
+      <div className="flex flex-wrap gap-1.5 border-t border-zinc-200 px-4 py-3 dark:border-zinc-800">
+        <Tag tone={pruningEnabled ? 'ok' : 'bad'}>{pruningEnabled ? 'Pruning ON' : 'Pruning OFF'}</Tag>
+        <Tag tone={stateSyncEnabled ? 'ink' : 'muted'}>{stateSyncEnabled ? 'State Sync' : 'Full Replay'}</Tag>
+        {!skipTxIndexing && <Tag tone="muted">TX Index</Tag>}
+        {debugEnabled && <Tag tone="warn">Debug +20%</Tag>}
       </div>
     </div>
+  );
+}
+
+const TAG_TONES = {
+  ok: 'border-emerald-300 text-emerald-700 dark:border-emerald-900 dark:text-emerald-400',
+  bad: 'border-red-300 text-red-700 dark:border-red-900 dark:text-red-400',
+  warn: 'border-amber-300 text-amber-700 dark:border-amber-900 dark:text-amber-400',
+  ink: 'border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-100',
+  muted: 'border-zinc-300 text-zinc-500 dark:border-zinc-700 dark:text-zinc-400',
+} as const;
+
+function Tag({ tone, children }: { tone: keyof typeof TAG_TONES; children: React.ReactNode }) {
+  return (
+    <span
+      className={`border px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.12em] ${TAG_TONES[tone]}`}
+    >
+      {children}
+    </span>
   );
 }

@@ -32,6 +32,7 @@ type AccessibleState interface {
     GetStateDB() StateDB
     GetBlockContext() BlockContext
     GetSnowContext() *snow.Context
+    GetRules() precompileconfig.Rules
 }
 ```
 
@@ -57,26 +58,29 @@ type Hash [HashLength]byte
 
 // Example of a data encoded in a Hash: 
 // 0x00000000000000000000000000000000000000000048656c6c6f20576f726c64
-Below is the interface of StateDB:
+```
+
+Below is the interface of `StateDB`:
+
+```go
 // StateDB is the interface for accessing EVM state
 type StateDB interface {
-    GetState(common.Address, common.Hash) common.Hash
-    SetState(common.Address, common.Hash, common.Hash)
+    GetState(common.Address, common.Hash, ...stateconf.StateDBStateOption) common.Hash
+    SetState(common.Address, common.Hash, common.Hash, ...stateconf.StateDBStateOption)
 
     SetNonce(common.Address, uint64)
     GetNonce(common.Address) uint64
 
-    GetBalance(common.Address) *big.Int
-    AddBalance(common.Address, *big.Int)
+    GetBalance(common.Address) *uint256.Int
+    AddBalance(common.Address, *uint256.Int)
 
     CreateAccount(common.Address)
     Exist(common.Address) bool
 
-    AddLog(addr common.Address, topics []common.Hash, data []byte, blockNumber uint64)
-    GetPredicateStorageSlots(address common.Address) ([]byte, bool)
+    AddLog(*ethtypes.Log)
+    GetPredicate(address common.Address, index int) (predicate.Predicate, bool)
 
-    Suicide(common.Address) bool
-    Finalise(deleteEmptyObjects bool)
+    TxHash() common.Hash
 
     Snapshot() int
     RevertToSnapshot(int)
@@ -88,18 +92,24 @@ As you can see in the interface of the **StateDB**, the two functions for writin
 1. The function **GetState** takes an address and a Hash (the storage key) as inputs and returns the Hash stored at that slot.
 2. The function **SetState** takes an address, a Hash (the storage key), and another Hash (data to be stored) as inputs.
 
-We can also see that the **StateDB** interface allows us to read and write account balances of the native token (via GetBalance/SetBalance), check whether an account exists (via Exist), and some other methods.
+We can also see that the **StateDB** interface allows us to read and write account balances of the native token (via GetBalance and AddBalance), check whether an account exists (via Exist), and some other methods.
 
 ## BlockContext
 
 `BlockContext` provides info about the current block. In particular, we can get the current block number and the current block timestamp. Below is the interface of `BlockContext`:
 
 ```go
-// BlockContext defines an interface that provides information to a stateful precompile about the current block.
-// The BlockContext may be provided during both precompile activation and execution.
-type BlockContext interface {
+// ConfigurationBlockContext defines the interface required to configure a precompile.
+type ConfigurationBlockContext interface {
     Number() *big.Int
-    Timestamp() *big.Int
+    Timestamp() uint64
+}
+
+type BlockContext interface {
+    ConfigurationBlockContext
+    // GetPredicateResults returns the result of verifying the predicates of the
+    // given transaction, precompile address pair.
+    GetPredicateResults(txHash common.Hash, precompileAddress common.Address) set.Bits
 }
 ```
 
@@ -115,11 +125,12 @@ An example of how we could leverage `BlockContext` in precompiles: *building a v
 // [ChainID] is the ID of the chain this context exists within.
 // [NodeID] is the ID of this node
 type Context struct {
-    NetworkID uint32
-    Avalanche L1ID  ids.ID
-    ChainID   ids.ID
-    NodeID    ids.NodeID
-    PublicKey *bls.PublicKey
+    NetworkID       uint32
+    SubnetID        ids.ID
+    ChainID         ids.ID
+    NodeID          ids.NodeID
+    PublicKey       *bls.PublicKey
+    NetworkUpgrades upgrade.Config
 
     XChainID    ids.ID
     CChainID    ids.ID
@@ -127,10 +138,9 @@ type Context struct {
 
     Log          logging.Logger
     Lock         sync.RWMutex
-    Keystore     keystore.BlockchainKeystore
     SharedMemory atomic.SharedMemory
     BCLookup     ids.AliaserReader
-    Metrics      metrics.OptionalGatherer
+    Metrics      metrics.MultiGatherer
 
     WarpSigner warp.Signer
 

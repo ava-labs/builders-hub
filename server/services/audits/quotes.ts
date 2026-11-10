@@ -45,7 +45,8 @@ export async function upsertOwnQuote(
   const existing = await getOwnQuote(auditor.id, requestId);
   const data = {
     price_usd: input.price_usd,
-    duration_weeks: input.duration_weeks,
+    duration: input.duration,
+    duration_unit: input.duration_unit,
     earliest_start: input.earliest_start,
     message: input.message,
     deal_doc_url: input.deal_doc_url ?? null,

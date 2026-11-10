@@ -2,8 +2,11 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/prisma/prisma";
 import { auditSubmitSchema } from "@/types/audits";
 import { QUOTE_DEADLINE_DEFAULT_DAYS } from "@/lib/audits/constants";
+import { endOfUtcDay } from "@/lib/audits/status";
 import { sendFanoutNotification } from "@/server/services/audits/emails/sendFanoutNotification";
 import type { FanoutRequest } from "@/server/services/audits/emails/sendFanoutNotification";
+import { sendApprovalNotice } from "@/server/services/audits/emails/sendApprovalNotice";
+import { getApprovalNotice } from "@/server/services/audits/visibility";
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -120,6 +123,8 @@ export function toFanoutRequest(row: FanoutRow): FanoutRequest {
 export async function submitRequestForReview(
   requestId: string,
   userId: string,
+  shareContactHandle = false,
+  shareCalendar = false,
 ): Promise<SubmitResult> {
   const outcome = await prisma.$transaction(async (tx): Promise<SubmitOutcome> => {
     // Owner + draft pinned in the where clause: nobody submits someone
@@ -142,6 +147,14 @@ export async function submitRequestForReview(
         submitted_at: new Date(),
         // Consent is given by sending, so it carries the submission time.
         contact_consent_at: new Date(),
+        // The Telegram share is chosen at sending too, and needs a handle on
+        // the stored row. Null otherwise, so a resubmit without the tick
+        // clears the stamp of an earlier submit.
+        contact_handle_shared_at:
+          shareContactHandle && row.contact_handle?.trim() ? new Date() : null,
+        // The calendar share likewise, with a link that passed the gate above.
+        contact_calendar_shared_at:
+          shareCalendar && parsed.data.contact_calendar_url ? new Date() : null,
         // Store the normalized values the gate produced, not the raw draft:
         // the email lowercased, and the URLs with their scheme filled in, so
         // a bare "avax.network" is not what firms end up clicking.
@@ -172,11 +185,27 @@ export async function submitRequestForReview(
 }
 
 /**
+ * The project's one email at approval (FDE-249 step 2), sent only when the
+ * request reached a firm. It runs before the firm mail, whose delivery-row
+ * updates can throw after the commit, so they can never skip it, and it never
+ * throws itself: like every send here, a failure must not undo the approval.
+ */
+async function notifyProjectOfApproval(requestId: string): Promise<void> {
+  try {
+    const notice = await getApprovalNotice(requestId);
+    if (notice && notice.firms.length > 0) await sendApprovalNotice(notice);
+  } catch (err) {
+    console.error("[Audits] approval notice failed:", err);
+  }
+}
+
+/**
  * The admin decision that actually opens a request to the market: flip to
  * collecting, START the quote window here (board B-4), create one delivery
- * per ACTIVE firm, then email AFTER commit. An email failure NEVER fails the
- * approval: it degrades that delivery to email_status "failed", visible in
- * the drill-down. Quotes are not pre-created; auditors create their own.
+ * per ACTIVE firm, then email AFTER commit: the project first (its approval
+ * notice), then every firm. An email failure NEVER fails the approval: a
+ * firm's degrades that delivery to email_status "failed", visible in the
+ * drill-down. Quotes are not pre-created; auditors create their own.
  */
 export async function approveRequestAndFanout(
   requestId: string,
@@ -192,8 +221,11 @@ export async function approveRequestAndFanout(
     });
     if (!row) return { kind: "not_found" };
 
-    const quote_deadline =
-      row.quote_deadline ?? new Date(Date.now() + QUOTE_DEADLINE_DEFAULT_DAYS * DAY);
+    // 23:59 UTC of the window's date (call C3): a picked day, the +10 day
+    // default and a draft saved before the rule all close at the same moment.
+    const quote_deadline = endOfUtcDay(
+      row.quote_deadline ?? new Date(Date.now() + QUOTE_DEADLINE_DEFAULT_DAYS * DAY),
+    );
 
     await tx.auditRequest.update({
       where: { id: row.id, status: "pending_review" },
@@ -245,6 +277,7 @@ export async function approveRequestAndFanout(
 
   if (outcome.kind === "not_found") return { success: false, code: "not_found" };
 
+  await notifyProjectOfApproval(requestId);
   const { emailFailures } = await deliverFanoutEmails(requestId, outcome.auditors, outcome.request);
   return { success: true, auditorCount: outcome.auditors.length, emailFailures };
 }

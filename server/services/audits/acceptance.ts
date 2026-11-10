@@ -1,4 +1,5 @@
 import { prisma } from "@/prisma/prisma";
+import { oldestAcceptableQuoteDeadline } from "@/lib/audits/status";
 import { logAuditEvent } from "@/server/services/audits/events";
 import { getAcceptanceParticipants } from "@/server/services/audits/visibility";
 import { firmContact } from "@/server/services/audits/emails/recipients";
@@ -13,11 +14,11 @@ export type AcceptResult =
  * The decisive moment: one transaction flips the winner to accepted, the
  * siblings to not_selected, and the request to engaged. The winner write
  * CARRIES every guard in its where clause (own request, stored "collecting"
- * which allows both early accepts and quotes-ready, quote belongs, quote
- * still submitted), so this module never reads quotes: reads stay in
- * visibility.ts per the source guard, and two racing accepts settle by
- * whichever guard matches first. Events and the losing notices follow after
- * commit; a failed notice is never fatal.
+ * which allows both early accepts and quotes-ready, pick-by date not passed,
+ * quote belongs, quote still submitted), so this module never reads quotes:
+ * reads stay in visibility.ts per the source guard, and two racing accepts
+ * settle by whichever guard matches first. Events and the losing notices
+ * follow after commit; a failed notice is never fatal.
  */
 export async function acceptQuote(
   requestId: string,
@@ -25,12 +26,20 @@ export async function acceptQuote(
   userId: string,
 ): Promise<AcceptResult> {
   const outcome = await prisma.$transaction(async (tx) => {
+    // isAcceptanceOpen as a filter; null while the release grace holds.
+    const oldestOpen = oldestAcceptableQuoteDeadline();
     const winner = await tx.auditQuote.updateMany({
       where: {
         id: quoteId,
         request_id: requestId,
         status: "submitted",
-        request: { user_id: userId, status: "collecting" },
+        request: {
+          user_id: userId,
+          status: "collecting",
+          ...(oldestOpen
+            ? { OR: [{ quote_deadline: null }, { quote_deadline: { gte: oldestOpen } }] }
+            : {}),
+        },
       },
       data: { status: "accepted" },
     });

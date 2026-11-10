@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Container } from '@/components/toolbox/components/Container';
-import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Steps, Step } from '@/components/toolbox/components/Steps';
 import { Input } from '@/components/toolbox/components/Input';
 import InputChainId from '@/components/toolbox/components/InputChainId';
 import InputSubnetId from '@/components/toolbox/components/InputSubnetId';

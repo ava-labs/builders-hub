@@ -1,15 +1,19 @@
 import React, { useState } from 'react';
+import { Check, RotateCcw } from 'lucide-react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { ConvertToL1Validator } from '@/components/toolbox/components/ValidatorListInput';
 import { validateStakePercentage } from '@/components/toolbox/coreViem/hooks/getTotalStake';
 import { parseNodeID, parsePChainAddress } from '@/components/toolbox/coreViem/utils/ids';
+import { firstOwnerProblem } from '@/components/toolbox/coreViem/utils/pchainOwner';
 import { MultisigOption } from '@/components/toolbox/components/MultisigOption';
 import { getValidationIdHex } from '@/components/toolbox/coreViem/hooks/getValidationID';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { useValidatorManager } from '@/components/toolbox/hooks/contracts';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { WARP_PRECOMPILE_ADDRESS } from '@avalanche-sdk/interchain/warp';
+import { failureText } from '@/components/toolbox/lib/walletRejection';
+import { INVALID_L1_SELECTED, NO_L1_SELECTED } from '@/components/toolbox/utils/vmcLookupText';
 
 interface InitiateValidatorRegistrationProps {
   subnetId: string;
@@ -52,6 +56,15 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
   // Initialize validator manager hook
   const validatorManager = useValidatorManager(validatorManagerAddress || null);
 
+  // The owners go into the registration as typed, and the Validator Manager and
+  // the P-Chain accept an owner that needs no signature.
+  const ownerProblem = validators[0]
+    ? firstOwnerProblem([
+        [validators[0].remainingBalanceOwner, 'remaining balance owner'],
+        [validators[0].deactivationOwner, 'deactivation owner'],
+      ])
+    : null;
+
   const validateInputs = (): boolean => {
     if (validators.length === 0) {
       setErrorState('Please add a validator to continue');
@@ -61,6 +74,11 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
     // Check ownership permissions
     if (ownershipState === 'differentEOA') {
       setErrorState('You are not the owner of this contract. Only the contract owner can add validators.');
+      return false;
+    }
+
+    if (ownerProblem) {
+      setErrorState(ownerProblem);
       return false;
     }
 
@@ -81,7 +99,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
 
       if (exceedsMaximum) {
         setErrorState(
-          `The new validator's proposed weight (${validator.validatorWeight}) represents ${percentageChange.toFixed(2)}% of the current total L1 stake (${contractTotalWeight}). This must be less than 20%.`,
+          `The new validator's proposed weight (${validator.validatorWeight}) represents ${percentageChange.toFixed(2)}% of the current total L1 weight (${contractTotalWeight}). This must be less than 20%.`,
         );
         return false;
       }
@@ -104,7 +122,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
     }
 
     if (!validatorManagerAddress) {
-      setErrorState('Validator Manager Address is required. Please select a valid L1 subnet.');
+      setErrorState(INVALID_L1_SELECTED);
       return;
     }
 
@@ -154,7 +172,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
           return;
         }
 
-        // Filter by emitter address rather than position — any intermediate
+        // Filter by emitter address rather than position: any intermediate
         // contract emitting a log would shift indices and cause us to read
         // wrong data (or throw on undefined).
         const warpLog = receipt.logs.find((l) => l.address.toLowerCase() === WARP_PRECOMPILE_ADDRESS.toLowerCase());
@@ -186,15 +204,15 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
 
         // Only attempt the resend fallback if the error suggests the node might already
         // have a pending registration (e.g. InvalidValidatorStatus or generic reverts).
-        // For user rejections, insufficient funds, bad BLS keys, etc. — surface directly.
+        // For user rejections, insufficient funds, bad BLS keys, etc., surface directly.
         const shouldAttemptFallback =
           primaryMessage.includes('reverted') ||
           primaryMessage.includes('Invalid validator status') ||
           primaryMessage.includes('execution');
 
         if (!shouldAttemptFallback) {
-          setErrorState(`Transaction failed: ${primaryMessage}`);
-          onError(`Transaction failed: ${primaryMessage}`);
+          setErrorState(failureText('Transaction failed: ', primaryMessage));
+          onError(failureText('Transaction failed: ', primaryMessage));
           return;
         }
 
@@ -207,14 +225,14 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
             nodeIdBytes,
           );
 
-          // No existing validation ID — the node was never registered, so the primary error is the real problem
+          // No existing validation ID: the node was never registered, so the primary error is the real problem
           if (validationId === '0x0000000000000000000000000000000000000000000000000000000000000000') {
-            setErrorState(`Transaction failed: ${primaryMessage}`);
-            onError(`Transaction failed: ${primaryMessage}`);
+            setErrorState(failureText('Transaction failed: ', primaryMessage));
+            onError(failureText('Transaction failed: ', primaryMessage));
             return;
           }
 
-          // Existing validation ID found — attempt to resend the registration message
+          // Existing validation ID found: attempt to resend the registration message
           const fallbackHash = await validatorManager.resendRegisterValidatorMessage(validationId);
 
           const fallbackReceipt = await chainPublicClient!.waitForTransactionReceipt({
@@ -243,15 +261,17 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
           });
         } catch (fallbackError: any) {
           const fallbackMessage = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
-          setErrorState(`Transaction failed: ${primaryMessage}`);
-          onError(`Transaction failed: ${primaryMessage}. Resend fallback also failed: ${fallbackMessage}`);
+          setErrorState(failureText('Transaction failed: ', primaryMessage));
+          onError(
+            `${failureText('Transaction failed: ', primaryMessage)}. Resend fallback also failed: ${fallbackMessage}`,
+          );
         }
       }
     } catch (err: any) {
       const message = err instanceof Error ? err.message : String(err);
 
-      setErrorState(`Transaction failed: ${message}`);
-      onError(`Transaction failed: ${message}`);
+      setErrorState(failureText('Transaction failed: ', message));
+      onError(failureText('Transaction failed: ', message));
     } finally {
       setIsProcessing(false);
     }
@@ -279,12 +299,12 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
 
   // Don't render if no subnet is selected
   if (!subnetId) {
-    return <div className="text-sm text-zinc-500 dark:text-zinc-400">Please select an L1 subnet first.</div>;
+    return <p className="text-[13px] text-zinc-500 dark:text-zinc-400">{NO_L1_SELECTED}</p>;
   }
 
   // Don't render if no validators are added
   if (validators.length === 0) {
-    return <div className="text-sm text-zinc-500 dark:text-zinc-400">Please add a validator in the previous step.</div>;
+    return <p className="text-[13px] text-zinc-500 dark:text-zinc-400">Add a validator above first.</p>;
   }
 
   // Prepare args for multisig
@@ -312,8 +332,11 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
     ];
   };
 
+  const blocked =
+    isProcessing || validators.length === 0 || !validatorManagerAddress || txSuccess !== null || !!ownerProblem;
+
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4">
       {ownershipState === 'contract' && (
         <MultisigOption
           validatorManagerAddress={validatorManagerAddress}
@@ -321,13 +344,16 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
           args={getMultisigArgs()}
           onSuccess={handleMultisigSuccess}
           onError={handleMultisigError}
-          disabled={isProcessing || validators.length === 0 || !validatorManagerAddress || txSuccess !== null}
+          disabled={blocked}
         >
           <Button
             onClick={handleInitiateValidatorRegistration}
-            disabled={isProcessing || validators.length === 0 || !validatorManagerAddress || txSuccess !== null}
+            disabled={blocked}
+            error={ownerProblem ?? undefined}
+            loading={isProcessing}
+            loadingText="Initiating…"
           >
-            Initiate Validator Registration
+            Initiate validator registration
           </Button>
         </MultisigOption>
       )}
@@ -335,10 +361,13 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
       {ownershipState === 'currentWallet' && (
         <Button
           onClick={handleInitiateValidatorRegistration}
-          disabled={isProcessing || validators.length === 0 || !validatorManagerAddress || txSuccess !== null}
-          error={!validatorManagerAddress && subnetId ? 'Could not find Validator Manager for this L1.' : undefined}
+          disabled={blocked}
+          loading={isProcessing}
+          loadingText="Initiating…"
+          icon={txSuccess ? <Check className="h-3.5 w-3.5" /> : undefined}
+          error={ownerProblem ?? (!validatorManagerAddress && subnetId ? INVALID_L1_SELECTED : undefined)}
         >
-          {txSuccess ? 'Transaction Completed' : isProcessing ? 'Processing...' : 'Initiate Validator Registration'}
+          {txSuccess ? 'Transaction completed' : 'Initiate validator registration'}
         </Button>
       )}
 
@@ -346,24 +375,31 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
         <Button
           onClick={handleInitiateValidatorRegistration}
           disabled={true}
-          error="You are not the owner of this contract. Only the contract owner can add validators."
+          error="This wallet doesn't own the contract. Only the contract owner can add validators."
         >
-          Initiate Validator Registration
+          Initiate validator registration
         </Button>
       )}
 
       {ownershipState === 'loading' && (
-        <Button onClick={handleInitiateValidatorRegistration} disabled={true} error="Verifying ownership...">
-          Verifying...
+        <Button
+          onClick={handleInitiateValidatorRegistration}
+          disabled={true}
+          loading={true}
+          loadingText="Verifying ownership…"
+        >
+          Verifying ownership
         </Button>
       )}
 
       {ownershipState === 'error' && (
         <Button
+          variant="outline"
           onClick={() => refetchOwnership?.()}
-          error={ownershipError || 'Failed to verify contract ownership. Click to retry.'}
+          icon={<RotateCcw className="h-3.5 w-3.5" />}
+          error={ownershipError || "Couldn't verify contract ownership. Retry the check."}
         >
-          Retry Ownership Check
+          Retry ownership check
         </Button>
       )}
 

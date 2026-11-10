@@ -58,7 +58,14 @@ export function useChainPublicClient(): PublicClient | null {
   }, [viemChain]);
 }
 
-async function pollReceiptDirect(
+/**
+ * Poll eth_getTransactionReceipt alone. getTransactionReceipt formats the
+ * RPC's JSON, so `status` is 'success' or 'reverted' and the quantities are
+ * bigints; the raw JSON carries "0x1" and hex strings, which every
+ * `status === 'success'` check reads as a failure. It throws until the
+ * transaction is mined.
+ */
+export async function pollReceiptDirect(
   client: PublicClient,
   hash: Hex,
   { timeoutMs, intervalMs }: { timeoutMs: number; intervalMs: number },
@@ -66,13 +73,9 @@ async function pollReceiptDirect(
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     try {
-      const receipt = (await client.request({
-        method: 'eth_getTransactionReceipt' as const,
-        params: [hash] as const,
-      } as never)) as unknown as TransactionReceipt | null;
-      if (receipt) return receipt;
+      return await client.getTransactionReceipt({ hash });
     } catch {
-      // ignore and retry — the RPC is allowed to return null mid-mine
+      // not mined yet, or a transient RPC error: poll again
     }
     await new Promise((r) => setTimeout(r, intervalMs));
   }

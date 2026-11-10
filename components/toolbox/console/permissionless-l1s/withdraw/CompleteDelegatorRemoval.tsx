@@ -19,6 +19,9 @@ import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalanch
 import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
 import { generateCastSendCommand } from '@/components/toolbox/utils/castCommand';
 import { CliAlternative } from '@/components/console/cli-alternative';
+import { SigningSubnetStatus, signingSubnetWaitText } from '@/components/toolbox/console/shared/SigningSubnetStatus';
+import { WALLET_REJECTED_TEXT, failureText } from '@/components/toolbox/lib/walletRejection';
+import { NO_L1_SELECTED } from '@/components/toolbox/utils/vmcLookupText';
 
 type TokenType = 'native' | 'erc20';
 
@@ -28,6 +31,10 @@ interface CompleteDelegatorRemovalProps {
   tokenType: TokenType;
   subnetIdL1: string;
   signingSubnetId?: string;
+  /** useVMCAddress is loading the signing subnet */
+  signingSubnetLoading: boolean;
+  /** The useVMCAddress lookup error */
+  signingSubnetError: string | null;
   pChainTxId?: string;
   onSuccess: (data: { txHash: string; message: string }) => void;
   onError: (message: string) => void;
@@ -39,6 +46,8 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
   tokenType,
   subnetIdL1,
   signingSubnetId,
+  signingSubnetLoading,
+  signingSubnetError,
   pChainTxId: initialPChainTxId,
   onSuccess,
   onError,
@@ -112,8 +121,15 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
     }
 
     if (!subnetIdL1) {
-      setErrorState('L1 Subnet ID is required.');
-      onError('L1 Subnet ID is required.');
+      setErrorState(NO_L1_SELECTED);
+      onError(NO_L1_SELECTED);
+      return;
+    }
+
+    const signingSubnetWait = signingSubnetWaitText(signingSubnetId, signingSubnetLoading, signingSubnetError);
+    if (signingSubnetWait) {
+      setErrorState(signingSubnetWait);
+      onError(signingSubnetWait);
       return;
     }
 
@@ -170,7 +186,7 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
       // Step 3: Aggregate P-Chain signature
       const aggregateSignaturePromise = aggregateSignature({
         message: bytesToHex(l1ValidatorWeightMessage),
-        signingSubnetId: signingSubnetId || subnetIdL1,
+        signingSubnetId,
       });
 
       notify(
@@ -228,7 +244,7 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
 
       // Provide more helpful error messages
       if (message.includes('User rejected')) {
-        message = 'Transaction was rejected by user';
+        message = WALLET_REJECTED_TEXT;
       } else if (message.includes('InvalidDelegationID')) {
         message = 'Invalid delegation ID. The delegation may not exist or removal was not initiated.';
       } else if (message.includes('DelegatorNotRemovable')) {
@@ -243,8 +259,8 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
         message = 'Invalid warp message. Ensure the P-Chain transaction was successful.';
       }
 
-      setErrorState(`Failed to complete delegator removal: ${message}`);
-      onError(`Failed to complete delegator removal: ${message}`);
+      setErrorState(failureText('Failed to complete delegator removal: ', message));
+      onError(failureText('Failed to complete delegator removal: ', message));
     } finally {
       setIsProcessing(false);
     }
@@ -265,7 +281,7 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
     return generateCastSendCommand({ address: addr, calldata, accessList: castAccessList, rpcUrl });
   }
 
-  const isButtonDisabled = isProcessing || !!txHash || !pChainTxId.trim();
+  const isButtonDisabled = isProcessing || !!txHash || !pChainTxId.trim() || !signingSubnetId;
 
   return (
     <div className="space-y-4">
@@ -341,6 +357,14 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
           <li>Delegation fees will be deducted from your rewards</li>
         </ul>
       </Alert>
+
+      {!txHash && (
+        <SigningSubnetStatus
+          signingSubnetId={signingSubnetId}
+          isLoading={signingSubnetLoading}
+          error={signingSubnetError}
+        />
+      )}
 
       <Button onClick={handleCompleteRemoval} disabled={isButtonDisabled} loading={isProcessing}>
         {isProcessing ? 'Processing...' : 'Complete Delegator Removal & Receive Rewards'}

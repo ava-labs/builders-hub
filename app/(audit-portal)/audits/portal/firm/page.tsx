@@ -17,6 +17,11 @@ export default async function FirmDetailsPage() {
   if (!firm) return <NotWhitelisted email={email} />;
 
   return (
-    <FirmDetails firm={firm} isOwner={email === auditor.quote_email} readOnly={!auditor.active} />
+    <FirmDetails
+      firm={firm}
+      isOwner={email === auditor.quote_email}
+      readOnly={!auditor.active}
+      viewerEmail={email}
+    />
   );
 }

@@ -101,6 +101,13 @@ export function RequestCard({ request, index, onDeleteDraft }: RequestCardProps)
               {formatIsoDate(request.quote_deadline)}
             </span>
           ) : null}
+          {request.display_status === "deciding" && request.pick_by ? (
+            <span className="inline-flex items-center gap-1.5">
+              <Clock aria-hidden className="h-3.5 w-3.5" />
+              <CountdownChip deadline={request.pick_by} prefix="Pick a quote" /> ·{" "}
+              {formatIsoDate(request.pick_by)}
+            </span>
+          ) : null}
           {request.needed_by ? (
             <span className="inline-flex items-center gap-1.5">
               <CalendarDays aria-hidden className="h-3.5 w-3.5" />

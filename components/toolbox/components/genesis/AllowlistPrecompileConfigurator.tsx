@@ -102,11 +102,13 @@ export default function AllowlistPrecompileConfigurator({
       )}
 
       {!validationError && internalValidationError && (
-        <div className="mt-4 p-4 border-l-4 border-red-500 bg-red-50/70 dark:bg-red-900/20 dark:border-red-800/60 rounded-r-md flex items-start">
-          <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 mr-3 flex-shrink-0" />
+        <div className="mt-4 flex items-start border border-red-200 bg-red-50/60 px-4 py-3 dark:border-red-900/60 dark:bg-red-950/20">
+          <AlertCircle className="mr-3 mt-0.5 h-4 w-4 flex-shrink-0 text-red-600 dark:text-red-400" />
           <div>
-            <p className="text-red-700 dark:text-red-300 font-medium">Configuration Error</p>
-            <ul className="mt-1 text-red-600 dark:text-red-400 text-sm list-disc list-inside">
+            <p className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-red-700 dark:text-red-400">
+              Configuration Error
+            </p>
+            <ul className="mt-1 list-inside list-disc text-[13px] text-red-800 dark:text-red-300">
               <li>Add at least one valid, non-duplicate address to any role.</li>
             </ul>
           </div>

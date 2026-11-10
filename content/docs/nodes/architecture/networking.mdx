@@ -93,11 +93,11 @@ The network maintains IP information for reconnection:
 
 ```go title="network/ip_tracker.go"
 type ipTracker struct {
-    // Known peer IPs
-    mostRecentTrackedIPs map[ids.NodeID]*ips.ClaimedIPPort
+    // Tracked nodes and their most recent signed IPs
+    tracked map[ids.NodeID]*trackedNode
 
-    // Bloom filter for efficient gossip
-    bloom *bloom.ReadFilter
+    // Bloom filter of the most recent tracked IPs, for efficient gossip
+    bloom *bloom.Filter
 }
 ```
 
@@ -197,7 +197,7 @@ message Message {
     AppGossip app_gossip = 32;
     AppError app_error = 34;
 
-    // Streaming
+    // Simplex consensus (experimental)
     Simplex simplex = 36;
   }
 }
@@ -247,7 +247,7 @@ type Router interface {
     HandleInbound(ctx context.Context, msg message.InboundMessage)
 
     // Register chain handlers
-    AddChain(ctx context.Context, chain handler.Handler) error
+    AddChain(ctx context.Context, chain handler.Handler)
 
     // Health checking
     health.Checker
@@ -258,8 +258,8 @@ type Router interface {
 
 ```go title="snow/networking/handler/handler.go"
 type Handler interface {
-    // Consensus messages
-    HandleMsg(ctx context.Context, msg Message) error
+    // Queue a message for the chain's consensus engine
+    Push(ctx context.Context, msg Message)
 
     // Lifecycle
     Start(ctx context.Context, recoverPanic bool)
@@ -275,18 +275,17 @@ Protects nodes from message floods ([`network/throttling`](https://github.com/av
 
 ```go title="network/throttling/inbound_msg_throttler.go"
 type InboundMsgThrottler interface {
-    // Check if message should be allowed
-    Acquire(msg message.InboundMessage, nodeID ids.NodeID) ReleaseFunc
-
-    // Release acquired resources
-    ReleaseFunc func()
+    // Block until the node can read a message of msgSize bytes from nodeID
+    Acquire(ctx context.Context, msgSize uint64, nodeID ids.NodeID) ReleaseFunc
 }
 ```
 
 **Throttling Dimensions:**
-- **Bandwidth**: Bytes per second per peer
-- **Message count**: Messages per second
-- **CPU time**: Processing time limits
+- **Bytes**: Bytes of messages from a peer that are being processed
+- **Message count**: Messages from a peer that are being processed
+- **Bandwidth**: Bytes per second per peer (token bucket)
+- **CPU time**: CPU usage caused by a peer
+- **Disk**: Disk usage caused by a peer
 
 ### Outbound Throttling
 
@@ -294,8 +293,11 @@ Prevents overwhelming peers:
 
 ```go title="network/throttling/outbound_msg_throttler.go"
 type OutboundMsgThrottler interface {
-    // Acquire permission to send
-    Acquire(msg message.OutboundMessage, nodeID ids.NodeID) ReleaseFunc
+    // Returns false if the message must not be sent
+    Acquire(msg *message.OutboundMessage, nodeID ids.NodeID) bool
+
+    // Release the bytes that Acquire reserved
+    Release(msg *message.OutboundMessage, nodeID ids.NodeID)
 }
 ```
 
@@ -342,9 +344,9 @@ type Benchlist interface {
 ```
 
 **Benchlist Triggers:**
-- Repeated query timeouts
-- Invalid message responses
-- Resource exhaustion
+- Request timeouts (AppRequest timeouts do not count). The node keeps a decaying average of request failures for each validator (`--benchlist-halflife`, default 1m).
+- The node benches a validator when the average is above `--benchlist-bench-probability` (default 0.5).
+- It unbenches the validator when the average is below `--benchlist-unbench-probability` (default 0.2), or after `--benchlist-duration` (default 5m).
 
 ## Health Monitoring
 
@@ -392,25 +394,18 @@ const (
 
 Key configuration options:
 
-```go title="config/config.go"
-type NetworkConfig struct {
-    // Connection limits
-    MaxInboundConnections  int
-    MaxOutboundConnections int
+```go title="network/config.go"
+type Config struct {
+    HealthConfig         // send fail rate, peer and message timing checks
+    PeerListGossipConfig // PeerListNumValidatorIPs, PeerListPullGossipFreq, PeerListBloomResetFreq
+    TimeoutConfig        // PingPongTimeout, ReadHandshakeTimeout
+    DelayConfig          // InitialReconnectDelay, MaxReconnectDelay
+    ThrottlerConfig      ThrottlerConfig // inbound/outbound message and connection throttlers
 
-    // Timeouts
-    PingFrequency  time.Duration
-    PongTimeout    time.Duration
-    ReadHandshake  time.Duration
-
-    // Throttling
-    InboundThrottlerAtLargeAllocSize  uint64
-    InboundThrottlerVdrAllocSize      uint64
-    OutboundThrottlerAtLargeAllocSize uint64
-
-    // Peer management
-    PeerListGossipFrequency time.Duration
-    PeerListPullGossipFreq  time.Duration
+    PingFrequency   time.Duration
+    AllowPrivateIPs bool
+    TrackedSubnets  set.Set[ids.ID]
+    // ...
 }
 ```
 
@@ -420,11 +415,11 @@ type NetworkConfig struct {
 # Connection settings
 --network-max-reconnect-delay=1m
 --network-initial-reconnect-delay=1s
---network-peer-list-gossip-frequency=1m
+--network-peer-list-pull-gossip-frequency=2s
 
 # Throttling
---network-inbound-throttler-at-large-alloc-size=6291456
---network-outbound-throttler-at-large-alloc-size=6291456
+--throttler-inbound-at-large-alloc-size=6291456
+--throttler-outbound-at-large-alloc-size=33554432
 ```
 
 ## Subnet Networking
@@ -432,10 +427,10 @@ type NetworkConfig struct {
 Validators can participate in multiple subnets:
 
 ```go
-type SubnetTracker interface {
-    // Track additional subnet
-    TrackedSubnets() set.Set[ids.ID]
-}
+// network.Config (network/config.go)
+// TrackedSubnets of the node, from --track-subnets.
+// It must not include the Primary Network ID.
+TrackedSubnets set.Set[ids.ID]
 ```
 
 **Subnet-Specific Peers:**

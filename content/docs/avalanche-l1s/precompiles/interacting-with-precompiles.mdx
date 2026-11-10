@@ -9,10 +9,10 @@ This guide shows you how to interact with precompiled contracts on your Avalanch
 
 The Builder Hub provides dedicated tools for interacting with standard Avalanche L1 precompiles. These tools offer:
 
-- ✅ **User-friendly interface** - No need to manually enter contract addresses or ABIs
-- ✅ **Built-in validation** - Prevents common configuration mistakes
-- ✅ **Connected to your Builder account** - Track your L1s and configurations
-- ✅ **Visual feedback** - See changes reflected in real-time
+- **User-friendly interface** - No need to manually enter contract addresses or ABIs
+- **Built-in validation** - Prevents common configuration mistakes
+- **Connected to your Builder account** - Track your L1s and configurations
+- **Visual feedback** - See changes reflected in real-time
 
 ### Available Console Tools
 
@@ -144,13 +144,15 @@ You need to load the Solidity interfaces for the precompiles you want to interac
 From the Remix home screen, use **load from GitHub** to import:
 
 **Required for all precompiles:**
-- [IAllowList.sol](https://github.com/ava-labs/subnet-evm/blob/master/contracts/contracts/interfaces/IAllowList.sol)
+- [IAllowList.sol](https://github.com/ava-labs/avalanchego/blob/master/graft/subnet-evm/precompile/allowlist/IAllowList.sol)
 
 **Specific precompile interfaces:**
-- [IFeeManager.sol](https://github.com/ava-labs/subnet-evm/blob/master/contracts/contracts/interfaces/IFeeManager.sol) - For fee configuration
-- [INativeMinter.sol](https://github.com/ava-labs/subnet-evm/blob/master/contracts/contracts/interfaces/INativeMinter.sol) - For minting native tokens
-- [IAllowList.sol](https://github.com/ava-labs/subnet-evm/blob/master/contracts/contracts/interfaces/IAllowList.sol) - For transaction/deployer allowlists
-- [IRewardManager.sol](https://github.com/ava-labs/subnet-evm/blob/master/contracts/contracts/interfaces/IRewardManager.sol) - For block rewards
+- [IFeeManager.sol](https://github.com/ava-labs/avalanchego/blob/master/graft/subnet-evm/precompile/contracts/feemanager/IFeeManager.sol): for fee configuration
+- [INativeMinter.sol](https://github.com/ava-labs/avalanchego/blob/master/graft/subnet-evm/precompile/contracts/nativeminter/INativeMinter.sol): for minting native tokens
+- [IAllowList.sol](https://github.com/ava-labs/avalanchego/blob/master/graft/subnet-evm/precompile/allowlist/IAllowList.sol): for transaction and deployer allowlists
+- [IRewardManager.sol](https://github.com/ava-labs/avalanchego/blob/master/graft/subnet-evm/precompile/contracts/rewardmanager/IRewardManager.sol): for fee reward settings
+
+Each specific interface imports `precompile/allowlist/IAllowList.sol`. Before you compile, put `IAllowList.sol` in the same folder and change the import to `./IAllowList.sol`.
 
 ### Compile the Interface
 
@@ -189,17 +191,17 @@ Anyone can read the current fee configuration (no special permissions required):
 2. Click **getFeeConfig**
 3. View the current fee parameters:
    - `gasLimit`: Maximum gas per block
-   - `targetBlockRate`: Target time between blocks (seconds)
+   - `targetBlockRate`: Target time between blocks, in seconds (no effect since Granite)
    - `minBaseFee`: Minimum base fee (wei)
-   - `targetGas`: Target gas per second
+   - `targetGas`: Target gas to consume in a rolling 10-second window
    - `baseFeeChangeDenominator`: Rate of base fee adjustment
-   - `minBlockGasCost`: Minimum gas cost for a block
-   - `maxBlockGasCost`: Maximum gas cost for a block
-   - `blockGasCostStep`: Increment for block gas cost
+   - `minBlockGasCost`: Minimum gas cost for a block (no effect since Granite)
+   - `maxBlockGasCost`: Maximum gas cost for a block (no effect since Granite)
+   - `blockGasCostStep`: Increment for block gas cost (no effect since Granite)
 
 ### Update Fee Configuration
 
-Only admin addresses can update the fee configuration:
+Only Admin, Manager, or Enabled addresses can update the fee configuration:
 
 1. Ensure you're connected with the admin address in your wallet
 2. Expand **setFeeConfig** in the FeeManager contract
@@ -244,8 +246,8 @@ Anyone can check who has minting permissions:
 2. Returns:
    - `0`: No permission
    - `1`: Enabled (can mint)
-   - `2`: Manager (can mint and manage enabled addresses)  
-   - `3`: Admin (full control)
+   - `2`: Admin (can mint and manage all roles)
+   - `3`: Manager (can mint and manage Enabled addresses)
 
 ## Example: Managing Allow Lists
 
@@ -334,16 +336,16 @@ When enabling precompiles via network upgrades:
 - [Warp Messenger](/docs/avalanche-l1s/precompiles/warp-messenger) - Warp Messenger details
 - [Precompile Upgrades](/docs/avalanche-l1s/upgrade/precompile-upgrades) - Network upgrade process
 - [AllowList Interface](/docs/avalanche-l1s/precompiles/allowlist-interface) - Role-based access control
-- [Subnet-EVM Contracts](https://github.com/ava-labs/subnet-evm/tree/master/contracts/contracts/interfaces) - Precompile interfaces
+- [Subnet-EVM precompiles](https://github.com/ava-labs/avalanchego/tree/master/graft/subnet-evm/precompile): precompile interfaces and code
 
 ## Conclusion
 
 For standard Avalanche L1 precompiles, **we strongly recommend using the [Builder Hub Developer Console tools](/console)** for the best experience. These tools provide:
 
-- ✅ Guided workflows with validation
-- ✅ No need to manage contract addresses or ABIs manually  
-- ✅ Integration with your Builder Hub account
-- ✅ Support from the Builder Hub team
+- Guided workflows with validation
+- No need to manage contract addresses or ABIs manually  
+- Integration with your Builder Hub account
+- Support from the Builder Hub team
 
 For custom implementations or advanced scenarios, the Remix IDE approach provides flexibility to interact with any contract at any address. This is useful for:
 

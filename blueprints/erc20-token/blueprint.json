@@ -1,0 +1,164 @@
+{
+  "id": "erc20-token",
+  "version": 1,
+  "title": "Token Launch",
+  "summary": "ERC-20 with permit and a supply cap",
+  "description": "An 18-decimal ERC-20 with EIP-2612 permit and burning. Supply is fixed by default; set a higher max supply to let the owner mint later, up to a lifetime cap.",
+  "category": "defi",
+  "level": "starter",
+  "tags": ["c-chain", "erc20", "token", "permit", "l1"],
+  "prompts": [
+    "Launch a token called MOON with a fixed supply of one million",
+    "Create an ERC-20 for my community that I can mint more of later",
+    "Deploy a governance token on my L1"
+  ],
+  "networks": {
+    "main": {
+      "description": "Chain the token is issued on",
+      "default": "fuji-c-chain",
+      "allowed": ["fuji-c-chain", "echo-fuji", "dispatch-fuji", "l1", "mainnet-c-chain"]
+    }
+  },
+  "params": [
+    {
+      "name": "name",
+      "type": "string",
+      "description": "Token name, e.g. Moon Token",
+      "example": "Moon Token"
+    },
+    {
+      "name": "symbol",
+      "type": "string",
+      "description": "Ticker, 2 to 11 characters",
+      "example": "MOON"
+    },
+    {
+      "name": "initialSupply",
+      "type": "uint",
+      "description": "Supply minted at deployment, in base units (18 decimals). The default is 1,000,000 tokens.",
+      "default": "1000000000000000000000000"
+    },
+    {
+      "name": "maxSupply",
+      "type": "uint",
+      "description": "Lifetime issuance cap in base units. Equal to initialSupply means a fixed supply.",
+      "default": "1000000000000000000000000"
+    },
+    {
+      "name": "initialHolder",
+      "type": "address",
+      "description": "Receives the initial supply",
+      "default": "$ctx.builder"
+    },
+    {
+      "name": "owner",
+      "type": "address",
+      "description": "May mint up to the cap",
+      "default": "$ctx.builder"
+    }
+  ],
+  "prerequisites": ["Native gas on the target chain for the signer"],
+  "contracts": [
+    {
+      "name": "LaunchToken",
+      "source": "contracts/LaunchToken.sol",
+      "description": "ERC-20 with permit, burn, and a lifetime minting cap"
+    }
+  ],
+  "steps": [
+    {
+      "id": "deploy-token",
+      "title": "Deploy the token",
+      "kind": "deploy",
+      "network": "main",
+      "signer": "deployer",
+      "contract": "LaunchToken",
+      "args": [
+        "$param.name",
+        "$param.symbol",
+        "$param.initialSupply",
+        "$param.maxSupply",
+        "$param.initialHolder",
+        "$param.owner"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "description": "The initial supply went to the initial holder",
+      "after": "deploy-token",
+      "network": "main",
+      "contract": "LaunchToken",
+      "target": "$out.deploy-token.address",
+      "function": "balanceOf",
+      "args": ["$param.initialHolder"],
+      "expect": {
+        "equals": "$param.initialSupply"
+      }
+    },
+    {
+      "description": "The builder owns the token",
+      "after": "deploy-token",
+      "network": "main",
+      "contract": "LaunchToken",
+      "target": "$out.deploy-token.address",
+      "function": "owner",
+      "expect": {
+        "equals": "$param.owner"
+      }
+    }
+  ],
+  "panel": [
+    {
+      "step": "deploy-token",
+      "read": [
+        "name",
+        "symbol",
+        "decimals",
+        "totalSupply",
+        "balanceOf",
+        "maxSupply",
+        "totalMinted",
+        "remainingMintable",
+        "owner"
+      ],
+      "write": ["transfer", "approve", "mint", "burn", "transferOwnership", "renounceOwnership"]
+    }
+  ],
+  "review": [
+    "The owner is the builder's address, passed in the constructor, so no ownership transfer is needed.",
+    "maxSupply is at least initialSupply; for a fixed supply they are equal and mint always reverts.",
+    "Amounts are in base units with 18 decimals: 1 token is 1000000000000000000."
+  ],
+  "frontend": {
+    "summary": "A token home page: what the token is, your balance, sending it to someone, and adding it to your wallet.",
+    "audience": ["Holders and community members of the token", "The project team, who mint new supply"],
+    "journeys": [
+      "Understand the token: name, symbol, total and maximum supply, with a bar showing how much has been minted.",
+      "See your balance and share of supply ('You hold 1,250 MOON, 0.4% of supply').",
+      "Send to someone: address, amount with Max, 'Send 10 MOON', then a confirmation.",
+      "One click to 'Add MOON to your wallet'.",
+      "Team area, shown only to the owner: mint, with the remaining mintable amount."
+    ],
+    "flows": [
+      "Show totalSupply, maxSupply and remainingMintable formatted with 18 decimals.",
+      "Transfers use transfer(to, amount). For spending by contracts, prefer permit signatures over approve.",
+      "Show the mint panel only when the connected wallet equals owner()."
+    ]
+  },
+  "docs": [
+    {
+      "title": "Deploy a smart contract on an L1",
+      "url": "/docs/avalanche-l1s/add-utility/deploy-smart-contract"
+    },
+    {
+      "title": "Contract verification",
+      "url": "/docs/tooling/contract-verification"
+    },
+    {
+      "title": "ERC-20 to ERC-20 bridge",
+      "url": "/academy/avalanche-l1/erc20-bridge/03-erc-20-to-erc-20-bridge/01-erc-20-to-erc-20-bridge"
+    }
+  ],
+  "related": ["ictt-token-bridge", "usdc-checkout"]
+}

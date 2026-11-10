@@ -1,30 +1,21 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { Activity, ArrowUpRight, CheckCircle2, ChevronRight, Clock3, XCircle } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 import { useTxHistoryStore, type TxRecord } from '@/components/toolbox/stores/txHistoryStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
-import { boardItem } from '@/components/console/motion';
+import { CellLabel, MUTED } from '@/components/explorer-v2/ui';
 import { cn } from '@/lib/utils';
-import { TileShell } from './TileShell';
+import { ArrowLink, BODY_ROW, EYEBROW, FRAME, HEAD_ROW } from '../shared/ui';
 
 /**
- * Surfaces the user's most recent encrypted-ERC writes pulled from the
- * tx-history store (wired by `useEERCNotifiedWrite` since commit
- * `2f812957b`). With the per-network store available we get a real
- * cross-tool activity feed for free.
- *
- * The card is a flex column so the "See all" link pins to the bottom
- * regardless of how many activity rows fit. Filtering is by operation
- * copy rather than a separate tag because every EERC write resolves to
- * a string that already mentions "encrypted-ERC" or "encrypted
- * transfer" (see hooks under `hooks/eerc/use*Write`); a case-
- * insensitive includes-check is enough and keeps the store schema
- * untouched.
+ * The user's most recent encrypted-ERC writes from the tx-history store
+ * (wired by `useEERCNotifiedWrite`). Filtering is by operation copy: every
+ * EERC write resolves to a string mentioning "encrypted-ERC" or "encrypted
+ * transfer", so a case-insensitive includes-check is enough.
  */
 const MAX_ROWS = 5;
+const COLS = 'md:grid-cols-[0.75rem_minmax(0,1fr)_minmax(0,9rem)]';
 
 interface RecentActivityCardProps {
   className?: string;
@@ -37,45 +28,42 @@ export function RecentActivityCard({ className }: RecentActivityCardProps) {
   const recent = useMemo(() => filterEERCRecent(transactions), [transactions]);
 
   return (
-    <motion.div className={className} variants={boardItem}>
-      <TileShell className="flex h-full flex-col">
-        <div className="mb-3 flex items-center gap-2">
-          <Activity className="h-4 w-4 text-zinc-500 dark:text-zinc-400" strokeWidth={2} />
-          <h3 className="text-sm font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">Recent activity</h3>
-          <span className="ml-auto font-mono text-[9px] uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
-            {isTestnet ? 'Testnet' : 'Mainnet'}
-          </span>
-        </div>
+    <section className={cn(FRAME, 'flex flex-col', className)}>
+      <div className="flex min-h-9 items-center justify-between gap-4 border-b border-zinc-200 px-4 py-2 dark:border-zinc-800">
+        <p className={EYEBROW}>Recent activity</p>
+        <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+          {isTestnet ? 'Testnet' : 'Mainnet'}
+        </span>
+      </div>
 
-        <div className="flex-1">
-          {recent.length === 0 ? (
-            <EmptyState />
-          ) : (
-            <ul className="space-y-2">
+      <div className="flex-1">
+        {recent.length === 0 ? (
+          <div className="flex flex-col items-start gap-2 px-4 py-6">
+            <p className={EYEBROW}>No activity yet</p>
+            <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+              Register, deposit, or transfer on this network to see it here.
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className={cn(HEAD_ROW, COLS)}>
+              <span />
+              <span>Action</span>
+              <span>Hash</span>
+            </div>
+            <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">
               {recent.map((tx) => (
                 <ActivityRow key={tx.id} tx={tx} />
               ))}
             </ul>
-          )}
-        </div>
+          </>
+        )}
+      </div>
 
-        <Link
-          href="/console/history"
-          className="mt-4 flex items-center justify-between border-t border-zinc-100 pt-3 text-[11px] font-medium text-zinc-600 transition-colors hover:text-zinc-950 dark:border-zinc-800/80 dark:text-zinc-400 dark:hover:text-zinc-50"
-        >
-          <span>See all transactions</span>
-          <ChevronRight className="h-3.5 w-3.5" />
-        </Link>
-      </TileShell>
-    </motion.div>
-  );
-}
-
-function EmptyState() {
-  return (
-    <div className="rounded-lg border border-dashed border-zinc-200 px-3 py-4 text-[11px] leading-relaxed text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
-      No encrypted-ERC actions yet on this network. Register, deposit, or transfer to see them here.
-    </div>
+      <div className="border-t border-zinc-200 px-4 py-3 dark:border-zinc-800">
+        <ArrowLink href="/console/history">See all transactions</ArrowLink>
+      </div>
+    </section>
   );
 }
 
@@ -91,47 +79,43 @@ function filterEERCRecent(transactions: TxRecord[]): TxRecord[] {
   return out;
 }
 
+const STATUS_DOT: Record<TxRecord['status'], string> = {
+  confirmed: 'bg-emerald-500 dark:bg-emerald-400',
+  failed: 'bg-red-500 dark:bg-red-400',
+  pending: 'bg-amber-500 dark:bg-amber-400',
+};
+
 function ActivityRow({ tx }: { tx: TxRecord }) {
   const explorer = explorerLink(tx);
-  const inner = (
-    <div className="flex items-center gap-2 text-xs">
-      <StatusIcon status={tx.status} />
-      <span className="flex-1 truncate text-zinc-700 dark:text-zinc-300" title={tx.operation}>
+  return (
+    <li className={cn(BODY_ROW, COLS)}>
+      <span
+        role="img"
+        aria-label={tx.status}
+        title={tx.status}
+        className={cn('h-1.5 w-1.5 rounded-full', STATUS_DOT[tx.status] ?? STATUS_DOT.pending)}
+      />
+      <span className="truncate text-[13px] font-medium text-zinc-900 dark:text-zinc-50" title={tx.operation}>
         {tx.operation}
       </span>
-      <span className="font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">
-        {tx.txHash.slice(0, 8)}…
+      <span className="col-span-2 min-w-0 md:col-span-1">
+        <CellLabel>Hash</CellLabel>
+        {explorer ? (
+          <a
+            href={explorer}
+            target="_blank"
+            rel="noreferrer"
+            className="group/hash inline-flex items-center gap-1 font-mono text-[12px] tabular-nums text-zinc-700 underline-offset-4 hover:text-zinc-900 hover:underline dark:text-zinc-300 dark:hover:text-zinc-50"
+          >
+            {tx.txHash.slice(0, 10)}…
+            <ArrowUpRight className="h-3 w-3 text-zinc-400 transition-colors group-hover/hash:text-[#E6212F]" />
+          </a>
+        ) : (
+          <span className={MUTED}>{tx.txHash ? `${tx.txHash.slice(0, 10)}…` : '—'}</span>
+        )}
       </span>
-      {explorer && <ArrowUpRight className="h-3 w-3 text-zinc-400 dark:text-zinc-500" strokeWidth={2} />}
-    </div>
-  );
-
-  return (
-    <li>
-      {explorer ? (
-        <a
-          href={explorer}
-          target="_blank"
-          rel="noreferrer"
-          className="block rounded-md -mx-1 px-1 py-1 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900/60"
-        >
-          {inner}
-        </a>
-      ) : (
-        <div className="px-1 py-1">{inner}</div>
-      )}
     </li>
   );
-}
-
-function StatusIcon({ status }: { status: TxRecord['status'] }) {
-  if (status === 'confirmed') {
-    return <CheckCircle2 className={cn('h-3.5 w-3.5 shrink-0 text-emerald-500')} strokeWidth={2} />;
-  }
-  if (status === 'failed') {
-    return <XCircle className="h-3.5 w-3.5 shrink-0 text-rose-500" strokeWidth={2} />;
-  }
-  return <Clock3 className="h-3.5 w-3.5 shrink-0 text-amber-500" strokeWidth={2} />;
 }
 
 function explorerLink(tx: TxRecord): string | undefined {

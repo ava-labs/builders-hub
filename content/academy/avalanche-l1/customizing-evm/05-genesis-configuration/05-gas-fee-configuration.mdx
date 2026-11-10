@@ -31,7 +31,7 @@ The fees are configured in the `chainConfig` in the `feeConfig` field:
   },
   // ...
     
-  "gasLimit": 0xe4e1c0,
+  "gasLimit": "0xe4e1c0",
   // ...
 }
 ```
@@ -40,13 +40,13 @@ The fees are configured in the `chainConfig` in the `feeConfig` field:
 
 ### `gasLimit`
 
-Sets the maximum amount of gas consumed per block. This restriction caps the computational capacity of a single block and thereby limits the maximum gas usage allowed for any single transaction. For reference, the C-Chain value is set to 15,000,000.
+Sets the maximum amount of gas consumed per block. This restriction caps the computational capacity of a single block and thereby limits the maximum gas usage allowed for any single transaction. The C-Chain does not use this field. Its block gas limit is 20 times the gas target per second that validators vote on (80,000,000 gas on Mainnet on 2026-10-03).
 
 You might notice that the `gasLimit` field appears twice. This is because Avalanche introduced its own fee configuration under the `feeConfig` key while maintaining compatibility with the standard EVM configuration. Ensure that both fields have the same decimal and hexadecimal equivalent values.
 
 ### `targetBlockRate`
 
-Specifies the target rate of block production in seconds. For instance, a target of 2 aims to produce a block every 2 seconds. If blocks are produced faster than this rate, it signals that more blocks are being issued to the network than anticipated, leading to an increase in base fees. For C-Chain, this value is set to 1.
+Specifies the target rate of block production in seconds. For instance, a target of 2 aims to produce a block every 2 seconds. Before the Granite upgrade, Subnet-EVM used this value to compute the block gas cost: a block produced faster than the target had a higher block gas cost. This value never changed the base fee. Since Granite, the block gas cost is always 0, so this value has no effect. The field is still required and must be greater than 0. The ACP-226 minimum block delay now controls the block rate. To set its start value, put `initialMinDelayMS` in the `config` object of the genesis (AvalancheGo v1.15.0 and later). It has an effect only if Granite is active at the genesis timestamp. Each validator votes on the delay with the `min-delay-target` option in its chain config file. The C-Chain also uses ACP-226 and does not use this field.
 
 ### `minBaseFee`
 
@@ -58,7 +58,7 @@ Indicates the targeted amount of gas (including block gas cost) to be consumed w
 
 ### `baseFeeChangeDenominator`
 
-Determines how much to adjust the base fee based on the difference between actual and target utilization. A larger denominator results in a slower-changing base fee, while a smaller denominator allows for quicker adjustments. For C-Chain, this value is set to 36, meaning the base fee changes by a factor of 1/36 of the parent block's base fee.
+Determines how much to adjust the base fee based on the difference between actual and target utilization. A larger denominator results in a slower-changing base fee, while a smaller denominator allows for quicker adjustments. For example, with a denominator of 36, if the gas used in the 10-second window is twice the target, the base fee goes up by 1/36 of the parent base fee. The C-Chain used 36 until the Fortuna upgrade. It now uses the ACP-176 fee mechanism and does not use this field.
 
 ### `minBlockGasCost`
 
@@ -70,4 +70,4 @@ Specifies the maximum amount of gas charged for the production of a block.
 
 ### `blockGasCostStep`
 
-Defines how much to increase or decrease the block gas cost based on the time elapsed since the previous block. If a block is produced at the target rate, the block gas cost remains the same as the parent block. If the production rate deviates from the target, the block gas cost is adjusted by the `blockGasCostStep` value for each second faster or slower than the target block rate.
+Defines how much to increase or decrease the block gas cost based on the time elapsed since the previous block. If a block is produced at the target rate, the block gas cost remains the same as the parent block. If the production rate deviates from the target, the block gas cost is adjusted by the `blockGasCostStep` value for each second faster or slower than the target block rate. Since the Granite upgrade, the block gas cost is always 0, so `minBlockGasCost`, `maxBlockGasCost` and `blockGasCostStep` have no effect. Subnet-EVM still requires these fields in `feeConfig`.

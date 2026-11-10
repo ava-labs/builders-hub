@@ -52,6 +52,21 @@ export function TxsViewSwitch({ base, slug, view }: { base: string; slug?: strin
   return <ViewSwitch views={views} current={view} label="Transaction view" />;
 }
 
+/** the P-Chain records two kinds of validator set: the Primary
+ *  Network's, and every L1's */
+export function ValidatorSetSwitch({ base, view }: { base: string; view: "primary" | "l1s" }) {
+  return (
+    <ViewSwitch
+      label="Validator set"
+      current={view}
+      views={[
+        { key: "primary", label: "Primary Network", title: "The Primary Network's validators: stake, versions, health", href: `${base}/validators` },
+        { key: "l1s", label: "L1s", title: "Every L1's own validators. They do not validate the Primary Network", href: `${base}/validators/l1s` },
+      ]}
+    />
+  );
+}
+
 /** the C-Chain's validators ARE the Primary Network's, so on mainnet the
  *  tab also carries their staking economy */
 export function ValidatorsViewSwitch({ base, view }: { base: string; view: "set" | "staking" }) {

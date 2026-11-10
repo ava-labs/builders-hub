@@ -81,6 +81,32 @@ const MODEL_PRICING: Record<string, { input: number; output: number }> = {
 // Default pricing if model not found
 const DEFAULT_PRICING = { input: 0.15, output: 0.60 };
 
+/**
+ * Claude list prices per 1M tokens (USD): base input, a 5-minute cache write, a cache hit, and output.
+ * Source: platform.claude.com/docs/en/about-claude/pricing (read 2026-09-29). Update these values as pricing changes.
+ */
+const CLAUDE_PRICING: Record<string, { input: number; cacheWrite: number; cacheRead: number; output: number }> = {
+  'claude-opus-5-5': { input: 4, cacheWrite: 5, cacheRead: 0.2, output: 20 },
+  'claude-sonnet-5-5': { input: 2, cacheWrite: 2.5, cacheRead: 0.2, output: 10 },
+  'claude-sonnet-5': { input: 2, cacheWrite: 2.5, cacheRead: 0.2, output: 10 },
+  'claude-haiku-4-5-20251001': { input: 1, cacheWrite: 1.25, cacheRead: 0.1, output: 5 },
+};
+
+/**
+ * The USD cost of Claude tokens at list prices. The tokens use Anthropic's split: the uncached input,
+ * the cache writes and the cache reads are counted apart. Returns null for a model the table does not price.
+ */
+export function claudeCost(
+  model: string,
+  tokens: { input: number; cacheWrite: number; cacheRead: number; output: number }
+): { input: number; output: number; total: number } | null {
+  const price = CLAUDE_PRICING[model];
+  if (!price) return null;
+  const input = (tokens.input * price.input + tokens.cacheWrite * price.cacheWrite + tokens.cacheRead * price.cacheRead) / 1_000_000;
+  const output = (tokens.output * price.output) / 1_000_000;
+  return { input, output, total: input + output };
+}
+
 // Maximum length for input/output content in analytics (to avoid huge payloads)
 const MAX_CONTENT_LENGTH = 500;
 

@@ -99,13 +99,22 @@ export const addValidatorFlow: FlowDefinition = {
       },
       failureModes: [
         {
-          id: "aggregator-not-whitelisted",
-          title: "Aggregator cannot reach the validators",
+          id: "aggregator-cannot-connect",
+          title: "The aggregator cannot connect to the validators",
           symptom:
-            'connectedWeight: 0 while totalWeight is nonzero; "failed to collect a threshold of signatures".',
+            'The aggregator logs connectedWeight below 67% of totalValidatorWeight (67% is the default quorum); "failed to connect to a threshold of stake".',
           cause:
-            "On validators-only L1s the validators accept peer connections only from allowlisted NodeIDs. The aggregator's own NodeID is not in allowedNodes, so no validator answers it.",
-          fix: "Add the aggregator's NodeID to the allowedNodes configuration of the L1 validators (your infra provider can do this), then retry.",
+            "Validators are offline, or the aggregator cannot reach their staking port (9651 by default).",
+          fix: "Bring the validators online, or open port 9651 to the aggregator. Then retry.",
+        },
+        {
+          id: "validator-only-l1",
+          title: "Validators ignore the aggregator on a validator-only L1",
+          symptom:
+            'The aggregator is connected to enough stake, but its requests to sign messages from the L1 time out; "failed to collect a threshold of signatures".',
+          cause:
+            "The validators' configuration for this L1 sets validatorOnly: true. Each validator then drops this L1's messages from nodes that are not L1 validators and are not in allowedNodes. The aggregator is neither.",
+          fix: "Run your own aggregator with a fixed TLS certificate and key (tls-cert-path and tls-key-path), so that its NodeID does not change. Add that NodeID to allowedNodes on every L1 validator, restart the validators, then retry. You cannot add the hosted aggregator that the Builder Console uses: it publishes no NodeID.",
         },
       ],
     },
@@ -114,7 +123,7 @@ export const addValidatorFlow: FlowDefinition = {
       title: "Submit RegisterL1ValidatorTx to the P-Chain",
       railLabel: "P-CHAIN TX",
       summary:
-        "The aggregated, signed message goes into a P-Chain RegisterL1ValidatorTx. When it is accepted, the P-Chain assigns a validationID and the validator starts consuming its continuous fee balance.",
+        "The aggregated, signed message goes into a P-Chain RegisterL1ValidatorTx. When it is accepted, the P-Chain records the validator under its validationID (the SHA-256 hash of the RegisterL1ValidatorMessage), and the validator starts to pay the continuous fee from its balance.",
       activeActors: ["aggregator", "pchain"],
       travel: {
         from: "aggregator",
@@ -185,7 +194,7 @@ export const addValidatorFlow: FlowDefinition = {
           symptom:
             "accumulatedWeight stays 0 out of the total weight; every validator returns an immediate timeout.",
           cause:
-            "Validators reject the request during message or justification validation, often because their P-Chain view does not (yet) contain the registration, or the aggregator is not allowlisted (see step 2).",
+            "Validators reject the request while they validate the message or its justification, usually because their own P-Chain view does not yet contain the registration. The validatorOnly setting does not affect this step: the P-Chain is part of the Primary Network, which is never validator-only.",
           fix: "Confirm the RegisterL1ValidatorTx is accepted, give validators time to sync past it, verify aggregator connectivity, then retry the aggregation.",
         },
       ],
@@ -218,7 +227,7 @@ export const addValidatorFlow: FlowDefinition = {
         notes: [
           "The calldata above is completeValidatorRegistration(uint32) with message index 0: selector 0xa3a65e48 plus the zero-encoded argument.",
           "The Warp precompile lives at 0x0200000000000000000000000000000000000005; the predicate is packed into the access list entry for that address.",
-          "requirePrimaryNetworkSigners does not apply here: P-Chain-sourced messages are exempt in Subnet-EVM v0.8.0 and later, so the L1 validator set verifies this message.",
+          "requirePrimaryNetworkSigners does not apply here: P-Chain-sourced messages are always exempt, so the L1 validator set verifies this message.",
           "Verify the result afterwards in the console's verify-validator-set step.",
         ],
       },

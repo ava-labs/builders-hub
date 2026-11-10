@@ -3,7 +3,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { Input } from '@/components/toolbox/components/Input';
 import { getContainerVersions } from '@/components/toolbox/utils/containerVersions';
-import { Step } from 'fumadocs-ui/components/steps';
+import { Step } from '@/components/toolbox/components/Steps';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { nodeConfigBase64 } from './config';
 import { useL1ByChainId } from '@/components/toolbox/stores/l1ListStore';
@@ -89,7 +89,7 @@ interface DockerComposeConfig {
 /**
  * Generates a cryptographically-random base64url string suitable for
  * Postgres passwords and Phoenix SECRET_KEY_BASE values. Runs on the
- * client via Web Crypto — no server round-trip.
+ * client via Web Crypto, with no server round-trip.
  */
 function generateRandomSecret(byteLength = 48): string {
   const buf = new Uint8Array(byteLength);
@@ -515,7 +515,10 @@ export default function DockerBlockscoutSetup({
 
               <div>
                 <h4 className="font-semibold mb-2">2. Paste the following content into the file:</h4>
-                <DynamicCodeBlock lang="yaml" code={composeYaml} />
+                {/* The file holds the generated database password and SECRET_KEY_BASE. Session replay skips it. */}
+                <div className="ph-no-capture">
+                  <DynamicCodeBlock lang="yaml" code={composeYaml} />
+                </div>
               </div>
 
               <div>
@@ -561,7 +564,7 @@ export default function DockerBlockscoutSetup({
                 <div>
                   <h4 className="font-semibold mb-2">Monitor the AvalancheGo node sync progress:</h4>
                   <DynamicCodeBlock lang="bash" code="docker logs -f avago" />
-                  <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
+                  <div className="mt-4 border border-amber-300 bg-amber-50 p-4 dark:border-amber-800/70 dark:bg-amber-950/20">
                     <h5 className="font-semibold mb-2">⚠️ Important Note About Sync Time</h5>
                     <p>
                       The AvalancheGo node needs to sync with the network before the explorer can function properly. For
@@ -626,7 +629,7 @@ export default function DockerBlockscoutSetup({
               <img
                 src="/images/blockscout-sample.png"
                 alt="Blockscout Sample Image"
-                className="rounded-lg shadow-lg border border-zinc-200 dark:border-zinc-700 w-full"
+                className="w-full border border-zinc-200 dark:border-zinc-800"
               />
               <p className="text-sm mt-2 text-center">Preview of your BlockScout Explorer interface</p>
             </div>

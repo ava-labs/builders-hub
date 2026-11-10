@@ -18,13 +18,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { DEPLOYMENT_TARGET_LABELS } from "@/lib/audits/constants";
-import type { DeploymentTarget } from "@/lib/audits/status";
-import type { OwnerRequestDetail } from "@/server/services/audits/visibility";
+import { formatUtcDeadline, type DeploymentTarget } from "@/lib/audits/status";
+import type { FirmUsernames, OwnerRequestDetail } from "@/server/services/audits/visibility";
 import { AUDITS_DIALOG, MONO_LABEL, MONO_LABEL_SM } from "@/components/audits/shared/classes";
 import { StatusBadge } from "@/components/audits/shared/StatusBadge";
 import { formatIsoDate, formatUsd } from "@/components/audits/shared/format";
 import { CollectingBanner } from "@/components/audits/detail/CollectingBanner";
 import { EngagedPanel } from "@/components/audits/detail/EngagedPanel";
+import { FirmUsernamesCard } from "@/components/audits/detail/FirmUsernamesCard";
 import { RequestSummary } from "@/components/audits/detail/RequestSummary";
 import { QuotesPanel } from "@/components/audits/quotes/QuotesPanel";
 
@@ -186,12 +187,49 @@ function ReopenButton({ requestId }: { requestId: string }) {
   );
 }
 
+/** A lapsed request's way on: a copy as a new draft, back through review. */
+function StartAgainButton({ requestId }: { requestId: string }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+
+  const startAgain = async () => {
+    setBusy(true);
+    let started = false;
+    try {
+      const res = await fetch(`/api/audits/requests/${requestId}/start-again`, { method: "POST" });
+      const body = await res.json().catch(() => null);
+      if (!res.ok || !body?.success) {
+        toast.error(body?.message ?? "We couldn't start this request again.");
+        return;
+      }
+      started = true;
+      router.push(`/audits/new?draft=${body.id}`);
+    } catch {
+      toast.error("We couldn't start this request again.");
+    } finally {
+      // Stays disabled once started: the wizard is loading, and a second
+      // click would make a second copy.
+      if (!started) setBusy(false);
+    }
+  };
+
+  return (
+    <Button variant="outline" disabled={busy} onClick={() => void startAgain()} className="h-11 md:h-10">
+      Start again
+    </Button>
+  );
+}
+
 export function RequestDetailView({
   detail,
   userId,
+  firmUsernames = [],
 }: {
   detail: OwnerRequestDetail;
   userId: string;
+  /** getOwnerFirmUsernames: the notified firms while quotes are open, the
+      winner once engaged, nothing otherwise. */
+  firmUsernames?: FirmUsernames[];
 }) {
   const status = detail.display_status;
   const acceptedQuote = detail.quotes.find((quote) => quote.status === "accepted") ?? null;
@@ -224,6 +262,7 @@ export function RequestDetailView({
         {status === "collecting" ? (
           <>
             <CollectingBanner detail={detail} />
+            {firmUsernames.length > 0 ? <FirmUsernamesCard firms={firmUsernames} /> : null}
             {detail.quotes.length > 0 ? (
               <QuotesPanel
                 quotes={detail.quotes}
@@ -255,14 +294,18 @@ export function RequestDetailView({
               <p className="text-sm">
                 <span className="font-medium">
                   Window closed
-                  {detail.quote_deadline ? ` ${formatIsoDate(detail.quote_deadline)}` : ""}
+                  {detail.quote_deadline ? ` ${formatUtcDeadline(detail.quote_deadline)}` : ""}
                 </span>{" "}
                 <span className="text-zinc-500 dark:text-zinc-400">
                   · quotes visible only to you and program admins
                 </span>
               </p>
               <span className="flex-1" />
-              <p className={MONO_LABEL_SM}>Pick one to reveal contacts</p>
+              <p className={MONO_LABEL_SM}>
+                {detail.pick_by
+                  ? `Pick one by ${formatIsoDate(detail.pick_by)}`
+                  : "Pick one to reveal contacts"}
+              </p>
             </div>
             <QuotesPanel
               quotes={detail.quotes}
@@ -277,7 +320,11 @@ export function RequestDetailView({
         {status === "engaged" ? (
           acceptedQuote ? (
             <>
-              <EngagedPanel detail={detail} acceptedQuote={acceptedQuote} />
+              <EngagedPanel
+                detail={detail}
+                acceptedQuote={acceptedQuote}
+                githubUsernames={firmUsernames[0]?.github_usernames ?? []}
+              />
               {detail.quotes.length > 1 ? (
                 <div id="quote-archive" className="scroll-mt-24 space-y-3">
                   <p className={MONO_LABEL_SM}>Archived quotes · read-only</p>
@@ -294,15 +341,32 @@ export function RequestDetailView({
         ) : null}
 
         {status === "expired" ? (
-          <StateCard
-            title="The quote window closed without quotes."
-            body={
-              detail.shortlist_auditor_ids.length > 0
-                ? "This request can be reopened for one more round; the firms you chose are notified again."
-                : "This request can be reopened for one more round; every active firm is notified again."
-            }
-            action={<ReopenButton requestId={detail.id} />}
-          />
+          detail.quotes.length > 0 ? (
+            // Lapsed: quotes came in and none was picked by the pick-by date.
+            // Dated, never "a week after the window": under the release grace
+            // that would be false.
+            <>
+              <StateCard
+                title="No quote was picked in time."
+                body={`The quotes expired${detail.pick_by ? ` on ${formatIsoDate(detail.pick_by)}` : ""}. Start again from a copy of this request: it goes back through review and a fresh quote window. Files are not copied.`}
+                action={<StartAgainButton requestId={detail.id} />}
+              />
+              <div className="space-y-3">
+                <p className={MONO_LABEL_SM}>Expired quotes · read-only</p>
+                <QuotesPanel quotes={detail.quotes} userId={userId} neededBy={detail.needed_by} />
+              </div>
+            </>
+          ) : (
+            <StateCard
+              title="The quote window closed without quotes."
+              body={
+                detail.shortlist_auditor_ids.length > 0
+                  ? "This request can be reopened for one more round; the firms you chose are notified again."
+                  : "This request can be reopened for one more round; every active firm is notified again."
+              }
+              action={<ReopenButton requestId={detail.id} />}
+            />
+          )
         ) : null}
 
         {status === "withdrawn" ? (

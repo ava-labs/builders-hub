@@ -1,13 +1,13 @@
 /**
  * In-memory mock orchestrator for Basic L1 Setup.
  *
- * Stands in for the real Railway microservice until it's built. Keeps
+ * Stands in for the real quick-l1 service until it's built. Keeps
  * jobs in a module-level Map that advances through the scripted step
  * sequence on a timer. Zero persistence — jobs evaporate on dev-server
  * restart, which is fine for design reviews and UX iteration.
  *
  * The API routes call into this module when `QUICK_L1_SERVICE_URL` is
- * not set in env. Once Railway is live, we swap to proxying and this
+ * not set in env. Once the service is live, we swap to proxying and this
  * file stays as a dev-only fallback.
  */
 
@@ -102,7 +102,7 @@ function fakeEvmTxHash(): `0x${string}` {
 }
 
 /**
- * Scripted tx evidence per step. Real backend (quick-l1 Railway service)
+ * Scripted tx evidence per step. Real backend (quick-l1 service)
  * produces these for real via @avalanche-sdk/client + viem; the mock
  * emits plausible fakes so the progress UI can exercise the same render
  * path end to end.

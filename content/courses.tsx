@@ -10,7 +10,7 @@ export type Course = {
     languages: string[];
     tools: string[];
     instructors: string[];
-    category: "Fundamentals" | "Smart Contract Development" | "L1 Development" | "Interoperability" | "Entrepreneur";
+    category: "Fundamentals" | "Smart Contract Development" | "L1 Development" | "Interoperability";
     certificateTemplate?: string;
 };
 
@@ -199,19 +199,6 @@ const officialCourses: Course[] = [
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
     },
     {
-        name: "NFT Deployment",
-        description: "Learn how to create, prepare, and deploy your own NFT collection on Avalanche",
-        slug: "nft-deployment",
-        icon: <SquareCode />,
-        duration: "1.5 hours",
-        status: "featured",
-        tools: ["Remix IDE", "Pinata"],
-        languages: ["Solidity"],
-        instructors: ["Andrea Vargas", "Ash", "Martin Eckardt"],
-        category: "Smart Contract Development",
-        certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
-    },
-    {
         name: "Encrypted ERC",
         description: "Learn the basics on what is an encrypted ERC token and how to use it",
         slug: "encrypted-erc",
@@ -224,63 +211,9 @@ const officialCourses: Course[] = [
         category: "Smart Contract Development",
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
     },
-    {
-        name: "Foundations of a Web3 Venture",
-        description: "Secure, compliant and customer-driven growth made simple.",
-        slug: "foundations-web3-venture",
-        icon: <SquareStackIcon />,
-        status: "featured",
-        duration: "1 hour",
-        languages: [],
-        tools: ["Venture Foundations"],
-        instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
-        category: "Entrepreneur",
-        certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-certificates/FillableAvalanche_EntrepreneurAcademy_Certificate_FW3V_R1.pdf"
-    },
-    {
-        name: "Go-to-Market Strategist",
-        description: "Generate quality leads, craft winning sales messages, and design pricing strategies that drive growth.",
-        slug: "go-to-market",
-        icon: <SquareStackIcon />,
-        status: "featured",
-        duration: "1 hour",
-        languages: [],
-        tools: ["Go-To-Market"],
-        instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
-        category: "Entrepreneur",
-        certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-certificates/FillableAvalanche_EntrepreneurAcademy_Certificate_W3GTM_R1.pdf"
-    },
-    {
-        name: "Web3 Community Architect",
-        description: "Build engaged communities, amplify growth through media and events, and design impactful token economies.",
-        slug: "web3-community-architect",
-        icon: <SquareStackIcon />,
-        status: "featured",
-        duration: "1 hour",
-        languages: [],
-        tools: ["Community Building"],
-        instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
-        category: "Entrepreneur",
-        certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-certificates/FillableAvalanche_EntrepreneurAcademy_Certificate_W3CA_R1.pdf"
-    },
-    {
-        name: "Fundraising & Finance Pro",
-        description: "Master VC communication, secure funding through grants, and craft winning pitches.",
-        slug: "fundraising-finance",
-        icon: <SquareStackIcon />,
-        status: "featured",
-        duration: "1 hour",
-        languages: [],
-        tools: ["Fundraising"],
-        instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
-        category: "Entrepreneur",
-        certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-certificates/FillableAvalanche_EntrepreneurAcademy_Certificate_W3FFP_R1.pdf"
-    },
 ];
 
 const ecosystemCourses: Course[] = [];
-
-const entrepreneurCourses = officialCourses.filter((course) => course.category === "Entrepreneur");
 
 // Helper function to create course configuration mappings
 export const getCourseConfig = () => {
@@ -338,8 +271,7 @@ export const getCourseTools = (): Record<string, string> => {
 };
 
 export default {
-    official: officialCourses.filter((course) => ["normal", "featured"].includes(course.status) && course.category !== "Entrepreneur"),
-    official_featured: officialCourses.filter((course) => course.status === "featured" && course.category !== "Entrepreneur"),
-    avalancheEntrepreneur: entrepreneurCourses,
+    official: officialCourses.filter((course) => ["normal", "featured"].includes(course.status)),
+    official_featured: officialCourses.filter((course) => course.status === "featured"),
     ecosystem: ecosystemCourses,
 };

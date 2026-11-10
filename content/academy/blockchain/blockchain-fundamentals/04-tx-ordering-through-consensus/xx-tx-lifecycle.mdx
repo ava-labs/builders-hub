@@ -1,6 +1,6 @@
 ---
 title: Transaction Lifecycle
-description: Follow a blockchain transaction from creation to finalization. Learn each step in the journey—from signing with your private key to achieving confirmation deep within the blockchain.
+description: Follow a blockchain transaction from creation to finalization. Learn each step in the journey, from signing with your private key to achieving confirmation deep within the blockchain.
 updated: 2025-10-29
 authors: [martineckardt, katherineavalabs]
 icon: Notebook
@@ -24,7 +24,7 @@ A transaction begins when a user decides to transfer assets. This involves speci
 The user typically interacts with wallet software (desktop app, browser extension, mobile app, or hardware wallet) that provides a user-friendly interface for creating the transaction. Behind the scenes, the wallet constructs the transaction data structure according to the blockchain's protocol specifications.
 
 **Example**:
-Alice wants to send 10 AVAX to Bob. She opens her wallet, enters Bob's address (0x742d35Cc...), specifies 10 AVAX, and reviews the estimated transaction fee of 0.01 avax. She confirms she wants to proceed.
+Alice wants to send 10 AVAX to Bob. She opens her wallet, enters Bob's address (0x742d35Cc...), specifies 10 AVAX, and reviews the maximum transaction fee of 0.0002 AVAX. She confirms she wants to proceed.
 
 ## Signing
 
@@ -109,14 +109,14 @@ Before accepting a transaction, nodes perform multiple checks:
 - The sender must fix the issue and create a new transaction
 
 **Example**:
-Nodes receive Alice's transaction and verify: (1) The signature is valid using Alice's public key, (2) Alice's account has at least 10.01 AVAX (10 AVAX + 0.01 AVAX fee), (3) The nonce is 47, which is correct for Alice's next transaction, (4) The transaction format is valid. All checks pass, so the transaction enters the mempool.
+Nodes receive Alice's transaction and verify: (1) The signature is valid using Alice's public key, (2) Alice's account has at least 10.0002 AVAX (10 AVAX + 0.0002 AVAX maximum fee), (3) The nonce is 47, which is correct for Alice's next transaction, (4) The transaction format is valid. All checks pass, so the transaction enters the mempool.
 
 ## Mempool (Transaction Pool)
 
 After verification, valid transactions wait in a temporary holding area:
 
 **What Is the Mempool**:
-- Short for "memory pool"—a collection of unconfirmed transactions stored in each node's RAM
+- Short for "memory pool": a collection of unconfirmed transactions stored in each node's RAM
 - Each node maintains its own mempool (they may differ slightly due to network propagation times)
 - Transactions wait here until a miner or validator includes them in a block
 
@@ -133,7 +133,7 @@ Transactions are typically prioritized by:
 - Users can often replace pending transactions by resubmitting with higher fees (Replace-By-Fee)
 
 **Example**:
-Alice's transaction sits in the mempool of thousands of nodes. She offered a fee of 0.01 AVAX, which is above the minimum required. The transaction will likely be included in the next block as validators select transactions to process.
+Alice's transaction sits in the mempool of thousands of nodes. She offered a maximum fee of 0.0002 AVAX, which is above the minimum required. The transaction will likely be included in the next block as validators select transactions to process.
 
 ## Consensus (Block Inclusion)
 
@@ -203,7 +203,7 @@ Once confirmed, the transaction's effects are reflected in the blockchain state:
 - Smart contract state may be updated (if applicable)
 
 **Example**:
-A few seconds after being included in a block, Alice's transaction is considered final on Avalanche's C-Chain due to its fast-finality consensus. Bob's wallet now shows the 10 AVAX as confirmed and available to spend. Alice's balance shows 10.01 AVAX less than before (10 AVAX transferred + 0.01 AVAX fee). The transaction is complete and irreversible.
+A few seconds after being included in a block, Alice's transaction is considered final on Avalanche's C-Chain due to its fast-finality consensus. Bob's wallet now shows the 10 AVAX as confirmed and available to spend. Alice's balance shows about 10.0001 AVAX less than before (10 AVAX transferred + about 0.0001 AVAX fee). On the C-Chain, Alice pays the base fee plus her tip for each unit of gas. This fee can be less than the maximum fee that she offered. The transaction is complete and irreversible.
 
 ## Summary: Complete Lifecycle Visualization
 

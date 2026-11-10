@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertCircle, ArrowLeft, Check, ExternalLink } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Check, ExternalLink, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useDeploymentStatus } from '@/hooks/useQuickL1Deploy';
 import {
@@ -95,9 +95,9 @@ export default function BasicSetupProgress({ jobId }: { jobId: string }) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           whileHover={{ x: -2 }}
-          className="mb-3 inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors"
+          className="mb-3 inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-500 underline-offset-4 transition-colors hover:text-zinc-900 hover:underline dark:text-zinc-400 dark:hover:text-zinc-100"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-3.5 w-3.5" />
           Back
         </motion.button>
 
@@ -110,13 +110,13 @@ export default function BasicSetupProgress({ jobId }: { jobId: string }) {
           <div className="min-w-0">
             <div
               className={cn(
-                'text-[11px] font-semibold uppercase tracking-wider',
-                failed ? 'text-red-500' : 'text-zinc-500 dark:text-zinc-400',
+                'font-mono text-[10.5px] font-bold uppercase tracking-[0.14em]',
+                failed ? 'text-red-600 dark:text-red-400' : 'text-zinc-500 dark:text-zinc-400',
               )}
             >
               {failed ? 'Deployment failed' : 'Deploying'}
             </div>
-            <h1 className="mt-0.5 text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 truncate">
+            <h1 className="mt-1 truncate text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
               {job?.request.chainName || 'Your L1'}
             </h1>
           </div>
@@ -154,10 +154,10 @@ export default function BasicSetupProgress({ jobId }: { jobId: string }) {
             the header + progress strip widths). Loader + text stay
             centered inside the wider card. */}
         <div className="flex flex-col items-center gap-1.5 w-full lg:flex-1 lg:min-w-0">
-          <span className="text-[10px] font-medium uppercase tracking-[0.15em] text-zinc-500 dark:text-zinc-500">
+          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
             Current step
           </span>
-          <div className="relative w-full lg:h-[500px] rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white/40 dark:bg-zinc-900/40 px-5 py-5 flex flex-col overflow-hidden">
+          <div className="relative flex w-full flex-col overflow-hidden border border-zinc-200 bg-white px-5 py-5 lg:h-[500px] dark:border-zinc-800 dark:bg-zinc-950">
             {failed ? (
               <div className="flex-1 flex items-center justify-center">
                 <FailureContent message={job?.error ?? 'Unknown error'} />
@@ -174,7 +174,7 @@ export default function BasicSetupProgress({ jobId }: { jobId: string }) {
                     <AvaxLoader size={52} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-[10px] font-medium uppercase tracking-[0.15em] text-zinc-500 dark:text-zinc-500">
+                    <div className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
                       Now
                     </div>
                     <AnimatePresence mode="wait">
@@ -211,7 +211,7 @@ export default function BasicSetupProgress({ jobId }: { jobId: string }) {
                   </div>
                 </div>
 
-                <div className="border-t border-zinc-100 dark:border-zinc-800/80 my-3 shrink-0" />
+                <div className="my-3 shrink-0 border-t border-zinc-200 dark:border-zinc-800" />
 
                 {/* Step timeline — scrollable list of every step in the
                     deploy, with tx evidence inlined per step. Fills
@@ -232,7 +232,7 @@ export default function BasicSetupProgress({ jobId }: { jobId: string }) {
             canvas feels cramped against the text content. */}
         {!failed && (
           <div className="hidden sm:flex flex-col items-center gap-1.5 shrink-0">
-            <span className="text-[10px] font-medium uppercase tracking-[0.15em] text-zinc-500 dark:text-zinc-500">
+            <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
               While you wait
             </span>
             <AvaxGame />
@@ -243,7 +243,7 @@ export default function BasicSetupProgress({ jobId }: { jobId: string }) {
       {/* Footer — compact progress strip. Doesn't expand regardless of
           step count, and keeps a sense of "where am I in the whole thing". */}
       <div>
-        <div className="mb-2 flex items-center justify-between text-[11px] text-zinc-500 dark:text-zinc-400 tabular-nums">
+        <div className="mb-2 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.14em] tabular-nums text-zinc-500 dark:text-zinc-400">
           <span>
             Step {Math.min(currentIdx + 1, visibleSteps.length)} of {visibleSteps.length}
           </span>
@@ -261,7 +261,7 @@ export default function BasicSetupProgress({ jobId }: { jobId: string }) {
       </div>
 
       {error && !job && (
-        <p className="mt-2 flex-shrink-0 text-center text-xs text-zinc-500 dark:text-zinc-400">
+        <p className="mt-2 flex-shrink-0 text-center font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
           Network hiccup fetching status — retrying automatically.
         </p>
       )}
@@ -281,7 +281,7 @@ function StepDot({ state }: { state: DotState }) {
   return (
     <span
       className={cn(
-        'relative flex-1 h-1 rounded-full overflow-hidden transition-colors',
+        'relative h-1 flex-1 overflow-hidden transition-colors',
         state === 'done' && 'bg-emerald-500',
         state === 'active' && 'bg-zinc-900 dark:bg-white',
         state === 'pending' && 'bg-zinc-200 dark:bg-zinc-800',
@@ -358,8 +358,9 @@ function StepRow({ state, label, txs }: { state: StepState; label: string; txs: 
   return (
     <li
       className={cn(
-        'flex items-center gap-2 rounded-md px-1.5 py-0.5 transition-colors min-w-0',
-        state === 'active' && 'bg-zinc-100/70 dark:bg-zinc-800/50',
+        'relative flex min-w-0 items-center gap-2 px-1.5 py-0.5 transition-colors',
+        state === 'active' &&
+          'bg-zinc-50 before:absolute before:inset-y-0 before:left-0 before:w-0.5 before:bg-[#E6212F] dark:bg-zinc-900',
       )}
     >
       <StepIcon state={state} />
@@ -388,7 +389,7 @@ function StepRow({ state, label, txs }: { state: StepState; label: string; txs: 
 function StepIcon({ state }: { state: StepState }) {
   if (state === 'done') {
     return (
-      <span className="shrink-0 mt-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-white">
+      <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center border border-emerald-500 bg-emerald-500 text-white">
         <Check className="h-3 w-3" strokeWidth={3} />
       </span>
     );
@@ -396,13 +397,13 @@ function StepIcon({ state }: { state: StepState }) {
   if (state === 'active') {
     return (
       <span className="shrink-0 mt-0.5 flex h-4 w-4 items-center justify-center">
-        <span className="h-3.5 w-3.5 rounded-full border-2 border-zinc-300 dark:border-zinc-700 border-t-zinc-900 dark:border-t-zinc-100 animate-spin" />
+        <Loader2 className="h-3.5 w-3.5 animate-spin text-zinc-900 dark:text-zinc-100" />
       </span>
     );
   }
   return (
     <span className="shrink-0 mt-0.5 flex h-4 w-4 items-center justify-center">
-      <span className="h-2 w-2 rounded-full border border-zinc-300 dark:border-zinc-700" />
+      <span className="h-2 w-2 border border-zinc-300 dark:border-zinc-700" />
     </span>
   );
 }
@@ -419,7 +420,7 @@ function TxChip({ tx }: { tx: TxRecord }) {
   const inner = (
     <>
       <span className={cn('h-1 w-1 rounded-full shrink-0', chainDotColor(tx.chain))} />
-      <span className="text-[9px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 shrink-0">
+      <span className="shrink-0 font-mono text-[9px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
         {chainLabelShort(tx.chain)}
       </span>
       <code className="font-mono text-[10px] text-zinc-500 dark:text-zinc-400 shrink-0">{short}</code>
@@ -427,7 +428,7 @@ function TxChip({ tx }: { tx: TxRecord }) {
     </>
   );
   const commonClass =
-    'inline-flex items-center gap-1 rounded border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-1 py-[1px] leading-none';
+    'inline-flex items-center gap-1 border border-zinc-200 bg-white px-1 py-[1px] leading-none dark:border-zinc-800 dark:bg-zinc-950';
   return url ? (
     <a
       href={url}
@@ -456,14 +457,15 @@ function FailureContent({ message }: { message: string }) {
       transition={{ type: 'spring', stiffness: 240, damping: 26 }}
       className="flex flex-col items-center text-center max-w-md"
     >
-      <div className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-red-500 shrink-0">
-        <AlertCircle className="h-10 w-10 text-red-500" />
-      </div>
-      <h2 className="mt-6 text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">Deployment failed</h2>
+      <p className="flex items-center gap-2 font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-red-600 dark:text-red-400">
+        <AlertCircle className="h-3.5 w-3.5" />
+        Error
+      </p>
+      <h2 className="mt-3 text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">Deployment failed</h2>
       {/* Error messages can contain long RPC URLs, tx hashes, or stack
           traces — break-words ensures they wrap inside the 312px-wide
           card content area rather than overflowing horizontally. */}
-      <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400 break-words max-w-full">{message}</p>
+      <p className="mt-2 max-w-full break-words font-mono text-[12px] text-zinc-500 dark:text-zinc-400">{message}</p>
     </motion.div>
   );
 }
@@ -493,7 +495,9 @@ function ElapsedTimer({ startedAt, running }: { startedAt: string; running: bool
 
   return (
     <div className="text-right shrink-0">
-      <div className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Elapsed</div>
+      <div className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+        Elapsed
+      </div>
       <div className="mt-0.5 font-mono tabular-nums text-lg leading-none text-zinc-900 dark:text-zinc-100">
         {mm}:{ss}
       </div>

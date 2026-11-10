@@ -91,7 +91,6 @@ export function useContractActions(contractAddress: string | null, abi: Abi | re
     if (options.accessList) txConfig.accessList = options.accessList;
 
     // Pre-flight simulation: catch reverts BEFORE prompting the wallet.
-    // On Fuji, also runs debug_traceCall for richer error context.
     if (publicClient) {
       try {
         await publicClient.simulateContract({
@@ -99,43 +98,7 @@ export function useContractActions(contractAddress: string | null, abi: Abi | re
           account: walletEVMAddress as `0x${string}`,
         });
       } catch (simErr) {
-        const parsedError = parseContractError(simErr);
-
-        // On Fuji testnet, enhance the error with a debug trace
-        if (isTestnet) {
-          try {
-            const traceResp = await fetch('/api/debug-rpc', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                method: 'debug_traceCall',
-                params: [
-                  {
-                    from: walletEVMAddress,
-                    to: contractAddress,
-                    data: txConfig.data,
-                  },
-                  'latest',
-                  { tracer: 'callTracer' },
-                ],
-              }),
-            });
-            if (traceResp.ok) {
-              const traceData = await traceResp.json();
-              const revertReason = traceData?.result?.revertReason || traceData?.result?.error;
-              if (revertReason && !parsedError.includes(revertReason)) {
-                throw new Error(`${parsedError} (trace: ${revertReason})`);
-              }
-            }
-          } catch (traceErr) {
-            // Trace failed — fall through to the parsed error
-            if (traceErr instanceof Error && traceErr.message.includes('trace:')) {
-              throw traceErr; // re-throw if it's our enhanced error
-            }
-          }
-        }
-
-        throw new Error(parsedError);
+        throw new Error(parseContractError(simErr));
       }
     }
 

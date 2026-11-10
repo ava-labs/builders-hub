@@ -2,30 +2,27 @@ import { NextRequest, NextResponse } from 'next/server';
 import { timingSafeEqual } from 'node:crypto';
 import { createDbNode, selectNewestNode } from '@/app/api/managed-testnet-nodes/service';
 import { jsonError, jsonOk, validateSubnetId } from '@/app/api/managed-testnet-nodes/utils';
-import { checkAndAwardConsoleBadges } from '@/server/services/consoleBadge/consoleBadgeService';
-import type { AwardedConsoleBadge } from '@/server/services/consoleBadge/types';
 import { checkRateLimit } from '@/lib/rateLimit';
 import { prisma } from '@/prisma/prisma';
 
 /**
  * POST /api/internal/quick-l1/register-node
  *
- * Service-to-service callback from the Quick L1 Railway orchestrator.
+ * Service-to-service callback from the quick-l1 orchestrator.
  * After it provisions a managed node for a deploy, it pings this
  * endpoint so we attach a `prisma.nodeRegistration` row to the user's
  * builders-hub account — the same way a manual creation via
  * `POST /api/managed-testnet-nodes` would.
  *
  * The result is that Quick L1 deploys show up under the user's
- * "Managed nodes" page with the same TTL, the same RPC URL, and
- * award the same `node_registration` console badge.
+ * "Managed nodes" page with the same TTL and the same RPC URL.
  *
  * Auth model:
  *   - `x-quick-l1-secret` shared with the orchestrator. Constant-time
  *     compare; missing/wrong secret returns 401 without any hint.
  *   - The `userId` in the request body is trusted because the deploy
  *     proxy injected it from the authenticated session before
- *     forwarding to Railway. The orchestrator only relays it back; it
+ *     forwarding it on. The orchestrator only relays it back; it
  *     can't fabricate a user.
  *
  * Why a separate endpoint instead of reusing `POST /api/managed-testnet-nodes`:
@@ -130,13 +127,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // `NodeInfo.expiresAt` exists on the type for parity with the
   // upstream managed-testnet-nodes service shape, but `createDbNode`
   // ignores it — it sets `expires_at` itself via `NODE_TTL_MS`. We
-  // derive a plausible value (dateCreated + 3 days, in epoch seconds)
+  // derive a plausible value (dateCreated + the TTL, in epoch seconds)
   // so the type checks out without misleading downstream readers.
-  const THREE_DAYS_EPOCH_S = 3 * 24 * 60 * 60;
+  const NODE_TTL_EPOCH_S = 7 * 24 * 60 * 60;
   const newestNode = {
     nodeIndex: body.nodeIndex,
     dateCreated: body.dateCreated,
-    expiresAt: body.dateCreated + THREE_DAYS_EPOCH_S,
+    expiresAt: body.dateCreated + NODE_TTL_EPOCH_S,
     nodeInfo: {
       result: {
         nodeID: body.nodeId,
@@ -163,17 +160,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return jsonOk({ ok: true, status: 'already-registered' });
     }
 
-    // Award `node_registration` badge — same as the manual flow. Best
-    // effort; a badge-service hiccup must never fail the registration.
-    let awardedBadges: AwardedConsoleBadge[] = [];
-    try {
-      awardedBadges = await checkAndAwardConsoleBadges(body.userId, 'node_registration');
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.warn('[register-node] badge award failed (non-fatal):', e);
-    }
-
-    return jsonOk({ ok: true, status: 'created', nodeId: created.id, awardedBadges });
+    return jsonOk({ ok: true, status: 'created', nodeId: created.id });
   } catch (e) {
     // Static client message — Prisma errors leak schema, query parameters,
     // and connection details. The full error is logged server-side via the

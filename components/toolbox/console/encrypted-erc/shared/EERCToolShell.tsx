@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { BookOpen, GraduationCap } from 'lucide-react';
+import { ArrowUpRight, BookOpen, GraduationCap } from 'lucide-react';
 import { ContractDeployViewer, type ContractSource } from '@/components/console/contract-deploy-viewer';
 import { EERC_COMMIT } from '@/lib/eerc/contractSources';
 import { EERCStepNav } from './EERCStepNav';
@@ -21,91 +21,74 @@ interface EERCToolShellProps {
   contracts: ContractSource[];
   /** Left-pane body. Should be tall enough to fill the height — use scroll below 540px. */
   children: React.ReactNode;
-  /** Extra footer pills to link related docs / source files. Commit badge is always rendered. */
+  /** Extra footer links to related docs / source files. Commit link is always rendered. */
   footerLinks?: FooterLink[];
   /** Override the fixed content height. Defaults to 540px to match the Deploy wizard steps. */
   height?: number;
+  /** Academy page for the first footer link. */
+  academyHref?: string;
+  /** Render the Encrypted ERC tool tabs above the panes. */
+  showNav?: boolean;
 }
+
+const FOOTER_LINK =
+  'group/foot inline-flex items-center gap-1.5 font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 underline-offset-4 transition-colors hover:text-zinc-900 hover:underline dark:text-zinc-400 dark:hover:text-zinc-50';
 
 /**
  * Standard shell for any Encrypted ERC tool that reads from or writes to a
- * contract. Mirrors the DeployValidatorManager pattern exactly so tools feel
- * cohesive with the rest of the console.
- *
- *   ┌──────────────────────────────────────────────┐
- *   │  scrollable left pane (your `children`)      │  right pane:
- *   │                                              │  syntax-highlighted
- *   │                                              │  Solidity source,
- *   │                                              │  tabs per contract
- *   │                                              │
- *   ├──────────────────────────────────────────────┤
- *   │ [Academy] [source 1] [source 2]    @commit7  │  footer strip
- *   └──────────────────────────────────────────────┘
+ * contract: the tool tabs, then the controls on the left and the Solidity
+ * source on the right, with a footer of docs links and the pinned commit.
  */
-export function EERCToolShell({ contracts, children, footerLinks, height = 540 }: EERCToolShellProps) {
-  const defaultAcademyLink: FooterLink = {
-    label: 'Academy',
-    href: '/academy/encrypted-erc',
-    internal: true,
-    icon: <GraduationCap className="w-3.5 h-3.5" />,
-  };
-  const links = [defaultAcademyLink, ...(footerLinks ?? [])];
+export function EERCToolShell({
+  contracts,
+  children,
+  footerLinks,
+  height = 540,
+  academyHref = '/academy/encrypted-erc',
+  showNav = true,
+}: EERCToolShellProps) {
+  const links: FooterLink[] = [
+    { label: 'Academy', href: academyHref, internal: true, icon: <GraduationCap className="h-3 w-3" /> },
+    ...(footerLinks ?? []),
+  ];
 
   return (
     <>
-      {/* Mount the global EERC keyframe block exactly once. Both the
-          Overview hub page and every leaf tool page share these
-          animation classes (`key-wobble`, `arrow-down`, `eye-blink`,
-          etc.); rendering them here means leaf pages don't ship their
-          own copy. */}
       <EERCKeyframes />
-      {/* Persistent step-nav across every eERC tool page. Highlights the
-          current page and surfaces Done/Ready/Next status for the rest
-          so users can jump anywhere without trekking back to Overview. */}
-      <EERCStepNav />
+      {showNav && <EERCStepNav />}
       <ContractDeployViewer contracts={contracts}>
         <div
-          className="flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden"
+          className="flex flex-col overflow-hidden border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950"
           style={{ height }}
         >
-          <div className="flex-1 overflow-auto p-5 space-y-4">{children}</div>
+          <div className="flex flex-1 flex-col gap-5 overflow-auto p-5">{children}</div>
 
-          <div className="shrink-0 px-5 py-4 border-t border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 flex-wrap">
-                {links.map((l) =>
-                  l.internal ? (
-                    <Link
-                      key={l.href}
-                      href={l.href}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors"
-                    >
-                      {l.icon ?? <BookOpen className="w-3.5 h-3.5" />}
-                      {l.label}
-                    </Link>
-                  ) : (
-                    <a
-                      key={l.href}
-                      href={l.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors"
-                    >
-                      {l.icon ?? <BookOpen className="w-3.5 h-3.5" />}
-                      {l.label}
-                    </a>
-                  ),
-                )}
-              </div>
-              <a
-                href={`https://github.com/ava-labs/EncryptedERC/tree/${EERC_COMMIT}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 font-mono transition-colors whitespace-nowrap"
-              >
-                @{EERC_COMMIT.slice(0, 7)}
-              </a>
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-5 gap-y-2 border-t border-zinc-200 px-5 py-3 dark:border-zinc-800">
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+              {links.map((l) =>
+                l.internal ? (
+                  <Link key={l.href} href={l.href} className={FOOTER_LINK}>
+                    <span className="[&_svg]:h-3 [&_svg]:w-3">{l.icon ?? <BookOpen />}</span>
+                    {l.label}
+                  </Link>
+                ) : (
+                  <a key={l.href} href={l.href} target="_blank" rel="noopener noreferrer" className={FOOTER_LINK}>
+                    <span className="[&_svg]:h-3 [&_svg]:w-3">{l.icon ?? <BookOpen />}</span>
+                    {l.label}
+                    <ArrowUpRight className="h-3 w-3 text-zinc-400 transition-colors group-hover/foot:text-[#E6212F]" />
+                  </a>
+                ),
+              )}
             </div>
+            <a
+              href={`https://github.com/ava-labs/EncryptedERC/tree/${EERC_COMMIT}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Pinned EncryptedERC commit"
+              className="whitespace-nowrap font-mono text-[11px] text-zinc-400 underline-offset-4 transition-colors hover:text-zinc-900 hover:underline dark:text-zinc-500 dark:hover:text-zinc-100"
+            >
+              @{EERC_COMMIT.slice(0, 7)}
+            </a>
           </div>
         </div>
       </ContractDeployViewer>

@@ -94,7 +94,7 @@ For verification, the facilitator validates the `X-PAYMENT` payload: it checks t
 
 For settlement, the facilitator submits the signed authorization to the blockchain by calling `transferWithAuthorization` on the USDC contract, paying gas from its own funded wallet. It then returns the transaction hash to the server.
 
-The key consequence of this design: **end users never need native tokens (AVAX)**. They only need USDC (or another supported payment token). The facilitator absorbs all gas costs, which on Avalanche amount to approximately $0.001 per transaction.
+The key consequence of this design: **end users never need native tokens (AVAX)**. They only need USDC (or another supported payment token). The facilitator absorbs all gas costs, which on the Avalanche C-Chain amount to about 0.00043 AVAX per transaction at the October 2026 gas price of 5 nAVAX.
 
 Facilitators are a point of trust in the system. If you want stronger guarantees, you can use multiple facilitators, independently verify settlement on-chain, or self-host a facilitator using open-source implementations.
 
@@ -105,14 +105,14 @@ Avalanche's properties match x402's requirements closely.
 | Property | Value on Avalanche |
 |---|---|
 | Finality | Approximately 1 second, deterministic (not probabilistic) |
-| Transaction cost | Approximately $0.001 per transaction |
-| Overhead on a $0.01 API call | Around 10%, compared to over 3,000% with traditional payment processors on the same amount |
-| Throughput | Hundreds to over 1,000 TPS, no gas price spikes |
+| Transaction cost | About 0.00043 AVAX per payment (about 86,000 gas at the October 2026 gas price of 5 nAVAX) |
+| Overhead on a \$0.01 API call | About 47% with AVAX at \$11, compared to over 3,000% with traditional payment processors on the same amount |
+| Throughput | About 8,000,000 gas per second at the October 2026 gas target (about 90 USDC payments per second). The base fee rises when use stays above the target. |
 | EVM compatibility | Standard Ethereum tooling: ethers.js, viem, Hardhat, Foundry |
 | Native USDC | Circle-issued (not bridged), available on both mainnet and Fuji testnet |
 | Testnet | Free Fuji Testnet with free test AVAX and USDC for development |
 
-The combination of low fees and fast deterministic finality makes x402 economically viable for per-request pricing at any scale. A payment that costs $0.001 in gas on a $0.01 resource is a 10% overhead that can be absorbed or passed through. The same payment on a network with $0.50 gas fees makes the business model impossible.
+The combination of low fees and fast deterministic finality makes x402 economically viable for per-request pricing at any scale. A payment that costs about 0.00043 AVAX in gas (about \$0.0047 with AVAX at \$11) on a \$0.01 resource is an overhead of about 47%. The merchant can absorb this overhead, pass it through, or raise the price per request. The same payment on a network with $0.50 gas fees makes the business model impossible.
 
 ## Gas Sponsorship and Gasless Payments
 
@@ -146,7 +146,7 @@ Two main facilitator implementations are available for Avalanche.
 
 - Enterprise hosted service.
 - Supports ERC-2612 and ERC-3009 compatible tokens (USDC, EURC).
-- Uses EIP-7702 for smart account delegation and additional gasless transaction patterns.
+- Uses EIP-7702 for smart account delegation on chains that support it. The Avalanche C-Chain does not accept EIP-7702 (set-code) transactions.
 - Includes a dashboard with transaction analytics.
 - Available on Avalanche C-Chain, Base, and Polygon.
 
@@ -259,7 +259,7 @@ For error handling, the middleware distinguishes between payment failures (402 r
 | Abandoned payment rate | 402 responses where the client never retried. High rates suggest pricing or UX issues. |
 | Facilitator availability | Uptime of your chosen facilitator. Monitor the facilitator's `/health` endpoint. |
 
-On Avalanche, the cost per transaction to the facilitator is approximately $0.001, so a $0.01 endpoint has about 10% overhead from gas. A $0.001 endpoint has around 100% overhead, which is still viable at scale if the compute cost is low enough. For sub-cent micropayments, batch or aggregate payments where possible.
+On the Avalanche C-Chain, the cost per transaction to the facilitator is about 0.00043 AVAX (about \$0.0047 with AVAX at \$11), so a \$0.01 endpoint has about 47% overhead from gas. A \$0.001 endpoint costs more in gas than it earns. For sub-cent micropayments, batch or aggregate payments where possible.
 
 ---
 
@@ -269,7 +269,7 @@ On Avalanche, the cost per transaction to the facilitator is approximately $0.00
 - The four-step flow is: request, receive 402 with payment requirements, retry with signed `X-PAYMENT` header, receive resource with `X-PAYMENT-RESPONSE` confirmation.
 - The `X-PAYMENT` header carries a base64-encoded EIP-712 signed EIP-3009 authorization. The `X-PAYMENT-RESPONSE` header carries the settlement transaction hash.
 - The facilitator verifies the payment signature and submits the on-chain transaction, paying gas from its own wallet. End users only need USDC, not AVAX.
-- Avalanche's approximately $0.001 transaction cost and approximately one second finality make it well-suited for per-request micropayments.
+- Avalanche's low transaction cost (about 0.00043 AVAX per payment in October 2026) and approximately one second finality make it well-suited for per-request micropayments.
 - Replay attacks are prevented by one-time nonces, short validity windows, and EIP-712 domain separators that bind signatures to a specific chain and contract.
 - Thirdweb is a commercial enterprise facilitator; Ultravioleta DAO is a community-governed option focused on the Latin American Avalanche ecosystem. Both cover gas for end users.
 - x402 middleware libraries exist for Hono and Express. Configuration specifies your recipient wallet, endpoint paths, prices, and chosen facilitator.

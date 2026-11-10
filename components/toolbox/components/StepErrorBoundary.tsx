@@ -98,20 +98,23 @@ export class StepErrorBoundary extends React.Component<StepErrorBoundaryProps, S
       }
 
       return (
-        <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4">
+        <div className="border border-red-200 bg-red-50/60 px-4 py-3 dark:border-red-900/60 dark:bg-red-950/20">
           <div className="flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
-            <div className="flex-1 space-y-2">
-              <p className="text-sm font-medium text-red-800 dark:text-red-200">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-600 dark:text-red-400" />
+            <div className="min-w-0 flex-1 space-y-2">
+              <p className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-red-700 dark:text-red-400">
+                Step error
+              </p>
+              <p className="text-[13px] font-medium text-red-800 dark:text-red-300">
                 {this.props.fallbackMessage || 'This step encountered an error'}
               </p>
-              <p className="text-xs text-red-600 dark:text-red-400 font-mono break-all max-h-24 overflow-y-auto">
+              <p className="max-h-24 overflow-y-auto break-all font-mono text-[12px] text-red-700/80 dark:text-red-400/80">
                 {this.state.error?.message}
               </p>
               <button
                 type="button"
                 onClick={this.handleManualRetry}
-                className="inline-flex items-center gap-1.5 text-xs font-medium text-red-700 dark:text-red-300 hover:text-red-900 dark:hover:text-red-100 transition-colors"
+                className="inline-flex items-center gap-1.5 font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-red-700 underline-offset-4 transition-colors hover:text-red-900 hover:underline dark:text-red-300 dark:hover:text-red-100"
               >
                 <RotateCcw className="h-3 w-3" />
                 Try again

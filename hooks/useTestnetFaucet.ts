@@ -4,8 +4,6 @@ import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useL1List, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
 import useConsoleNotifications from './useConsoleNotifications';
 import { balanceService } from '@/components/toolbox/services/balanceService';
-import { useChainTokenTracker } from './useChainTokenTracker';
-import { useConsoleBadgeNotificationStore } from '@/stores/consoleBadgeNotificationStore';
 
 export interface FaucetClaimResult {
   success: boolean;
@@ -20,7 +18,6 @@ export const useTestnetFaucet = () => {
   const { walletEVMAddress, pChainAddress, isTestnet } = useWalletStore();
   const l1List = useL1List();
   const { notify } = useConsoleNotifications();
-  const { markChainAsSatisfied } = useChainTokenTracker();
   
   const [isClaimingEVM, setIsClaimingEVM] = useState<Record<number, boolean>>({});
   const [isClaimingPChain, setIsClaimingPChain] = useState(false);
@@ -78,15 +75,8 @@ export const useTestnetFaucet = () => {
       }
 
       const result = await faucetPromise;
-      if (result.awardedBadges?.length > 0) {
-        useConsoleBadgeNotificationStore.getState().addBadges(result.awardedBadges);
-      }
 
       if (result.success) {
-        if (walletEVMAddress) {
-          markChainAsSatisfied(chainId, walletEVMAddress);
-        }
-        
         setTimeout(() => {
           if (chainId === 43113) {
             balanceService.updateCChainBalance();
@@ -99,7 +89,7 @@ export const useTestnetFaucet = () => {
     } finally {
       setIsClaimingEVM(prev => ({ ...prev, [chainId]: false }));
     }
-  }, [walletEVMAddress, isTestnet, l1List, notify, markChainAsSatisfied]);
+  }, [walletEVMAddress, isTestnet, l1List, notify]);
 
   const claimPChainAVAX = useCallback(async (silent: boolean = false): Promise<FaucetClaimResult> => {
     if (!pChainAddress) { throw new Error("P-Chain address is required") }
@@ -141,9 +131,6 @@ export const useTestnetFaucet = () => {
       }
 
       const result = await faucetPromise;
-      if (result.awardedBadges?.length > 0) {
-        useConsoleBadgeNotificationStore.getState().addBadges(result.awardedBadges);
-      }
       if (result.success) { setTimeout(() => { balanceService.updatePChainBalance() }, 2000) }
       return result;
     } finally {

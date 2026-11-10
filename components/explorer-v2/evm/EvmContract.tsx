@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Check, Copy, ExternalLink } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { Board, CellLabel, SpecPlate, SpecRow, Tabs, idInk } from "@/components/explorer-v2/ui";
 import ContractReadSection from "@/components/explorer/ContractReadSection";
 import ContractWriteSection from "@/components/explorer/ContractWriteSection";

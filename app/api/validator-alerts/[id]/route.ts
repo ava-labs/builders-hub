@@ -3,7 +3,10 @@ import { getAuthSession } from '@/lib/auth/authSession';
 import { prisma } from '@/prisma/prisma';
 import type { UpdateAlertRequest } from '@/types/validator-alerts';
 
-async function getOwnedAlert(alertId: string, userId: string) {
+async function getOwnedAlert(alertId: string, userId: string | undefined) {
+  // Imported rows have user_id null. Prisma drops a filter whose value is
+  // undefined, so an empty id must never reach the query.
+  if (!userId) return null;
   return prisma.validatorAlert.findFirst({
     where: { id: alertId, user_id: userId },
     include: {

@@ -138,7 +138,7 @@ export default function SelectL1DelegationERC20Step() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         <div className="space-y-4">
           <p className="text-sm text-zinc-500 mb-4">
-            Choose the L1 subnet where you want to remove a delegation using ERC20 Token staking.
+            Choose the L1 where you want to remove a delegation using ERC20 Token staking.
           </p>
           <SelectSubnetId
             value={store.subnetIdL1}

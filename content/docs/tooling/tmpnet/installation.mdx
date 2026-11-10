@@ -17,7 +17,7 @@ Windows is not currently supported.
 
 ### 2. Go
 
-tmpnet requires **Go 1.21 or later**. Check your version:
+tmpnet is part of the AvalancheGo module and requires **Go 1.26.8 or later**. You also need gcc and g++ to build AvalancheGo. Check your Go version:
 
 ```bash
 go version
@@ -178,7 +178,7 @@ If you're testing custom VMs, create the plugin directory:
 mkdir -p ~/.avalanchego/plugins
 ```
 
-Place your custom VM binaries in this directory. The plugin binary name should match your VM name.
+Place your custom VM binaries in this directory. Name each binary with its VM ID in CB58 format, for example `srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy` for Subnet-EVM. tmpnet looks for each chain binary at `[plugin-dir]/[VM ID]`.
 
 ## Troubleshooting
 
@@ -209,7 +209,7 @@ If builds fail:
 
 1. **Check Go version:**
    ```bash
-   go version  # Must be 1.21 or later
+   go version  # Must be 1.26.8 or later
    ```
 
 2. **Check you're in the repository root:**

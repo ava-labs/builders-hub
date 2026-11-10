@@ -7,16 +7,27 @@
  * heals by itself within seconds to minutes. A bounded retry turns most of
  * those "failures" into successes. Malformed requests never retry.
  *
- * Permanent quorum shortfalls (offline legacy Subnet validators still in
- * the signing set) look identical per attempt: those exhaust the retries
- * and surface through parseAggregationError with remediation links.
+ * Permanent quorum shortfalls (offline validators, legacy Subnet validators
+ * still in the signing set, a staking port 9651 that the aggregator cannot
+ * reach, or an L1 with validatorOnly set, whose validators ignore the
+ * aggregator) look identical per attempt: those exhaust the retries and
+ * surface through parseAggregationError with remediation links.
  */
 
 export type AggErrorKind = 'below-quorum' | 'transient' | 'invalid-request' | 'unknown';
 
+/**
+ * Why a below-quorum aggregation failed. 'connect': the validators that the
+ * aggregator connected to hold less than 67% of the signing stake. 'sign': it
+ * connected, but the signatures it collected hold less than 67% of the stake.
+ */
+export type QuorumCause = 'connect' | 'sign';
+
 export interface AggregationErrorClass {
   kind: AggErrorKind;
   retryable: boolean;
+  /** Set for below-quorum errors only. */
+  cause?: QuorumCause;
   /** Share of stake that actually signed, when the error message carries it. */
   achievedPercent?: number;
 }
@@ -35,10 +46,17 @@ function extractStatusCode(err: unknown): number | null {
 export function classifyAggregationError(err: unknown): AggregationErrorClass {
   const message = err instanceof Error ? err.message : String(err);
 
-  // The aggregator's below-quorum shapes: icm-services' "failed to connect
-  // to a threshold of stake" and the P-Chain's "signature weight is
-  // insufficient: 67*<total> > 100*<signed>".
-  if (/threshold of stake/i.test(message) || /signature weight is insufficient/i.test(message)) {
+  // icm-services' "failed to connect to a threshold of stake": the
+  // aggregator could not connect to 67% of the signing stake, so it asked
+  // no validator to sign.
+  if (/threshold of stake/i.test(message)) {
+    return { kind: 'below-quorum', retryable: true, cause: 'connect' };
+  }
+
+  // The signing shapes: icm-services' "failed to collect a threshold of
+  // signatures" and the P-Chain's "signature weight is insufficient:
+  // 67*<total> > 100*<signed>".
+  if (/threshold of signatures/i.test(message) || /signature weight is insufficient/i.test(message)) {
     const match = message.match(/(\d+)\s*\*\s*(\d+)\s*>\s*100\s*\*\s*(\d+)/);
     let achievedPercent: number | undefined;
     if (match) {
@@ -46,7 +64,7 @@ export function classifyAggregationError(err: unknown): AggregationErrorClass {
       const signed = Number(match[3]);
       if (total > 0) achievedPercent = Math.round((signed / total) * 1000) / 10;
     }
-    return { kind: 'below-quorum', retryable: true, achievedPercent };
+    return { kind: 'below-quorum', retryable: true, cause: 'sign', achievedPercent };
   }
 
   // Our own per-attempt timeout races the SDK call but cannot cancel it, so

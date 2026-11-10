@@ -1,0 +1,23 @@
+{
+  "$comment": "Default Solidity build settings for blueprint contracts. The deploy pipeline builds Standard JSON input from these, and the Builder Hub verifier needs the exact same settings, so a blueprint overrides them only through its own `compile` block.",
+  "solc": "0.8.28",
+  "solcLongVersion": "0.8.28+commit.7893614a",
+  "evmVersion": "cancun",
+  "optimizer": { "enabled": true, "runs": 200 },
+  "viaIR": false,
+  "dependencies": {
+    "@openzeppelin/contracts": "5.3.0",
+    "@chainlink/contracts-ccip": "2.0.0"
+  },
+  "integrity": {
+    "@openzeppelin/contracts": "18ecbb212e36fa4de9fbf85caed66467bbe7e4cd770d70e674647e4f406c9977",
+    "@chainlink/contracts-ccip": "59c3ea7be405d68cadd948ac1c8ee5e0b7df4d1cdcde709bf1515e009d5dd759"
+  },
+  "remappings": [
+    "@openzeppelin/contracts@5.3.0/=@openzeppelin/contracts/",
+    "@teleporter/=blueprints/_shared/contracts/teleporter/"
+  ],
+  "exportRemappings": {
+    "@teleporter/": "Install ava-labs/icm-contracts and remap @teleporter/ to lib/icm-contracts/contracts/teleporter/ (Foundry) when moving a blueprint into a standalone repo."
+  }
+}

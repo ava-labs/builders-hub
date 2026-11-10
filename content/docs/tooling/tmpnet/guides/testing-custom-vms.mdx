@@ -32,7 +32,7 @@ go build -o ~/.avalanchego/plugins/your-vm ./cmd/your-vm
 ls -lh ~/.avalanchego/plugins/your-vm
 ```
 
-The binary name should match your VM name.
+Name the binary with your VM ID (the CB58 string of the `VMID` that you set on the chain), or with an alias from `--vm-aliases-file`. If a file name in the plugin directory is not a VM ID or an alias, the node does not start (`invalid vmID`). On this page, replace `your-vm` with your VM ID.
 
 ### 2. Create Genesis Configuration
 
@@ -97,7 +97,7 @@ func main() {
         DefaultRuntimeConfig: tmpnet.NodeRuntimeConfig{
             Process: &tmpnet.ProcessRuntimeConfig{
                 AvalancheGoPath: "./bin/avalanchego",
-                PluginDir:       "./build/plugins",
+                PluginDir:       os.ExpandEnv("$HOME/.avalanchego/plugins"), // Directory of the VM binary
             },
         },
     }
@@ -142,11 +142,12 @@ func main() {
 Once your chain is deployed, interact with it using the chain's API:
 
 ```bash
-# Get the chain ID from the network configuration
-CHAIN_ID=$(cat ~/.tmpnet/networks/latest/subnets/your-vm-subnet.json | jq -r '.chains[0].chainId')
+# NETWORK_DIR is network.Dir. BootstrapNewNetwork does not update the latest symlink.
+# Get the chain ID from [network dir]/subnets/[subnet name].json
+CHAIN_ID=$(jq -r '.Chains[0].ChainID' "$NETWORK_DIR"/subnets/my-vm-subnet.json)
 
 # Get a node URI
-NODE_URI=$(cat ~/.tmpnet/networks/latest/NodeID-*/process.json | jq -r '.uri' | head -1)
+NODE_URI=$(cat "$NETWORK_DIR"/NodeID-*/process.json | jq -r '.uri' | head -1)
 
 # Call your chain's API
 curl -X POST --data '{
@@ -169,7 +170,7 @@ go build -o ~/.avalanchego/plugins/your-vm ./cmd/your-vm
 
 **3. Restart the network:**
 ```bash
-tmpnetctl stop-network
+tmpnetctl stop-network --network-dir="$NETWORK_DIR"
 go run test-vm.go
 ```
 
@@ -197,11 +198,11 @@ func TestYourVM(t *testing.T) {
 ### Monitor Logs
 
 ```bash
-# Watch logs from all nodes
-tail -f ~/.tmpnet/networks/latest/NodeID-*/logs/main.log
+# Watch logs from all nodes (NETWORK_DIR is network.Dir)
+tail -f "$NETWORK_DIR"/NodeID-*/logs/main.log
 
 # Search for errors
-grep -i error ~/.tmpnet/networks/latest/NodeID-*/logs/main.log
+grep -i error "$NETWORK_DIR"/NodeID-*/logs/main.log
 ```
 
 ## Common Patterns
@@ -217,7 +218,8 @@ network.Stop(ctx)
 // Replace plugin binary with v2
 // cp your-vm-v2 ~/.avalanchego/plugins/your-vm
 
-network.Restart(ctx)
+// Network.Restart restarts only running nodes. Start the stopped nodes again.
+network.StartNodes(ctx, logging.NoLog{}, network.Nodes...)
 // ... verify v2 upgrade ...
 ```
 
@@ -252,7 +254,7 @@ network.DefaultFlags = tmpnet.FlagsMap{
 
 ### VM Binary Not Found
 
-**Error:** `plugin binary not found`
+**Error:** `error while getting vmFactory: "<VM ID>" was not found` when the chain starts, or `invalid vmID` when the node starts
 
 **Solution:** Ensure your VM binary is in the correct location:
 ```bash
@@ -267,7 +269,7 @@ The plugin directory can be customized with `--plugin-dir` flag.
 
 **Solution:** Verify your genesis format matches your VM's expectations. Check logs:
 ```bash
-grep -i genesis ~/.tmpnet/networks/latest/NodeID-*/logs/main.log
+grep -i genesis "$NETWORK_DIR"/NodeID-*/logs/main.log
 ```
 
 ### Chain Not Starting

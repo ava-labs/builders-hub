@@ -16,13 +16,17 @@ The process follows the same three-phase pattern as the permissioned L1 flow but
 
 The validator calls [`initiateValidatorRegistration`](https://github.com/ava-labs/icm-services/blob/main/icm-contracts/avalanche/validator-manager/NativeTokenStakingManager.sol) on the Staking Manager contract.
 
-For `NativeTokenStakingManager`, this is a `payable` function — the validator sends native tokens as `msg.value`:
+For `NativeTokenStakingManager`, this is a `payable` function. The validator sends native tokens as `msg.value`:
 
 ```solidity
 function initiateValidatorRegistration(
-    ValidatorRegistrationInput calldata registrationInput,
+    bytes memory nodeID,
+    bytes memory blsPublicKey,
+    PChainOwner memory remainingBalanceOwner,
+    PChainOwner memory disableOwner,
     uint16 delegationFeeBips,
-    uint64 minStakeDuration
+    uint64 minStakeDuration,
+    address rewardRecipient
 ) external payable returns (bytes32 validationID)
 ```
 
@@ -38,7 +42,7 @@ Under the hood, the contract:
 
 **Key PoS parameters:**
 - **`delegationFeeBips`** - The percentage fee (in basis points) that this validator charges delegators. For example, `1000` = 10% fee on delegation rewards.
-- **`minStakeDuration`** - The minimum time the validator must stake before they can withdraw. This also applies to delegators.
+- **`minStakeDuration`** - The minimum time the validator must stake before it can initiate removal. It must be at least the staking manager's `minimumStakeDuration`. A delegator who removes its own delegation does not use this value. The contract checks the staking manager's `minimumStakeDuration`, counted from the delegation start.
 
 ### Phase 2: P-Chain Processing
 
@@ -84,7 +88,7 @@ sequenceDiagram
     participant PChain as P-Chain
 
     %% Phase 1: Initiation
-    Staker->>StakingManager: initiateValidatorRegistration{value: stakeAmount}(registrationInput, delegationFeeBips, minStakeDuration)
+    Staker->>StakingManager: initiateValidatorRegistration{value: stakeAmount}(nodeID, blsPublicKey, remainingBalanceOwner, disableOwner, delegationFeeBips, minStakeDuration, rewardRecipient)
 
     StakingManager->>StakingManager: Validate stake >= minimum
 

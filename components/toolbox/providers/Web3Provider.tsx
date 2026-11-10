@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { RainbowKitProvider, darkTheme, lightTheme } from '@rainbow-me/rainbowkit';
-import { WagmiProvider } from 'wagmi';
+import { WagmiContext } from 'wagmi';
+import { reconnect } from 'wagmi/actions';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useTheme } from 'next-themes';
 import { wagmiConfig } from './wagmi-config';
@@ -12,12 +13,7 @@ const queryClient = new QueryClient();
 
 const AVALANCHE_RED = '#E84142' as const;
 
-// Theme-aware piece lives *below* WagmiProvider so theme transitions
-// don't rerender WagmiProvider. A WagmiProvider rerender re-fires its
-// internal Hydrate → reconnect() during render, which makes subscribed
-// components (RainbowKit's ConnectModal via useAccount) call setState
-// inside another component's render — the React 19 warning we hit.
-// See: https://github.com/wevm/wagmi/issues/3794
+// Theme-aware piece lives below the wagmi context so theme transitions don't rerender the provider.
 function ThemedRainbowKit({ children }: { children: React.ReactNode }) {
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -44,12 +40,23 @@ function ThemedRainbowKit({ children }: { children: React.ReactNode }) {
   );
 }
 
+let reconnected = false;
+
+/**
+ * wagmi's WagmiProvider reconnects on every one of its renders (with `ssr: false` its Hydrate calls onMount during
+ * render), so any rerender after mount updated subscribers such as RainbowKit's ConnectModal mid-render. This
+ * provides the same context and reconnects once, on the first client render, before anything has subscribed.
+ */
 export function Web3Provider({ children }: { children: React.ReactNode }) {
+  if (!reconnected && typeof window !== 'undefined') {
+    reconnected = true;
+    void reconnect(wagmiConfig);
+  }
   return (
-    <WagmiProvider config={wagmiConfig}>
+    <WagmiContext.Provider value={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
         <ThemedRainbowKit>{children}</ThemedRainbowKit>
       </QueryClientProvider>
-    </WagmiProvider>
+    </WagmiContext.Provider>
   );
 }

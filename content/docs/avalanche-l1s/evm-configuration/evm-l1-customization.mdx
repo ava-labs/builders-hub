@@ -91,12 +91,12 @@ Precompiles are specialized smart contracts that execute native Go code within t
 
 EVM comes with a set of default precompiles that extend the EVM's functionality:
 
-- **[AllowList Interface](/docs/avalanche-l1s/precompiles/allowlist-interface)**: Interface that manages access control by allowing or restricting specific addresses, inherited by all precompiles.
+- **[AllowList Interface](/docs/avalanche-l1s/precompiles/allowlist-interface)**: Interface that manages access control by allowing or restricting specific addresses. All precompiles in this list except the Warp Messenger use it.
 - **[Deployer AllowList](/docs/avalanche-l1s/precompiles/deployer-allowlist)**: Restricts which addresses can deploy smart contracts.
 - **[Transaction AllowList](/docs/avalanche-l1s/precompiles/transaction-allowlist)**: Controls which addresses can submit transactions.
-- **[Native Minter](/docs/avalanche-l1s/precompiles/native-minter)**: Manages the minting and burning of native tokens.
+- **[Native Minter](/docs/avalanche-l1s/precompiles/native-minter)**: Mints native tokens. It has no burn function.
 - **[Fee Manager](/docs/avalanche-l1s/precompiles/fee-manager)**: Controls gas fee parameters and fee markets.
-- **[Reward Manager](/docs/avalanche-l1s/precompiles/reward-manager)**: Handles the distribution of staking rewards to validators.
+- **[Reward Manager](/docs/avalanche-l1s/precompiles/reward-manager)**: Controls where transaction fees go: to a set reward address, to the block producers' fee recipients, or to the burn address. It does not handle staking rewards.
 - **[Warp Messenger](/docs/avalanche-l1s/precompiles/warp-messenger)**: Enables cross-chain communication between Avalanche L1s.
 
 ### Precompile Addresses and Configuration
@@ -134,5 +134,5 @@ For example, if `contractDeployerAllowListConfig` is enabled in the `genesis.jso
 We can then add an `Enabled` address to the Deployer AllowList by interacting with the `IAllowList` interface at `0x0200000000000000000000000000000000000000`:
 
 ```bash
-cast send 0x0200000000000000000000000000000000000000 setEnabled(address addr) <ADDRESS_TO_ENABLE> --rpc-url $MY_L1_RPC --private-key $ADMIN_PRIVATE_KEY
+cast send 0x0200000000000000000000000000000000000000 "setEnabled(address)" <ADDRESS_TO_ENABLE> --rpc-url $MY_L1_RPC --private-key $ADMIN_PRIVATE_KEY
 ```

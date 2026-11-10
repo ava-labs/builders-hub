@@ -141,7 +141,6 @@ describe('githubTools', () => {
     expect(GITHUB_REPOSITORIES.map((repo) => repo.fullName)).toEqual([
       'ava-labs/avalanchego',
       'ava-labs/subnet-evm',
-      'ava-labs/coreth',
       'ava-labs/avalanche-cli',
       'ava-labs/platform-cli',
       'ava-labs/icm-services',
@@ -157,7 +156,7 @@ describe('githubTools', () => {
     const result = await githubTools.handlers.github_list_repositories({})
     const payload = JSON.parse(result.content[0].text)
 
-    expect(payload.repositories).toHaveLength(11)
+    expect(payload.repositories).toHaveLength(10)
     expect(payload.repositories[0]).toMatchObject({
       name: 'avalanchego',
       fullName: 'ava-labs/avalanchego',

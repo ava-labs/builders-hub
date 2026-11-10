@@ -1,10 +1,17 @@
 import { useState, useEffect } from 'react';
-import { Button } from './ui/button';
-import { CheckCircle, XCircle, Wallet, Loader2, CircleMinus, CircleHelp } from 'lucide-react';
+import { Button } from './Button';
+import { CheckCircle2, XCircle, Wallet, Loader2, CircleMinus, CircleHelp, AlertCircle } from 'lucide-react';
 import { useWalletRequirements, WalletRequirementsConfigKey } from '../hooks/useWalletRequirements';
 import { useAccountRequirements, AccountRequirementsConfigKey } from '../hooks/useAccountRequirements';
 import { ConnectedWalletProvider } from '../contexts/ConnectedWalletContext';
 import type { Requirement } from '../types/requirements';
+
+/**
+ * Fills what's visible of the console pane (its height less its padding, the gap and the footer) and centres the
+ * panel in it, so the gate never scrolls the page.
+ */
+const GATE_FRAME =
+  'flex min-h-[calc(var(--console-viewport)-var(--header-height)-8rem)] items-center justify-center md:min-h-[calc(var(--console-viewport)-var(--header-height)-10rem)]';
 
 // Export config key enums for convenience
 export { WalletRequirementsConfigKey, AccountRequirementsConfigKey };
@@ -21,6 +28,9 @@ interface RequirementsState {
   isLoading: boolean;
   error: string | null;
 }
+
+const EYEBROW = 'font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400';
+const PANEL = 'w-full max-w-md border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950';
 
 // Type guard to check if a key is a WalletRequirementsConfigKey
 function isWalletRequirementKey(key: RequirementsConfigKey): key is WalletRequirementsConfigKey {
@@ -90,12 +100,10 @@ export const CheckRequirements = ({ children, toolRequirements }: CheckRequireme
 
   if (state.isLoading) {
     return (
-      <div className="flex items-center justify-center p-4 h-[100vh]">
-        <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-xl border border-gray-200 dark:border-zinc-800 p-8 max-w-md w-full">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white mx-auto" />
-            <p className="mt-4 text-sm text-gray-600 dark:text-zinc-400">Checking requirements...</p>
-          </div>
+      <div className={GATE_FRAME}>
+        <div className={`${PANEL} flex items-center justify-center gap-2 px-6 py-8`}>
+          <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />
+          <p className={EYEBROW}>Checking requirements…</p>
         </div>
       </div>
     );
@@ -103,12 +111,17 @@ export const CheckRequirements = ({ children, toolRequirements }: CheckRequireme
 
   if (state.error) {
     return (
-      <div className="flex items-center justify-center p-4 h-[100vh]">
-        <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-xl border border-gray-200 dark:border-zinc-800 p-8 max-w-md w-full">
-          <div className="text-center">
-            <XCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Error</h3>
-            <p className="text-sm text-gray-600 dark:text-zinc-400">Error checking requirements: {state.error}</p>
+      <div className={GATE_FRAME}>
+        <div className={PANEL}>
+          <div className="border-b border-zinc-200 px-6 py-5 dark:border-zinc-800">
+            <p className={EYEBROW}>Requirements</p>
+            <h3 className="mt-1.5 text-[17px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">Error</h3>
+          </div>
+          <div className="px-6 py-5">
+            <div className="flex items-start gap-3 border border-red-200 bg-red-50/60 px-4 py-3 text-[13px] leading-relaxed text-red-800 dark:border-red-900/60 dark:bg-red-950/20 dark:text-red-300">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-600 dark:text-red-400" />
+              <p className="min-w-0 break-words">Error checking requirements: {state.error}</p>
+            </div>
           </div>
         </div>
       </div>
@@ -117,45 +130,58 @@ export const CheckRequirements = ({ children, toolRequirements }: CheckRequireme
 
   if (!state.isActive) {
     return (
-      <div className="flex items-center justify-center p-4 h-[100vh] not-prose" data-console-tool-gate>
-        <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-xl border border-gray-200 dark:border-zinc-800 p-8 max-w-md w-full">
+      <div className={`not-prose ${GATE_FRAME}`} data-console-tool-gate>
+        <div className={PANEL}>
           {/* Header */}
-          <div className="text-center mb-6">
-            <div className="w-12 h-12 bg-gray-100 dark:bg-zinc-800 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Wallet className="h-6 w-6 text-gray-600 dark:text-zinc-400" />
+          <div className="flex items-center gap-3.5 border-b border-zinc-200 px-5 py-4 dark:border-zinc-800">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900">
+              <Wallet className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
+            </span>
+            <div className="min-w-0">
+              <p className={EYEBROW}>Requirements</p>
+              <h2 className="mt-1 text-[15px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+                To use this tool you need:
+              </h2>
             </div>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">To use this tool you need:</h2>
           </div>
 
           {/* Requirements List */}
-          <div className="space-y-4 mb-6">
+          <ul className="divide-y divide-zinc-200 border-b border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
             {requirements.map((requirement) => (
-              <div key={requirement.id} className="flex items-center gap-3">
-                <div className="flex-shrink-0">
+              <li key={requirement.id} className="flex items-start gap-3 px-5 py-2.5">
+                <div className="mt-0.5 shrink-0">
                   {requirement.prerequisiteNotMet ? (
-                    <CircleMinus className="h-5 w-5 text-gray-300" />
+                    <CircleMinus className="h-4 w-4 text-zinc-300 dark:text-zinc-600" />
                   ) : requirement.waiting ? (
-                    <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />
                   ) : requirement.unknown ? (
-                    <CircleHelp className="h-5 w-5 text-amber-500" />
+                    <CircleHelp className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                   ) : requirement.met ? (
-                    <CheckCircle className="h-5 w-5 text-green-500" />
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                   ) : (
-                    <XCircle className="h-5 w-5 text-gray-400" />
+                    <XCircle className="h-4 w-4 text-zinc-400 dark:text-zinc-500" />
                   )}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">{requirement.title}</p>
+                <div className="min-w-0 flex-1">
+                  <p
+                    className={
+                      requirement.met && !requirement.unknown
+                        ? 'text-[13px] font-medium text-zinc-500 dark:text-zinc-400'
+                        : 'text-[13px] font-medium text-zinc-900 dark:text-zinc-50'
+                    }
+                  >
+                    {requirement.title}
+                  </p>
                   {requirement.unknown && !requirement.waiting && !requirement.prerequisiteNotMet && (
-                    <p className="text-xs text-amber-600 dark:text-amber-400">
+                    <p className="mt-0.5 text-[12px] leading-relaxed text-amber-700 dark:text-amber-400">
                       Can&apos;t verify: the chain&apos;s RPC did not respond. You can proceed; fix the RPC URL if
                       actions fail.
                     </p>
                   )}
                 </div>
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
 
           {/* How to meet requirements section */}
           {(() => {
@@ -168,11 +194,9 @@ export const CheckRequirements = ({ children, toolRequirements }: CheckRequireme
             }
 
             return (
-              <div className="mb-6">
-                <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-4">
-                  How to meet these requirements:
-                </h3>
-                <div className="space-y-3">
+              <div className="px-5 py-4">
+                <h3 className={`${EYEBROW} mb-2.5`}>How to meet these requirements</h3>
+                <div className="space-y-2">
                   {(() => {
                     const uniqueActions = new Map();
 
@@ -221,17 +245,17 @@ export const CheckRequirements = ({ children, toolRequirements }: CheckRequireme
                         {mainActions.map((actionGroup, index) => (
                           <div
                             key={index}
-                            className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-zinc-800"
+                            className="flex items-center justify-between gap-4 border border-zinc-200 bg-zinc-50/60 px-4 py-2.5 dark:border-zinc-800 dark:bg-zinc-900/40"
                           >
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[13px] font-medium text-zinc-900 dark:text-zinc-50">
                                 {actionGroup.action.title}
                               </p>
-                              <p className="text-xs text-gray-500 dark:text-zinc-500 mt-1">
+                              <p className="mt-0.5 text-[12px] leading-relaxed text-zinc-500 dark:text-zinc-400">
                                 {actionGroup.action.description}
                               </p>
                               {actionGroup.relatedRequirements.length > 1 && (
-                                <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                                <p className="mt-1 font-mono text-[10.5px] uppercase tracking-[0.1em] text-zinc-400 dark:text-zinc-500">
                                   For: {actionGroup.relatedRequirements.join(', ')}
                                 </p>
                               )}
@@ -239,8 +263,8 @@ export const CheckRequirements = ({ children, toolRequirements }: CheckRequireme
                             <Button
                               onClick={() => handleAction(actionGroup.requirement)}
                               size="sm"
-                              variant="default"
-                              className="cursor-pointer"
+                              variant="primary"
+                              className="w-auto shrink-0"
                             >
                               {actionGroup.action.label}
                             </Button>
@@ -249,33 +273,29 @@ export const CheckRequirements = ({ children, toolRequirements }: CheckRequireme
 
                         {alternativeActions.length > 0 && (
                           <>
-                            <div className="relative my-6">
-                              <div className="absolute inset-0 flex items-center">
-                                <div className="w-full border-t border-gray-300 dark:border-zinc-700" />
-                              </div>
-                              <div className="relative flex justify-center text-sm">
-                                <span className="px-2 bg-white dark:bg-zinc-900 text-gray-500 dark:text-zinc-500">
-                                  OR
-                                </span>
-                              </div>
+                            <div className="flex items-center gap-4 py-2">
+                              <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+                              <h4 className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                                Or, just testing?
+                              </h4>
+                              <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
                             </div>
 
-                            <div className="space-y-3">
-                              <h4 className="text-sm font-medium">Just Learning or Testing?</h4>
+                            <div className="space-y-2">
                               {alternativeActions.map((actionGroup, index) => (
                                 <div
                                   key={`alt-${index}`}
-                                  className="flex items-center justify-between p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
+                                  className="flex items-center justify-between gap-4 border border-zinc-200 px-4 py-2.5 dark:border-zinc-800"
                                 >
-                                  <div className="flex-1">
-                                    <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-[13px] font-medium text-zinc-900 dark:text-zinc-50">
                                       {actionGroup.action.title}
                                     </p>
-                                    <p className="text-xs text-gray-500 dark:text-zinc-500 mt-1">
+                                    <p className="mt-0.5 text-[12px] leading-relaxed text-zinc-500 dark:text-zinc-400">
                                       {actionGroup.action.description}
                                     </p>
                                     {actionGroup.relatedRequirements.length > 1 && (
-                                      <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                                      <p className="mt-1 font-mono text-[10.5px] uppercase tracking-[0.1em] text-zinc-400 dark:text-zinc-500">
                                         For: {actionGroup.relatedRequirements.join(', ')}
                                       </p>
                                     )}
@@ -284,7 +304,7 @@ export const CheckRequirements = ({ children, toolRequirements }: CheckRequireme
                                     onClick={() => handleAction(actionGroup.requirement)}
                                     size="sm"
                                     variant="outline"
-                                    className="cursor-pointer"
+                                    className="w-auto shrink-0"
                                   >
                                     {actionGroup.action.label}
                                   </Button>

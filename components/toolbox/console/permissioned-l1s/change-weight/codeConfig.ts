@@ -30,7 +30,7 @@ const txHash = await walletClient.setL1ValidatorWeight({
 });`;
 
 export const STEP_CONFIG: StepConfig[] = [
-  { id: 'select-subnet', title: 'Select L1', description: 'Choose your L1 subnet' },
+  { id: 'select-subnet', title: 'Select L1', description: 'Choose your L1' },
   {
     id: 'initiate-weight-change',
     title: 'Initiate Weight Change',

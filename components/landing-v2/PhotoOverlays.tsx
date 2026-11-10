@@ -1,22 +1,23 @@
 "use client";
 
 import React, { useEffect, useId, useRef, useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { useReducedMotion } from "framer-motion";
 import type { PillarSlug } from "@/components/landing-v2/pillars";
 
 /* ------------------------------------------------------------------ */
 /* Photo overlays: each pillar's drawing, surveyed onto its photograph  */
 /*                                                                      */
-/* The drawing is traced from the landscape itself, so it reads as part */
-/* of the scene: messages run as light down the real river channels,    */
-/* finality climbs the real arete, validators stand on the ridgetops    */
-/* above the fog. Each SVG shares its photo's 1600x2000 pixel space and */
-/* the plate is always 4:5, so every coordinate lands on its feature at */
-/* any size. Hairlines use non-scaling strokes (always 1px); the red    */
-/* comets scale with the plate and carry a blurred twin for glow. SMIL  */
-/* keeps them running without JS and hydration-safe. Path strings are   */
-/* built once at module load from literal waypoints, so server and      */
-/* client produce the same markup.                                      */
+/* The drawing is traced from the scene itself, so it reads as part of */
+/* the photograph: calls run phone to phone across the trading floor,  */
+/* the room's frame is the network's edge, requests stop at the shut   */
+/* gate, and finality is read off the train's tracked pass. Each SVG   */
+/* shares its photo's 1600x2000 pixel space and the plate is always    */
+/* 4:5, so every coordinate lands on its feature at any size. Hairlines */
+/* use non-scaling strokes (always 1px); the red comets scale with the  */
+/* plate and carry a blurred twin for glow. Loops that tell a sequence  */
+/* run on a JS clock or the video's playhead; ambient ones use SMIL.    */
+/* Path strings are built once at module load from literal waypoints,  */
+/* so server and client produce the same markup.                       */
 /* ------------------------------------------------------------------ */
 
 type Pt = [number, number];
@@ -179,11 +180,39 @@ function Tag({
     <g>
       <line x1={from[0]} y1={from[1]} x2={to[0]} y2={to[1]} stroke="white" strokeOpacity={0.5} strokeWidth={1} vectorEffect="non-scaling-stroke" />
       <circle cx={to[0]} cy={to[1]} r={3.5} fill="white" fillOpacity={0.7} />
-      <text x={to[0] + dx} y={to[1] + 9} textAnchor={anchor} fontSize={26} fill="white" fillOpacity={0.85} style={LABEL}>
+      <Caption x={to[0] + dx} y={to[1]} text={text} sub={sub} anchor={anchor} />
+    </g>
+  );
+}
+
+// mono glyphs advance about 0.6em, plus the label's letter spacing
+const textWidth = (s: string, size: number) => s.length * (size * 0.6 + LABEL.letterSpacing);
+
+/** A mono label on a dark backing, so it reads on bright snow as well as shadow. */
+function Caption({
+  x,
+  y,
+  text,
+  sub,
+  anchor = "start",
+}: {
+  x: number;
+  y: number;
+  text: string;
+  sub?: string;
+  anchor?: "start" | "end";
+}) {
+  const w = Math.max(textWidth(text, 26), sub ? textWidth(sub, 21) : 0) + 28;
+  const h = sub ? 92 : 54;
+  const left = anchor === "start" ? x - 14 : x + 14 - w;
+  return (
+    <g>
+      <rect x={left} y={y - 24} width={w} height={h} fill="rgba(9,9,11,0.62)" />
+      <text x={x} y={y + 9} textAnchor={anchor} fontSize={26} fill="white" fillOpacity={0.9} style={LABEL}>
         {text}
       </text>
       {sub && (
-        <text x={to[0] + dx} y={to[1] + 46} textAnchor={anchor} fontSize={21} fill="white" fillOpacity={0.5} style={LABEL}>
+        <text x={x} y={y + 46} textAnchor={anchor} fontSize={21} fill="white" fillOpacity={0.6} style={LABEL}>
           {sub}
         </text>
       )}
@@ -191,209 +220,248 @@ function Tag({
   );
 }
 
-/* ---- interoperability: three districts on one frozen delta -------- */
+/** Seconds since mount on a loop of `period`, frozen at `still` under reduced motion. */
+function useLoop(period: number, still: number) {
+  const reducedMotion = useReducedMotion();
+  const [t, setT] = useState(still);
+  useEffect(() => {
+    if (reducedMotion) {
+      setT(still);
+      return;
+    }
+    let raf = 0;
+    const start = performance.now();
+    const tick = (now: number) => {
+      setT(((now - start) / 1000) % period);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [reducedMotion, period, still]);
+  return t;
+}
 
-// Three chains as three districts: the sprawling north island (public),
-// the orderly south bank (permissioned), the enclosed east quarter
-// (private). Messages cross on the real bridge and over the ice; the
-// junction on the bridge is where ICM verifies them.
-const PUBLIC: Pt = [800, 560];
-const PERMISSIONED: Pt = [840, 1560];
-const PRIVATE: Pt = [1380, 1020];
-const JUNCTION: Pt = [828, 1080];
-const NORTH_SPAN: Pt[] = [PUBLIC, [818, 690], [828, 780], [828, 940], JUNCTION];
-const SOUTH_SPAN: Pt[] = [JUNCTION, [828, 1250], [828, 1420], PERMISSIONED];
-const EAST_LEG: Pt[] = [JUNCTION, [930, 1070], [1110, 1050], [1290, 1030], PRIVATE];
-const HOP_1 = smooth([...NORTH_SPAN, ...SOUTH_SPAN.slice(1)]);
-const HOP_2 = smooth([...rev(SOUTH_SPAN), ...EAST_LEG.slice(1)]);
-const HOP_3 = smooth([...rev(EAST_LEG), ...rev(NORTH_SPAN).slice(1)]);
+/** A red comet placed by a JS clock: `p` runs 0..1 along the route. */
+function ClockComet({ d, p, length = 70, width = 7 }: { d: string; p: number; length?: number; width?: number }) {
+  const glow = useGlow();
+  if (p <= 0 || p >= 1) return null;
+  const common = {
+    d,
+    fill: "none",
+    pathLength: 1000,
+    strokeDasharray: `${length} 2000`,
+    strokeDashoffset: length - p * (1000 + length),
+    strokeLinecap: "round" as const,
+  };
+  return (
+    <g>
+      <path {...common} stroke={RED} strokeWidth={width * 3.2} opacity={0.55} filter={glow} />
+      <path {...common} stroke="#ff8a92" strokeWidth={width} />
+    </g>
+  );
+}
+
+const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
+
+/* ---- interoperability: two desks, one board ---------------------- */
+
+// Two L1s as two trading desks far apart on one snowed-in floor: they call
+// each other directly, phone to phone, and any line can carry the call.
+// The P-Chain is the board above the floor: no call goes through it, but
+// the desk that answers reads the caller's validator set from it before it
+// accepts the message.
+const DESK_A: Pt = [520, 1230]; // private L1, the left desk's phone
+const DESK_B: Pt = [1190, 1200]; // public L1, the right desk's phone
+const PHONE_LINE: Pt[] = [DESK_A, [700, 1130], [880, 1100], [1060, 1120], DESK_B];
+const A_TO_B = smooth(PHONE_LINE);
+const B_TO_A = smooth(rev(PHONE_LINE));
+const REG = { x: 260, y: 190, w: 1100, rowH: 70 };
+const ROWS = [
+  { name: "PRIVATE L1", validators: 5 },
+  { name: "PUBLIC L1", validators: 8 },
+  { name: "PERMISSIONED L1", validators: 4 },
+];
+const REG_H = 128 + ROWS.length * REG.rowH;
+const HOP = 4; // s per hop; the loop is one hop each way
+
+/** The source's validators sign: five dots in an arc above it light in turn. */
+function Signers({ at, lit }: { at: Pt; lit: number }) {
+  return (
+    <g>
+      {[-2, -1, 0, 1, 2].map((k, i) => (
+        <circle
+          key={k}
+          cx={at[0] + k * 34}
+          cy={at[1] - 78 + Math.abs(k) * 10}
+          r={7}
+          fill={i < lit ? "white" : "none"}
+          stroke="white"
+          strokeOpacity={0.7}
+          strokeWidth={1}
+          vectorEffect="non-scaling-stroke"
+        />
+      ))}
+    </g>
+  );
+}
 
 function InteropOverlay() {
+  const t = useLoop(HOP * 2, 2.6);
+  const forward = t < HOP;
+  const u = t % HOP;
+  const [src, dst] = forward ? [DESK_A, DESK_B] : [DESK_B, DESK_A];
+  const srcRow = forward ? 0 : 1;
+  const signing = u < 0.7;
+  const travel = clamp01((u - 0.7) / 1.6);
+  const lookup = u >= 2.3 && u < 3.0;
+  const verified = u >= 3.0;
+  // the lookup line draws from the destination up to the registry, then holds
+  const reach = clamp01((u - 2.3) / 0.35);
+  const lookupEnd: Pt = [dst[0], dst[1] + (REG.y + REG_H - dst[1]) * reach];
+  const rowLit = u >= 2.5;
   return (
-    <Frame label="Messages crossing between three districts, public, permissioned, and private, over a bridge on a frozen river">
-      <Route d={smooth([...NORTH_SPAN, ...SOUTH_SPAN.slice(1)])} />
-      <Route d={smooth(EAST_LEG)} dashed />
-      {/* one relay loop, three hops, each leaving as the last arrives */}
-      <Comet d={HOP_1} dur={6} begin={0} />
-      <Comet d={HOP_2} dur={6} begin={2} />
-      <Comet d={HOP_3} dur={6} begin={4} />
-      <circle cx={JUNCTION[0]} cy={JUNCTION[1]} r={6} fill="white" fillOpacity={0.85} />
-      <Tag from={[814, 1080]} to={[560, 1190]} text="ICM" sub="VERIFIED ON P-CHAIN" anchor="end" />
-      <Node x={PUBLIC[0]} y={PUBLIC[1]} boundary="open" />
-      <Node x={PERMISSIONED[0]} y={PERMISSIONED[1]} boundary="dashed" />
-      <Node x={PRIVATE[0]} y={PRIVATE[1]} boundary="sealed" />
-      <Tag from={[826, 540]} to={[960, 430]} text="PUBLIC" />
-      <Tag from={[880, 1540]} to={[1000, 1450]} text="PERMISSIONED" />
-      <Tag from={[1350, 966]} to={[1290, 880]} text="PRIVATE" anchor="end" />
+    <Frame label="Two L1s as two trading desks call each other directly; the desk that answers checks the caller's validators against the P-Chain registry on the board">
+      <Route d={A_TO_B} />
+      <ClockComet d={forward ? A_TO_B : B_TO_A} p={travel} />
+
+      {/* the registry: every L1's validator set, on the board above the floor */}
+      <g>
+        <rect x={REG.x} y={REG.y} width={REG.w} height={REG_H} fill="rgba(9,9,11,0.5)" stroke="white" strokeOpacity={0.15} strokeWidth={1} vectorEffect="non-scaling-stroke" />
+        <text x={REG.x + 28} y={REG.y + 52} fontSize={28} fill="white" fillOpacity={0.92} style={LABEL}>
+          P-CHAIN
+        </text>
+        <text x={REG.x + 28} y={REG.y + 92} fontSize={20} fill="white" fillOpacity={0.55} style={LABEL}>
+          VALIDATOR SETS OF EVERY L1
+        </text>
+        {ROWS.map((row, i) => {
+          const y = REG.y + 128 + i * REG.rowH;
+          const on = rowLit && i === srcRow;
+          return (
+            <g key={row.name}>
+              <line x1={REG.x} y1={y} x2={REG.x + REG.w} y2={y} stroke="white" strokeOpacity={0.12} strokeWidth={1} vectorEffect="non-scaling-stroke" />
+              {on && <rect x={REG.x} y={y} width={6} height={REG.rowH} fill={RED} />}
+              <text x={REG.x + 28} y={y + 41} fontSize={20} fill="white" fillOpacity={on ? 0.95 : 0.5} style={LABEL}>
+                {row.name}
+              </text>
+              {Array.from({ length: row.validators }, (_, k) => (
+                <circle key={k} cx={REG.x + 520 + k * 36} cy={y + 34} r={7} fill="white" fillOpacity={on ? 0.95 : 0.3} />
+              ))}
+            </g>
+          );
+        })}
+      </g>
+
+      {/* the destination reads the sender's row: a read, not a hop */}
+      {lookup && (
+        <line x1={dst[0]} y1={dst[1]} x2={lookupEnd[0]} y2={lookupEnd[1]} stroke="white" strokeOpacity={0.75} strokeWidth={1.25} strokeDasharray="6 6" vectorEffect="non-scaling-stroke" />
+      )}
+
+      <Signers at={src} lit={signing ? Math.ceil((u / 0.7) * 5) : travel > 0 || lookup || verified ? 5 : 0} />
+      <Node x={DESK_A[0]} y={DESK_A[1]} boundary="sealed" />
+      <Node x={DESK_B[0]} y={DESK_B[1]} boundary="open" />
+      <Tag from={[DESK_A[0] - 40, DESK_A[1] + 30]} to={[120, 1780]} text="PRIVATE L1" />
+      <Tag from={[DESK_B[0] + 40, DESK_B[1] + 30]} to={[1480, 1780]} text="PUBLIC L1" anchor="end" />
+      {signing && <Caption x={src[0]} y={src[1] - 150} text="SIGNED BY ITS VALIDATORS" anchor={forward ? "start" : "end"} />}
+      {travel > 0 && travel < 1 && <Caption x={880} y={1020} text="ANY RELAYER" anchor="start" />}
+      {verified && <Caption x={dst[0]} y={dst[1] - 150} text="VERIFIED AGAINST P-CHAIN" anchor={forward ? "end" : "start"} />}
     </Frame>
   );
 }
 
-/* ---- performance: race telemetry over the car ---------------------- */
+/* ---- performance: final before the train has passed --------------- */
 
-// The video's camera moves, so nothing here is traced onto the frame: the
-// readout is a timing screen pinned to the plate's corner, the way race
-// telemetry sits over footage. It reads the loop's own playhead, so it
-// cannot drift from the picture. The loop holds two passes; each one
-// launches (SETTLING, counting real milliseconds) and turns FINAL at its
-// decisive frame, holding until the next launch.
-const PASSES = [
-  { submit: 1.5, final: 2.3 }, // bursts through the wall of spray
-  { submit: 7.5, final: 8.3 }, // the wheel fills the frame
-];
-const READY_FOR = 0.9; // s of READY before each launch
-
-type Phase = "ready" | "settling" | "final";
-
-// the two chains on the timing tower: both launch with the car; each
-// locks at its own finality (illustrative, inside the stated bounds:
-// C-Chain under a second, a dedicated L1 under 100 milliseconds)
-const LANES = [
-  { name: "Your L1", finalMs: 80 },
-  { name: "C-Chain", finalMs: 800 },
+// The loop is one pass of a train between the camera and a man waiting on
+// the platform; the pass itself plays 4x fast (frame-blended), about 0.6 s.
+// The clock starts the instant the train's nose reaches him (tracked off
+// the footage, 24 fps) and counts in real time: your L1 is final at
+// 0.080 s, while the train is still passing; the C-Chain at 0.800 s, just
+// after it has gone. The readout sits
+// on the ground below the rails, which the train never covers. Without
+// the video (reduced motion, or still loading) it rests on both finals.
+const FPS = 24;
+const AT_MAN = 4.9 / FPS; // the nose reaches the man
+const GROUND_Y = 1620; // the top of the ground strip below the rails
+const CHAINS = [
+  { name: "YOUR L1", finalMs: 80 },
+  { name: "C-CHAIN", finalMs: 800 },
 ];
 
-/* A broadcast timing tower, lower-left over the snow: it slides in as a
-   car launches, runs both clocks, locks each lane as it goes final, and
-   slides out before the next launch. Without the video (reduced motion,
-   or still loading) it rests on both final times. */
 function FinalityHud() {
-  const reducedMotion = useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
-  const [state, setState] = useState<{ phase: Phase; ms: number }>({ phase: "final", ms: 800 });
+  const [t, setT] = useState<number | null>(null);
 
   useEffect(() => {
     const video = ref.current?.closest("[data-plate]")?.querySelector("video");
     if (!video) return;
     let raf = 0;
     const tick = () => {
-      if (!video.paused && video.readyState >= 2) {
-        const t = video.currentTime;
-        // READY for a beat before each launch; otherwise the latest pass
-        // that has launched decides (before the first, the last pass of
-        // the previous loop still holds FINAL)
-        const count = (p: (typeof PASSES)[number]) => Math.round((p.final - p.submit) * 1000);
-        const pass = [...PASSES].reverse().find((p) => t >= p.submit);
-        const arming = PASSES.some((p) => t >= p.submit - READY_FOR && t < p.submit);
-        if (arming) setState({ phase: "ready", ms: 0 });
-        else if (!pass) setState({ phase: "final", ms: count(PASSES[PASSES.length - 1]) });
-        else if (t < pass.final) setState({ phase: "settling", ms: Math.round((t - pass.submit) * 1000) });
-        else setState({ phase: "final", ms: count(pass) });
-      }
+      if (!video.paused && video.readyState >= 2) setT(video.currentTime);
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, []);
 
-  const { phase, ms } = state;
-  const elapsed = phase === "ready" ? 0 : ms;
+  // ms since the nose reached the man; no playhead yet rests on both finals
+  const elapsed = t === null ? Infinity : Math.max(0, (t - AT_MAN) * 1000);
+  const armed = t === null || t >= AT_MAN;
 
   return (
-    <div ref={ref} className="absolute bottom-[9%] left-[6%]">
-      {/* the board never leaves: it wipes in once, then resets in place */}
-      <motion.div
-        role="img"
-        aria-label="Time to finality: under 100 milliseconds on your own L1, under one second on the C-Chain"
-        initial={reducedMotion ? false : { clipPath: "inset(0 100% 0 0)" }}
-        whileInView={{ clipPath: "inset(0 0% 0 0)" }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-        className="w-[17rem] overflow-hidden border border-white/10 bg-zinc-950/55 text-white backdrop-blur-md"
-      >
-        <div className="flex items-center justify-between border-b border-white/10 px-4 py-2 text-[11px] text-white/60">
-          <span>Time to finality</span>
-          <span className="tabular-nums">1.000 s</span>
-        </div>
-        {LANES.map((lane, k) => {
-          const done = elapsed >= lane.finalMs;
-          const t = Math.min(elapsed, lane.finalMs);
-          const resetting = phase === "ready";
-          // lanes clear top to bottom, a beat apart, like a board resetting
-          const delay = resetting ? `${k * 90}ms` : "0ms";
+    <div ref={ref} className="absolute inset-0">
+      <Frame label="Finality: under 100 milliseconds on your own L1, before the train has passed, and under one second on the C-Chain">
+        <rect x={96} y={GROUND_Y + 40} width={640} height={176} fill="rgba(9,9,11,0.62)" />
+        <text x={124} y={GROUND_Y + 84} fontSize={20} fill="white" fillOpacity={0.6} style={LABEL}>
+          TIME TO FINALITY
+        </text>
+        {CHAINS.map(({ name, finalMs }, i) => {
+          const y = GROUND_Y + 134 + i * 52;
+          const done = elapsed >= finalMs;
+          const ms = Math.min(elapsed, finalMs);
           return (
-            <div key={lane.name} className={`relative px-4 py-2.5 ${k > 0 ? "border-t border-white/10" : ""}`}>
-              {/* the lane's accent: white while its clock runs, red once final */}
-              <span
-                aria-hidden
-                className={`absolute inset-y-0 left-0 w-[3px] transition-colors duration-300 ${done ? "bg-[#E6212F]" : "bg-white/60"}`}
-                style={{ transitionDelay: delay }}
-              />
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-[13px] font-medium text-white/85">{lane.name}</span>
-                <span className="flex items-center gap-2">
-                  <span
-                    className={`v2-heading text-[1.35rem] leading-none tabular-nums tracking-[-0.01em] transition-opacity duration-300 ${
-                      resetting ? "opacity-50" : "opacity-100"
-                    }`}
-                    style={{ transitionDelay: delay }}
-                  >
-                    {(t / 1000).toFixed(3)}
-                    <span className="ml-0.5 text-[11px] text-white/50">s</span>
-                  </span>
-                  {/* the tag flips over, the way a board card turns */}
-                  <span className="relative h-[1.2rem] w-[3.1rem] [perspective:200px]">
-                    <motion.span
-                      key={done ? "final" : "wait"}
-                      initial={{ rotateX: -90, opacity: 0 }}
-                      animate={{ rotateX: 0, opacity: 1 }}
-                      transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1], delay: resetting ? k * 0.09 : 0 }}
-                      className={`absolute inset-0 flex items-center justify-center text-[9px] font-semibold tracking-[0.14em] [transform-origin:50%_0%] ${
-                        done ? "bg-[#E6212F] text-white" : "bg-white/10 text-white/40"
-                      }`}
-                    >
-                      {done ? "FINAL" : "···"}
-                    </motion.span>
-                  </span>
-                </span>
-              </div>
-              {/* the lane's share of the second; it only animates when it
-                  retracts, so the running clock stays exact */}
-              <span className="relative mt-2 block h-[2px] bg-white/10">
-                <span
-                  className={`absolute inset-y-0 left-0 ${done ? "bg-[#E6212F]" : "bg-white"} ${
-                    resetting ? "transition-[width,background-color] duration-500 ease-out" : ""
-                  }`}
-                  style={{ width: `${(t / 1000) * 100}%`, transitionDelay: delay }}
-                />
-              </span>
-            </div>
+            <g key={name}>
+              <text x={124} y={y} fontSize={26} fill="white" fillOpacity={0.9} style={LABEL}>
+                {name}
+              </text>
+              <text x={540} y={y} textAnchor="end" fontSize={26} fill="white" fillOpacity={armed ? 0.95 : 0.4} style={LABEL}>
+                {`${(ms / 1000).toFixed(3)} S`}
+              </text>
+              <text x={710} y={y} textAnchor="end" fontSize={22} fill={done ? "#ff8a92" : "white"} fillOpacity={done ? 1 : 0.3} style={LABEL}>
+                {done ? "FINAL" : "···"}
+              </text>
+            </g>
           );
         })}
-      </motion.div>
+      </Frame>
     </div>
   );
 }
 
-/* ---- privacy: participants inside the room, fog outside ----------- */
+/* ---- privacy: a closed room in the snow --------------------------- */
 
-// The validator-only network is the lit room: its participants see one
-// another across the table; the perimeter is the glass. Outside views
-// drift in through the fog and are lost at the glass, a ripple where each
-// one touches it.
-const ROOM = { x: 760, y: 925, w: 730, h: 395 };
+// The validator-only network is the closed meeting room: its two
+// participants share a link across the table; the room's frame is the
+// network's edge. Outside views drift in through the snow and are lost at
+// the glass, a ripple where each one touches it.
+const ROOM = { x: 200, y: 410, w: 1200, h: 1210 };
 const SEATS: Pt[] = [
-  [875, 1150],
-  [960, 1146],
-  [1075, 1138],
-  [1140, 1150],
-  [1205, 1142],
+  [650, 1130],
+  [810, 1165],
+  [985, 1125],
 ];
 const TABLE_LINK = smooth(SEATS);
 const TABLE_LINK_BACK = smooth(rev(SEATS));
 const OBSERVERS = [
-  { y: 1000, begin: 0 },
-  { y: 1130, begin: 1.9 },
-  { y: 1260, begin: 3.8 },
+  { y: 860, begin: 0 },
+  { y: 1080, begin: 1.9 },
+  { y: 1300, begin: 3.8 },
 ];
 const OBSERVE_DUR = 5.7;
 const GLASS_X = ROOM.x - 16;
 
 function PrivacyOverlay() {
-  const glow = useGlow();
   return (
-    <Frame label="Participants inside a lit glass room share a private link, while outside views vanish at the glass in the fog">
-      {/* the perimeter: the glass itself */}
+    <Frame label="Two participants inside a closed room share a private link while outside views stop at the glass">
+      {/* the network's edge: the room's frame */}
       <rect
         x={ROOM.x - 16}
         y={ROOM.y - 16}
@@ -401,127 +469,97 @@ function PrivacyOverlay() {
         height={ROOM.h + 32}
         fill="none"
         stroke="white"
-        strokeOpacity={0.55}
+        strokeOpacity={0.6}
         strokeWidth={1}
         strokeDasharray="6 6"
         vectorEffect="non-scaling-stroke"
       />
       {/* the participants and the link between them */}
-      <path d={TABLE_LINK} fill="none" stroke="white" strokeOpacity={0.4} strokeWidth={1} vectorEffect="non-scaling-stroke" />
+      <path d={TABLE_LINK} fill="none" stroke="white" strokeOpacity={0.45} strokeWidth={1} vectorEffect="non-scaling-stroke" />
       <Comet d={TABLE_LINK} dur={5} begin={0} travel={0.45} length={70} width={5} />
       <Comet d={TABLE_LINK_BACK} dur={5} begin={2.5} travel={0.45} length={70} width={5} />
-      {SEATS.map(([x, y], i) => (
-        <g key={x}>
-          <circle cx={x} cy={y - 70} r={6} fill={RED} />
-          <circle cx={x} cy={y - 70} r={9} fill={RED} filter={glow} opacity={0.7}>
-            <animate attributeName="opacity" values="0.35;0.85;0.35" dur="3.6s" begin={`${i * 0.7}s`} repeatCount="indefinite" />
-          </circle>
-          <line x1={x} y1={y - 62} x2={x} y2={y - 8} stroke="white" strokeOpacity={0.3} strokeWidth={1} vectorEffect="non-scaling-stroke" />
-        </g>
-      ))}
+      <Node x={SEATS[0][0]} y={SEATS[0][1]} boundary="open" />
+      <Node x={SEATS[2][0]} y={SEATS[2][1]} boundary="open" />
 
-      {/* outside views: faint points drifting in through the fog, lost at the glass */}
+      {/* outside views: faint points drifting in through the snow, lost at the glass */}
       {OBSERVERS.map(({ y, begin }) => {
         const t = `${begin}s`;
         return (
           <g key={y}>
-            <circle cx={120} cy={y} r={5} fill="white" opacity={0}>
-              <animate attributeName="cx" values={`120;${GLASS_X};${GLASS_X}`} keyTimes="0;0.55;1" dur={`${OBSERVE_DUR}s`} begin={t} repeatCount="indefinite" />
-              <animate attributeName="opacity" values="0;0.7;0.7;0;0" keyTimes="0;0.12;0.5;0.56;1" dur={`${OBSERVE_DUR}s`} begin={t} repeatCount="indefinite" />
+            <circle cx={40} cy={y} r={6} fill="white" opacity={0}>
+              <animate attributeName="cx" values={`40;${GLASS_X};${GLASS_X}`} keyTimes="0;0.55;1" dur={`${OBSERVE_DUR}s`} begin={t} repeatCount="indefinite" />
+              <animate attributeName="opacity" values="0;0.85;0.85;0;0" keyTimes="0;0.12;0.5;0.56;1" dur={`${OBSERVE_DUR}s`} begin={t} repeatCount="indefinite" />
             </circle>
-            <ellipse cx={GLASS_X} cy={y} rx={0} ry={0} fill="none" stroke="white" strokeWidth={1} vectorEffect="non-scaling-stroke" opacity={0}>
+            <ellipse cx={GLASS_X} cy={y} rx={0} ry={0} fill="none" stroke="white" strokeWidth={1.25} vectorEffect="non-scaling-stroke" opacity={0}>
               <animate attributeName="rx" values="0;0;12;12" keyTimes="0;0.55;0.8;1" dur={`${OBSERVE_DUR}s`} begin={t} repeatCount="indefinite" />
               <animate attributeName="ry" values="0;0;60;60" keyTimes="0;0.55;0.8;1" dur={`${OBSERVE_DUR}s`} begin={t} repeatCount="indefinite" />
-              <animate attributeName="opacity" values="0;0;0.55;0;0" keyTimes="0;0.55;0.6;0.8;1" dur={`${OBSERVE_DUR}s`} begin={t} repeatCount="indefinite" />
+              <animate attributeName="opacity" values="0;0;0.7;0;0" keyTimes="0;0.55;0.6;0.8;1" dur={`${OBSERVE_DUR}s`} begin={t} repeatCount="indefinite" />
             </ellipse>
           </g>
         );
       })}
 
-      <text x={120} y={1420} fontSize={24} fill="white" fillOpacity={0.8} style={LABEL}>
-        OUTSIDE
-      </text>
-      <text x={120} y={1456} fontSize={20} fill="white" fillOpacity={0.45} style={LABEL}>
-        NO VISIBILITY
-      </text>
-      <Tag from={[900, ROOM.y - 16]} to={[840, 790]} text="VALIDATOR-ONLY NETWORK" anchor="end" />
+      <Tag from={[1100, ROOM.y - 16]} to={[1480, 250]} text="VALIDATOR-ONLY L1" sub="ADMITTED NODES SEE THE LEDGER" anchor="end" />
+      <Caption x={120} y={1690} text="OUTSIDE THE L1" sub="CANNOT SYNC, QUERY, OR SEE" />
     </Frame>
   );
 }
 
-/* ---- compliance: requests at the vault's lock ---------------------- */
+/* ---- compliance: the gate line in the lobby ----------------------- */
 
-// The footage pushes in slowly toward the lock and back (a ping-pong
-// loop), so everything here is anchored on the lock, the one point that
-// holds still, and runs radially to it. Requests arrive from outside the
-// door: approved ones reach the lock and it answers with a white ring;
-// the unapproved one is stopped beyond the door's edge and flares red.
-const LOCK: Pt = [824, 1106];
-const OUTER = 520; // clear of the door's edge through the whole push-in
-const REQUESTS = [
-  { angle: 200, approved: true, begin: 0 },
-  { angle: 330, approved: false, begin: 1.7 },
-  { angle: 160, approved: true, begin: 3.4 },
-];
+// Requests come in from the snow at the entrance and meet the gate line,
+// the VM's allowlist. Approved ones pass the open lanes toward the camera;
+// the one in the shut center lane, where the woman stands stopped, ends at
+// the line, and that segment flares red.
+const GATE_Y = 1140;
+const GATE_LANES = [
+  { x: 460, approved: true, begin: 0, edge: [350, 570] },
+  { x: 800, approved: false, begin: 1.7, edge: [590, 1010] },
+  { x: 1140, approved: true, begin: 3.4, edge: [1030, 1250] },
+] as const;
 const REQUEST_DUR = 5.1;
-
-const polar = (deg: number, r: number): Pt => {
-  const rad = (deg * Math.PI) / 180;
-  return [Math.round(LOCK[0] + r * Math.cos(rad)), Math.round(LOCK[1] + r * Math.sin(rad))];
-};
+const CABINETS = [340, 580, 1020, 1260];
 
 function ComplianceOverlay() {
   const glow = useGlow();
   return (
-    <Frame label="Approved requests reaching a vault's lock while an unapproved one is refused at the door">
-      {REQUESTS.map(({ angle, approved, begin }) => {
-        const [sx, sy] = polar(angle, 760);
-        const [ex, ey] = approved ? LOCK : polar(angle, OUTER);
+    <Frame label="Approved requests pass the open gates of a lobby while one in the shut center lane is refused at the gate line">
+      {/* the gate line every request meets */}
+      <line x1={0} y1={GATE_Y} x2={1600} y2={GATE_Y} stroke="white" strokeOpacity={0.55} strokeWidth={1} strokeDasharray="3 8" vectorEffect="non-scaling-stroke" />
+      {CABINETS.map((x) => (
+        <circle key={x} cx={x} cy={GATE_Y} r={5} fill="white" fillOpacity={0.85} />
+      ))}
+      {GATE_LANES.map(({ x, approved, begin, edge: [ex0, ex1] }) => {
+        const start = 700;
+        const end = approved ? 1950 : GATE_Y - 12;
         const t = `${begin}s`;
         const dur = `${REQUEST_DUR}s`;
         return (
-          <g key={angle}>
-            <line x1={sx} y1={sy} x2={ex} y2={ey} stroke="white" strokeOpacity={0.22} strokeWidth={1} strokeDasharray="2 7" vectorEffect="non-scaling-stroke" />
-            <circle cx={sx} cy={sy} r={9} fill={approved ? "white" : "none"} stroke="white" strokeWidth={1.5} vectorEffect="non-scaling-stroke" opacity={0}>
-              <animate attributeName="cx" values={`${sx};${ex};${ex}`} keyTimes="0;0.5;1" dur={dur} begin={t} repeatCount="indefinite" />
-              <animate attributeName="cy" values={`${sy};${ey};${ey}`} keyTimes="0;0.5;1" dur={dur} begin={t} repeatCount="indefinite" />
-              <animate attributeName="opacity" values="0;0.9;0.9;0;0" keyTimes="0;0.08;0.48;0.56;1" dur={dur} begin={t} repeatCount="indefinite" />
+          <g key={x}>
+            <line x1={x} y1={start} x2={x} y2={approved ? 1950 : GATE_Y} stroke="white" strokeOpacity={0.28} strokeWidth={1} strokeDasharray="2 7" vectorEffect="non-scaling-stroke" />
+            <circle cx={x} cy={start} r={10} fill={approved ? "white" : "none"} stroke="white" strokeWidth={1.5} vectorEffect="non-scaling-stroke" opacity={0}>
+              <animate attributeName="cy" values={`${start};${end};${end}`} keyTimes="0;0.5;1" dur={dur} begin={t} repeatCount="indefinite" />
+              <animate attributeName="opacity" values="0;0.95;0.95;0;0" keyTimes="0;0.08;0.48;0.56;1" dur={dur} begin={t} repeatCount="indefinite" />
             </circle>
             {approved ? (
-              // the lock answers: a white ring opens from it
-              <circle cx={LOCK[0]} cy={LOCK[1]} r={40} fill="none" stroke="white" strokeWidth={1.5} vectorEffect="non-scaling-stroke" opacity={0}>
-                <animate attributeName="r" values="40;40;150;150" keyTimes="0;0.5;0.72;1" dur={dur} begin={t} repeatCount="indefinite" />
-                <animate attributeName="opacity" values="0;0;0.8;0;0" keyTimes="0;0.5;0.53;0.72;1" dur={dur} begin={t} repeatCount="indefinite" />
-              </circle>
+              // the lane's gate answers: a white tick on the line as the request passes
+              <line x1={ex0} y1={GATE_Y} x2={ex1} y2={GATE_Y} stroke="white" strokeWidth={2} vectorEffect="non-scaling-stroke" opacity={0}>
+                <animate attributeName="opacity" values="0;0;0.9;0;0" keyTimes="0;0.18;0.22;0.4;1" dur={dur} begin={t} repeatCount="indefinite" />
+              </line>
             ) : (
-              // refused at the door: an arc of the perimeter flares red
+              // refused at the line: the lane's segment flares red
               <g opacity={0}>
                 <animate attributeName="opacity" values="0;0;1;0;0" keyTimes="0;0.48;0.54;0.78;1" dur={dur} begin={t} repeatCount="indefinite" />
-                {(() => {
-                  const [ax, ay] = polar(angle - 14, OUTER);
-                  const [bx, by] = polar(angle + 14, OUTER);
-                  const arc = `M${ax},${ay} A${OUTER},${OUTER} 0 0 1 ${bx},${by}`;
-                  return (
-                    <>
-                      <path d={arc} fill="none" stroke={RED} strokeWidth={24} opacity={0.55} filter={glow} />
-                      <path d={arc} fill="none" stroke="#ff8a92" strokeWidth={5} strokeLinecap="round" />
-                    </>
-                  );
-                })()}
+                <line x1={ex0} y1={GATE_Y} x2={ex1} y2={GATE_Y} stroke={RED} strokeWidth={24} opacity={0.55} filter={glow} />
+                <line x1={ex0} y1={GATE_Y} x2={ex1} y2={GATE_Y} stroke="#ff8a92" strokeWidth={5} strokeLinecap="round" />
               </g>
             )}
           </g>
         );
       })}
-      {/* the perimeter every request meets */}
-      <circle cx={LOCK[0]} cy={LOCK[1]} r={OUTER} fill="none" stroke="white" strokeOpacity={0.3} strokeWidth={1} strokeDasharray="3 8" vectorEffect="non-scaling-stroke" />
-      <text x={120} y={200} fontSize={26} fill="white" fillOpacity={0.85} style={LABEL}>
-        APPROVED WALLETS ONLY
-      </text>
-      <text x={120} y={238} fontSize={21} fill="white" fillOpacity={0.5} style={LABEL}>
-        ENFORCED BY THE CHAIN
-      </text>
-      <Tag from={polar(330, OUTER + 24)} to={[1330, 560]} text="REFUSED" anchor="end" />
+      <Caption x={120} y={200} text="APPROVED WALLETS ONLY" sub="CHECKED BEFORE EXECUTION" />
+      <Tag from={[1590, GATE_Y]} to={[1480, 1060]} text="VM ALLOWLIST" anchor="end" />
+      <Tag from={[870, 1420]} to={[1000, 1780]} text="REFUSED" sub="BEFORE IT EXECUTES" />
     </Frame>
   );
 }

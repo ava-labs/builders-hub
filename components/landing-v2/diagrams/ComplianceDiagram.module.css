@@ -1,0 +1,177 @@
+/* Compliance motion: one 8.3 s cycle. With the kit's 0.7 s lead the
+   9 s panel rotation lands on the loop seam; on a first view (no lead)
+   it lands 0.7 s into the next cycle. Both fall in the quiet stretch
+   from 7.25 s to 0.8 s. Percentages are seconds / 8.3.
+
+   0.80 s  the approved sender sends (0.3 s: fade in, scale 1.5 to 1)
+   1.10 s  it travels to the core (1.0 s): on its lane to the dashed
+           edge at 240 degrees (1.69 s), then straight at the core
+   1.91 s  it meets the core's stroke: the core accepts (kit pulse, 0.4 s)
+   2.10 s  it is inside the core, hidden; it fades
+   2.80 s  the unknown sender sends (0.3 s)
+   3.10 s  it travels (0.95 s): on its lane to the dashed edge at 120
+           degrees (3.72 s), then on toward the core
+   4.05 s  it stops 28 from the core's center
+   4.25 s  the core checks it (a muted ring that closes in, 0.35 s)
+   4.70 s  the ring fades as the X shows in its place (0.25 s)
+   4.95 s  the X holds (1.9 s)
+   6.85 s  the X fades (0.4 s)
+   7.25 s  quiet to 0.80 s in the next cycle
+
+   Each trip is two straight legs, lane and radius. The keyframes split
+   one ease (cubic-bezier(0.45, 0, 0.25, 1)) at the edge, so the speed
+   is the same on both sides of the turn and the trip reads as one hop.
+
+   Each part's base style (no animation) is the still: the approved
+   transaction inside the edge on its own path to the core, and the X on
+   the unknown one's path. A part with a delay fills backwards: the hold
+   frame is step 1. */
+
+.red,
+.unknown,
+.refuse,
+.check,
+.accept {
+  animation-duration: 8.3s;
+  animation-iteration-count: infinite;
+  animation-fill-mode: backwards;
+}
+
+/* the approved transaction: drawn under the chain, so the core's ground
+   takes it in */
+.red {
+  animation-name: red;
+}
+@keyframes red {
+  0%,
+  9.639% {
+    opacity: 0;
+    transform: translate(var(--ax), var(--ay)) scale(1.5);
+    animation-timing-function: ease-out;
+  }
+  13.253% {
+    opacity: 1;
+    transform: translate(var(--ax), var(--ay)) scale(1);
+    animation-timing-function: cubic-bezier(0.571, 0, 0.521, 0.669);
+  }
+  20.399% {
+    transform: translate(var(--px), var(--py)) scale(1);
+    animation-timing-function: cubic-bezier(0.23, 0.601, 0.543, 1);
+  }
+  25.301% {
+    opacity: 1;
+    transform: translate(var(--cx), var(--cy)) scale(1);
+  }
+  25.422%,
+  100% {
+    opacity: 0;
+    transform: translate(var(--cx), var(--cy)) scale(1);
+  }
+}
+
+/* the core accepts: the kit pulse from the core + 2, as the approved
+   transaction meets the core's stroke */
+.accept {
+  animation-name: accept;
+}
+@keyframes accept {
+  0%,
+  22.952% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  22.964% {
+    opacity: 0.9;
+    transform: scale(1);
+    animation-timing-function: ease-out;
+  }
+  27.783%,
+  100% {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}
+
+/* the unknown transaction: hollow and muted, never red. Hidden in the
+   still, where its X stands in its place. */
+.unknown {
+  opacity: 0;
+  animation-name: unknown;
+}
+@keyframes unknown {
+  0%,
+  33.735% {
+    opacity: 0;
+    transform: translate(var(--bx), var(--by)) scale(1.5);
+    animation-timing-function: ease-out;
+  }
+  37.349% {
+    opacity: 1;
+    transform: translate(var(--bx), var(--by)) scale(1);
+    animation-timing-function: cubic-bezier(0.551, 0, 0.461, 0.719);
+  }
+  44.873% {
+    transform: translate(var(--px), var(--py)) scale(1);
+    animation-timing-function: cubic-bezier(0.251, 0.617, 0.572, 1);
+  }
+  48.795%,
+  56.627% {
+    opacity: 1;
+    transform: translate(0px, 0px) scale(1);
+    animation-timing-function: ease-in-out;
+  }
+  59.639%,
+  100% {
+    opacity: 0;
+    transform: translate(0px, 0px) scale(1);
+  }
+}
+
+/* The core checks the unknown transaction where it stopped. The check
+   is not an accept: a muted ring that closes in on the core (scale 1.35
+   to 1), where the accept is an ink ring that grows. The scale runs over
+   the full 0.35 s; the opacity rises to 0.9 at 0.14 s, then falls. */
+.check {
+  animation-name: check;
+}
+@keyframes check {
+  0%,
+  51.205% {
+    opacity: 0;
+    transform: scale(1.35);
+    animation-timing-function: ease-out;
+  }
+  52.892% {
+    opacity: 0.9;
+  }
+  55.422%,
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+/* the refusal: the X shows where the unknown transaction stopped, holds,
+   and fades */
+.refuse {
+  animation-name: refuse;
+}
+@keyframes refuse {
+  0%,
+  56.627% {
+    opacity: 0;
+    transform: scale(0.7);
+    animation-timing-function: ease-out;
+  }
+  59.639%,
+  82.53% {
+    opacity: 1;
+    transform: scale(1);
+    animation-timing-function: ease-in;
+  }
+  87.349%,
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}

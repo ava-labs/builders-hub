@@ -18,19 +18,32 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import type { AuditorRequestView } from "@/server/services/audits/visibility";
 import { normalizeUrlInput } from "@/types/audits";
-import { MAX_QUOTE_WEEKS } from "@/lib/audits/constants";
+import { MAX_QUOTE_DURATION } from "@/lib/audits/constants";
+import {
+  QUOTE_DURATION_UNITS,
+  formatUtcDeadline,
+  type QuoteDurationUnit,
+} from "@/lib/audits/status";
+import { LocalDeadline } from "@/components/audits/shared/LocalDeadline";
 import { AUDITS_DIALOG, MONO_LABEL_META } from "@/components/audits/shared/classes";
 import {
+  durationLabel,
   formatIsoDate,
   formatUsd,
   fromUtcCalendarDate,
   parseWholeNumber,
   toUtcCalendarDate,
-  weeksLabel,
 } from "@/components/audits/shared/format";
 import { QuoteSummary } from "@/components/audits/portal/QuoteSummary";
 
@@ -43,6 +56,9 @@ interface QuoteComposerProps {
   firmActive?: boolean;
   /** Approved subsidy on a won request, shown in the resting summary. */
   subsidy?: AuditorRequestView["subsidy"];
+  /** The project's pick-by date while the request collects; the resting
+      summary names it once the window has closed. */
+  pickBy?: Date | null;
 }
 
 /**
@@ -57,6 +73,7 @@ export function QuoteComposer({
   deadline,
   firmActive = true,
   subsidy,
+  pickBy = null,
 }: QuoteComposerProps) {
   const router = useRouter();
   const editable =
@@ -69,7 +86,11 @@ export function QuoteComposer({
   // mounted composer (window closes, quote gets accepted after a 409 refresh)
   // and an early return before these would change the hook count mid-life.
   const [price, setPrice] = useState(existing ? String(existing.price_usd) : "");
-  const [weeks, setWeeks] = useState(existing ? String(existing.duration_weeks) : "");
+  const [duration, setDuration] = useState(existing ? String(existing.duration) : "");
+  // The unit on file, so editing a quote typed in days never saves it as weeks.
+  const [unit, setUnit] = useState<QuoteDurationUnit>(
+    existing?.duration_unit === "days" ? "days" : "weeks",
+  );
   const [start, setStart] = useState<Date | null>(
     existing ? new Date(existing.earliest_start) : null,
   );
@@ -79,11 +100,15 @@ export function QuoteComposer({
   const [confirming, setConfirming] = useState(false);
   // Parsed the same way the save parses it, so the confirm dialog can never
   // quote a different duration than the one about to be written.
-  const nextWeeks = parseWholeNumber(weeks);
+  const nextDuration = parseWholeNumber(duration);
 
   // Decided or closed with a quote on file: the form rests (design iteration
   // 2026-07-31). Closed with no quote needs no dead disabled form either.
-  if (!editable && existing) return <QuoteSummary quote={existing} subsidy={subsidy} />;
+  if (!editable && existing) {
+    return (
+      <QuoteSummary quote={existing} subsidy={subsidy} pickBy={windowOpen ? null : pickBy} />
+    );
+  }
   if (!firmActive && !existing) {
     return (
       <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-5 text-sm text-zinc-600 dark:border-white/10 dark:bg-white/[0.03] dark:text-[#A2AFB2]">
@@ -94,8 +119,8 @@ export function QuoteComposer({
   if (!editable && !existing) {
     return (
       <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-5 text-sm text-zinc-600 dark:border-white/10 dark:bg-white/[0.03] dark:text-[#A2AFB2]">
-        The quote window closed{deadline ? ` ${formatIsoDate(deadline)}` : ""} without a quote from
-        your firm. New requests keep arriving in your inbox.
+        The quote window closed{deadline ? ` ${formatUtcDeadline(deadline)}` : ""} without a quote
+        from your firm. New requests keep arriving in your inbox.
       </div>
     );
   }
@@ -107,13 +132,13 @@ export function QuoteComposer({
     // Thousands separators are how people write prices; parsing them by hand
     // is what turned "12,500" into 12.
     const priceUsd = parseWholeNumber(price);
-    const durationWeeks = parseWholeNumber(weeks);
+    const durationValue = parseWholeNumber(duration);
     if (!priceUsd || priceUsd < 1) return toast.error("Enter a price in whole US dollars.");
-    if (!durationWeeks || durationWeeks < 1) return toast.error("Enter the duration in weeks.");
+    if (!durationValue || durationValue < 1) return toast.error(`Enter the duration in ${unit}.`);
     // The server caps a quote at a year. Say so here rather than letting the
     // request come back as a bare "Validation failed".
-    if (durationWeeks > MAX_QUOTE_WEEKS) {
-      return toast.error(`A quote can run at most ${MAX_QUOTE_WEEKS} weeks (one year).`);
+    if (durationValue > MAX_QUOTE_DURATION[unit]) {
+      return toast.error(`A quote can run at most ${MAX_QUOTE_DURATION[unit]} ${unit} (one year).`);
     }
     if (!start) return toast.error("Pick the earliest start date.");
     if (!message.trim()) return toast.error("A message to the project is required.");
@@ -125,7 +150,8 @@ export function QuoteComposer({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           price_usd: priceUsd,
-          duration_weeks: durationWeeks,
+          duration: durationValue,
+          duration_unit: unit,
           earliest_start: start.toISOString(),
           message: message.trim(),
           deal_doc_url: dealDoc.trim() || null,
@@ -177,23 +203,42 @@ export function QuoteComposer({
 
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium" htmlFor="quote-weeks">
+            <label className="text-sm font-medium" htmlFor="quote-duration">
               Duration <span className="text-brand">*</span>
             </label>
             <div className="relative">
               <Input
-                id="quote-weeks"
-                value={weeks}
+                id="quote-duration"
+                value={duration}
                 // inputMode is only a mobile keyboard hint, so letters were
                 // typeable on desktop. A duration is digits, nothing else.
-                onChange={(event) => setWeeks(event.target.value.replace(/\D/g, ""))}
+                onChange={(event) => setDuration(event.target.value.replace(/\D/g, ""))}
                 inputMode="numeric"
                 disabled={!editable || busy}
-                className="h-11 pr-16"
+                className="h-11 pr-20"
               />
-              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-zinc-500">
-                weeks
-              </span>
+              {/* The unit sits where the fixed "weeks" suffix was, so the form
+                  keeps its shape. Switching it never converts the number. */}
+              <Select
+                value={unit}
+                onValueChange={(value) => setUnit(value === "days" ? "days" : "weeks")}
+                disabled={!editable || busy}
+              >
+                <SelectTrigger
+                  aria-label="Duration unit"
+                  className="absolute right-1 top-1/2 h-9 -translate-y-1/2 gap-1 border-0 bg-transparent px-2 text-zinc-500 shadow-none dark:bg-transparent dark:hover:bg-transparent"
+                >
+                  {/* Explicit text, so the server render shows the unit too. */}
+                  <SelectValue>{unit}</SelectValue>
+                </SelectTrigger>
+                <SelectContent align="end">
+                  {QUOTE_DURATION_UNITS.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <div className="space-y-1.5">
@@ -289,7 +334,7 @@ export function QuoteComposer({
               <AlertDialogTitle>Replace your quote?</AlertDialogTitle>
               <AlertDialogDescription>
                 {existing
-                  ? `The project currently sees ${formatUsd(existing.price_usd)} over ${weeksLabel(existing.duration_weeks)}. Saving replaces it with ${formatUsd(parseWholeNumber(price) ?? 0)}${nextWeeks === null ? "" : ` over ${weeksLabel(nextWeeks)}`}.`
+                  ? `The project currently sees ${formatUsd(existing.price_usd)} over ${durationLabel(existing.duration, existing.duration_unit)}. Saving replaces it with ${formatUsd(parseWholeNumber(price) ?? 0)}${nextDuration === null ? "" : ` over ${durationLabel(nextDuration, unit)}`}.`
                   : ""}
               </AlertDialogDescription>
             </AlertDialogHeader>
@@ -306,11 +351,18 @@ export function QuoteComposer({
         </AlertDialog>
 
         <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          {editable
-            ? `Editable until the window closes${deadline ? ` ${formatIsoDate(deadline)}` : ""}. Your quote is private to the requesting project and the program team.`
-            : existing?.status === "accepted"
-              ? "This quote was accepted. The engagement continues off-platform."
-              : `The window closed${deadline ? ` ${formatIsoDate(deadline)}` : ""}. Quotes can no longer be edited.`}
+          {editable ? (
+            <>
+              {/* The firm's own clock, with UTC beside it (call C6). */}
+              Editable until{" "}
+              {deadline ? <LocalDeadline deadline={deadline} variant="zone" /> : "the window closes"}
+              . Your quote is private to the requesting project and the program team.
+            </>
+          ) : existing?.status === "accepted" ? (
+            "This quote was accepted. The engagement continues off-platform."
+          ) : (
+            `The window closed${deadline ? ` ${formatUtcDeadline(deadline)}` : ""}. Quotes can no longer be edited.`
+          )}
         </p>
         {/* Clears the fixed mobile CTA bar. */}
         <div aria-hidden className="h-10 lg:hidden" />

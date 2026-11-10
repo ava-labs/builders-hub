@@ -4,10 +4,7 @@ import { ReactNode, useState, FormEvent, useMemo, useEffect, useRef } from "reac
 import { Search } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { useExplorer } from "@/components/explorer/ExplorerContext";
 import { buildBlockUrl, buildTxUrl, buildAddressUrl } from "@/utils/eip3091";
-import l1ChainsData from "@/constants/l1-chains.json";
-import { L1Chain } from "@/types/stats";
 import { ChainHeader } from "@/components/explorer-v2/ChainHeader";
 import { ExplorerSubnav } from "@/components/explorer-v2/ExplorerSubnav";
 import { Rise, StatFigure } from "@/components/explorer-v2/ui";
@@ -15,15 +12,15 @@ import { classifyLocally, pchainApiPath, type SearchResult } from "@/lib/pchain-
 import {
   ChainHitRow,
   EntityHitRow,
+  bech32AddressCached,
   matchChains,
   looksLikeIdentifier,
   useSearchEntity,
+  xchainSearchCached,
   type ChainHit,
 } from "@/components/explorer-v2/chain-search";
 import { useLiveValidatorCounts } from "@/components/explorer-v2/validator-stats";
 import SheetBackdrop from "@/components/landing-v2/SheetBackdrop";
-import { getL1ListStore, L1ListItem } from "@/components/toolbox/stores/l1ListStore";
-import { convertL1ListItemToL1Chain, findCustomChainBySlug } from "@/components/explorer/utils/chainConverter";
 
 /* ------------------------------------------------------------------ */
 /* Per-L1 explorer chrome, in the drafting-sheet grammar shared with    */
@@ -39,11 +36,6 @@ interface ExplorerLayoutProps {
   themeColor?: string;
   chainLogoURI?: string;
   description?: string;
-  website?: string;
-  socials?: {
-    twitter?: string;
-    linkedin?: string;
-  };
   rpcUrl?: string;
   children: ReactNode;
   // Accepted for compatibility; the subnav rail replaced the breadcrumb.
@@ -68,8 +60,6 @@ export function ExplorerLayout({
   themeColor,
   chainLogoURI,
   description,
-  website,
-  socials,
   rpcUrl,
   children,
   loading = false,
@@ -87,40 +77,6 @@ export function ExplorerLayout({
   // deployment's explorer must not leak back to its mainnet twin
   const params = useParams();
   const network = typeof params?.network === "string" ? params.network : "mainnet";
-  const { glacierSupported, isTokenDataLoading } = useExplorer();
-
-  // State for custom chain (loaded from localStorage on client)
-  const [customChain, setCustomChain] = useState<L1Chain | null>(null);
-
-  // Load custom chain from localStorage on mount (client-side only)
-  useEffect(() => {
-    // First check if it's in l1ChainsData (static chains)
-    const staticChain = l1ChainsData.find((chain) => chain.slug === chainSlug);
-    if (staticChain) {
-      return; // No need to check custom chains
-    }
-
-    // Check custom chains from localStorage
-    const testnetStore = getL1ListStore(true);
-    const mainnetStore = getL1ListStore(false);
-
-    const testnetChains: L1ListItem[] = testnetStore.getState().l1List;
-    const mainnetChains: L1ListItem[] = mainnetStore.getState().l1List;
-
-    const allChains = [...testnetChains, ...mainnetChains];
-    const foundCustomChain = findCustomChainBySlug(allChains, chainSlug);
-
-    if (foundCustomChain) {
-      setCustomChain(convertL1ListItemToL1Chain(foundCustomChain));
-    }
-  }, [chainSlug]);
-
-  // Find the current chain - check static chains first, then custom chains
-  const currentChain = useMemo(() => {
-    const staticChain = l1ChainsData.find((chain) => chain.slug === chainSlug) as L1Chain | undefined;
-    if (staticChain) return staticChain;
-    return customChain || undefined;
-  }, [chainSlug, customChain]);
 
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
@@ -145,7 +101,7 @@ export function ExplorerLayout({
     evmAddressBase: `/explorer/${network}/${chainSlug}`,
     evmAddressChainName: chainName,
   });
-  const showHits = searchFocused && !!searchQuery.trim() && (hits.length > 0 || entity !== null);
+  const showHits = searchFocused && !!searchQuery.trim() && (hits.length > 0 || entity.length > 0);
 
   const goToHref = (href: string) => {
     setSearchQuery("");
@@ -271,6 +227,14 @@ export function ExplorerLayout({
       // One search, whole platform: P-Chain shapes (NodeID-, P-avax1…)
       // route straight to the P-Chain explorer…
       const pchain = classifyLocally(query);
+      // a bech32 address asks the chains which hold it: a prefix selects the
+      // chain, a bare address lands on the chain with the account
+      if (pchain?.type === "address") {
+        // hits is never empty: the P-Chain stands in when no chain is known to hold it
+        const [h] = (await bech32AddressCached(network, pchain.id)).hits;
+        router.push(`/explorer/${network}/${h.chain}/address/${h.id}`);
+        return;
+      }
       if (pchain && pchain.type !== "block") {
         router.push(`/explorer/${network}/p-chain/${pchain.type}/${pchain.id}`);
         return;
@@ -285,6 +249,16 @@ export function ExplorerLayout({
         return;
       }
 
+      // a CB58 id the P-Chain does not claim can still be an X-Chain tx or
+      // genesis asset — the x-api has no search endpoint, so probe it
+      if (/^[1-9A-HJ-NP-Za-km-z]{40,}$/.test(query) && !/^(P-)?(avax|fuji|custom)1/i.test(query)) {
+        const x = await xchainSearchCached(network, query);
+        if (x.type !== "none") {
+          router.push(`/explorer/${network}/x-chain/${x.type}/${x.id}`);
+          return;
+        }
+      }
+
       // Show error for unrecognized format
       setSearchError("Nothing on Avalanche matched that identifier");
     } catch {
@@ -294,8 +268,9 @@ export function ExplorerLayout({
     }
   };
 
+  // a div: the site layout's <main> holds the page
   return (
-    <main
+    <div
       className="relative min-h-screen overflow-x-clip bg-white dark:bg-zinc-950"
       style={accent ? ({ "--chain-accent": accent } as React.CSSProperties) : undefined}
     >
@@ -304,6 +279,8 @@ export function ExplorerLayout({
           bounded by the vertical rules */}
       <SheetBackdrop snowOnly />
       <div className="relative mx-auto min-h-screen w-full max-w-[90rem] border-x border-transparent bg-white pt-10 min-[90rem]:border-zinc-200/90 dark:bg-zinc-950 dark:min-[90rem]:border-zinc-800/90">
+      {/* ChainHeader's h1 names the page; without it, a hidden h1 does */}
+      {(loading || hideHeader || hideIdentity) && <h1 className="sr-only">{chainName} Explorer</h1>}
       {/* the app's spine: chain switcher, section tabs, network. Rendered
           during loading too — the chain identity comes in via props. Hoisted
           out of the header box below: a sticky element only pins while its
@@ -343,10 +320,6 @@ export function ExplorerLayout({
             <ChainHeader
               chainName={chainName}
               chainLogoURI={chainLogoURI}
-              website={website}
-              socials={socials}
-              subnetId={currentChain?.subnetId}
-              blockchainId={currentChain?.blockchainId}
               aside={
                 showSearch && tipHeight !== null ? (
                   <div className="flex flex-col items-start gap-1.5 sm:items-end">
@@ -360,15 +333,6 @@ export function ExplorerLayout({
                     <StatFigure value={tipHeight} className="text-3xl md:text-[2.5rem]" />
                   </div>
                 ) : undefined
-              }
-              wallet={
-                rpcUrl
-                  ? {
-                      rpcUrl,
-                      chainId: currentChain?.chainId ? parseInt(currentChain.chainId) : undefined,
-                      tokenSymbol: currentChain?.networkToken?.symbol,
-                    }
-                  : undefined
               }
             />
             </>
@@ -410,7 +374,9 @@ export function ExplorerLayout({
                     then the shared chain rows every explorer search uses */}
                 {showHits && (
                   <div className="absolute left-0 right-0 top-full z-20 mt-1 border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-                    {entity && <EntityHitRow hit={entity} onSelect={goToHref} />}
+                    {entity.map((hit) => (
+                      <EntityHitRow key={hit.href ?? hit.status} hit={hit} onSelect={goToHref} />
+                    ))}
                     {hits.map((hit, i) => (
                       <ChainHitRow
                         key={hit.chain.href}
@@ -433,22 +399,6 @@ export function ExplorerLayout({
       </div>
       )}
 
-      {/* Glacier Support Warning - the sheet's voice: square, mono, edge bar */}
-      {!loading && !isTokenDataLoading && glacierSupported === false && (
-        <div className="relative mx-auto w-full max-w-[90rem] px-5 md:px-6">
-          <div className="flex items-start gap-4 border border-zinc-200 border-l-2 border-l-amber-500 bg-white/80 px-4 py-3 backdrop-blur-sm dark:border-zinc-800 dark:border-l-amber-500 dark:bg-zinc-950/80">
-            <p className="text-sm text-zinc-600 dark:text-zinc-300">
-              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-amber-600 dark:text-amber-500">
-                No indexing support
-              </span>{" "}
-              <span className="block mt-1">
-                Address portfolios, token transfers, and detailed transaction history may not be available for this chain.
-              </span>
-            </p>
-          </div>
-        </div>
-      )}
-
       {/* Page Content — relative so it paints above the fixed snow canvas */}
       <Rise delay={0.14} className="relative">{children}</Rise>
 
@@ -465,6 +415,6 @@ export function ExplorerLayout({
         </div>
       )}
       </div>
-    </main>
+    </div>
   );
 }

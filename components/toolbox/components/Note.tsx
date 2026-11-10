@@ -22,22 +22,22 @@ type VariantStyle = {
  */
 const VARIANTS: Record<NonNullable<NoteProps['variant']>, VariantStyle> = {
   default: {
-    container: 'border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/50',
+    container: 'border-zinc-200 bg-zinc-50/60 dark:border-zinc-800 dark:bg-zinc-900/40',
     accent: 'text-zinc-500 dark:text-zinc-400',
     Icon: Info,
   },
   success: {
-    container: 'border-emerald-200 bg-emerald-50/50 dark:border-emerald-900/60 dark:bg-emerald-950/20',
+    container: 'border-emerald-200 bg-emerald-50/60 dark:border-emerald-900/60 dark:bg-emerald-950/20',
     accent: 'text-emerald-600 dark:text-emerald-400',
     Icon: CheckCircle2,
   },
   destructive: {
-    container: 'border-red-200 bg-red-50/50 dark:border-red-900/60 dark:bg-red-950/20',
+    container: 'border-red-200 bg-red-50/60 dark:border-red-900/60 dark:bg-red-950/20',
     accent: 'text-red-600 dark:text-red-400',
     Icon: AlertCircle,
   },
   warning: {
-    container: 'border-amber-200 bg-amber-50/50 dark:border-amber-900/60 dark:bg-amber-950/20',
+    container: 'border-amber-200 bg-amber-50/60 dark:border-amber-900/60 dark:bg-amber-950/20',
     accent: 'text-amber-600 dark:text-amber-400',
     Icon: AlertTriangle,
   },
@@ -47,9 +47,9 @@ export const Note = ({ children, variant = 'default', className }: NoteProps) =>
   const { container, accent, Icon } = VARIANTS[variant];
 
   return (
-    <div className={cn('flex items-start gap-3 rounded-lg border px-3.5 py-3 my-4', container, className)}>
+    <div className={cn('my-4 flex items-start gap-3 border px-4 py-3', container, className)}>
       <Icon className={cn('h-4 w-4 mt-0.5 shrink-0', accent)} />
-      <div className="flex-1 min-w-0 text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">{children}</div>
+      <div className="flex-1 min-w-0 text-[13px] leading-relaxed text-zinc-700 dark:text-zinc-300">{children}</div>
     </div>
   );
 };

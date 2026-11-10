@@ -7,8 +7,10 @@ const ogImage = { url: "/api/og/console", width: 1200, height: 630, alt: "Avalan
 
 // The interactive layout is a client component (layout.client.tsx), which
 // cannot export metadata; this server wrapper carries it for /console/**.
+// A plain title string ends the root title template for every page below it;
+// this object keeps the site name on the tool pages.
 export const metadata: Metadata = createMetadata({
-  title: "Console",
+  title: { default: "Console", template: "%s | Avalanche Builder Hub" },
   description:
     "Launch and operate Avalanche L1s: create chains, manage validators, and run interchain tooling.",
   openGraph: { url: "/console", images: ogImage },

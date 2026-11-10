@@ -17,12 +17,18 @@ interface SignOutComponentProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void | Promise<void>;
+  /** where focus goes when the dialog closes: call e.preventDefault() and focus the opener */
+  onCloseAutoFocus?: (e: Event) => void;
+  /** one more line under the description, for example about unsaved changes */
+  note?: string;
 }
 
 export default function SignOutComponent({
   isOpen,
   onOpenChange,
   onConfirm,
+  onCloseAutoFocus,
+  note,
 }: SignOutComponentProps) {
   const [isConfirming, setIsConfirming] = useState(false);
 
@@ -42,6 +48,7 @@ export default function SignOutComponent({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent
+        onCloseAutoFocus={onCloseAutoFocus}
         className="profile sm:max-w-[440px] rounded-2xl"
         style={{
           background: "var(--pr-g-100)",
@@ -95,6 +102,9 @@ export default function SignOutComponent({
                 >
                   You&apos;ll be returned to the home page and will need to
                   sign in again to come back to your profile.
+                  {note && (
+                    <p style={{ margin: "6px 0 0", fontWeight: 500, color: "var(--pr-g-1000)" }}>{note}</p>
+                  )}
                 </div>
               </DialogDescription>
             </div>

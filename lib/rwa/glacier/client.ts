@@ -1,13 +1,6 @@
-function dataApiBase(): string {
-  const base = new URL(process.env.GLACIER_BASE || 'https://data-api.avax.network')
-  const loopback = base.hostname === 'localhost' || base.hostname === '127.0.0.1' || base.hostname === '::1'
-  if (base.protocol !== 'https:' && !(loopback && base.protocol === 'http:')) {
-    throw new Error('GLACIER_BASE must use HTTPS (HTTP is allowed only for loopback development)')
-  }
-  return base.toString().replace(/\/+$/, '')
-}
-
-const GLACIER_BASE = dataApiBase()
+// Production's GLACIER_API_KEY is valid on this host. The block-proposer route
+// (app/api/block-proposer) sends the same key to the same host.
+const GLACIER_BASE = 'https://glacier-api.avax.network'
 const GLACIER_TIMEOUT_MS = 8_000
 const GLACIER_MAX_RESPONSE_BYTES = 2 * 1024 * 1024
 const RETRYABLE_STATUS = new Set([429, 502, 503, 504])
@@ -75,6 +68,17 @@ async function readLimitedResponse(response: Response): Promise<string> {
   return new TextDecoder().decode(body)
 }
 
+// The Data API puts the reason for a failed request in `message`, for example "Api key is invalid".
+async function errorReason(response: Response): Promise<string> {
+  try {
+    const { message } = JSON.parse(await readLimitedResponse(response)) as { message?: unknown }
+    const reason = Array.isArray(message) ? message.join('; ') : message
+    return typeof reason === 'string' ? reason.replace(/[^\x20-\x7e]/g, '').slice(0, 160) : ''
+  } catch {
+    return ''
+  }
+}
+
 export async function glacierFetch<T>(
   path: string,
   params: Record<string, string> = {}
@@ -96,7 +100,7 @@ export async function glacierFetch<T>(
           accept: 'application/json',
           'user-agent': 'Avalanche-Builders-Hub-MCP',
         }
-        const apiKey = process.env.GLACIER_API_KEY || process.env.GLACIER_API_KEY_1
+        const apiKey = process.env.GLACIER_API_KEY
         if (apiKey) headers['x-glacier-api-key'] = apiKey
         const response = await fetch(url.toString(), { headers, signal: controller.signal })
         if (!response.ok) {
@@ -105,7 +109,9 @@ export async function glacierFetch<T>(
             await new Promise((resolve) => setTimeout(resolve, retryDelayMs(response, attempt)))
             continue
           }
-          throw new Error(`Data API error: ${response.status} ${response.statusText} for ${path}`)
+          const reason = await errorReason(response)
+          const detail = reason ? ` (${reason})` : ''
+          throw new Error(`Data API error: ${response.status} ${response.statusText}${detail} for ${path}`)
         }
         const declared = Number(response.headers.get('content-length') || '0')
         if (Number.isFinite(declared) && declared > GLACIER_MAX_RESPONSE_BYTES) {

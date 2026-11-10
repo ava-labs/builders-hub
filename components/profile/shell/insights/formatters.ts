@@ -124,7 +124,11 @@ const MONTHS_UPPER = [
 
 /** "AUG 2025" if single month, "NOV — DEC 2025" if same year,
     "FEB 2026 — MAR 2026" across years. Matches the Hackathon History card
-    typography (mono uppercase). */
+    typography (mono uppercase).
+
+    Read in UTC, not the viewer's zone: hackathon dates are stored as UTC
+    instants, so a start of 2026-01-01T00:00:00Z would otherwise render as
+    "DEC 2025" for everyone west of UTC. */
 export function formatHackathonRange(
   startISO: string | null,
   endISO: string | null,
@@ -132,11 +136,15 @@ export function formatHackathonRange(
   const start = startISO ? new Date(startISO) : null;
   const end = endISO ? new Date(endISO) : start;
   if (!start) return "";
-  if (!end || (start.getFullYear() === end.getFullYear() && start.getMonth() === end.getMonth())) {
-    return `${MONTHS_UPPER[start.getMonth()]} ${start.getFullYear()}`;
+  if (
+    !end ||
+    (start.getUTCFullYear() === end.getUTCFullYear() &&
+      start.getUTCMonth() === end.getUTCMonth())
+  ) {
+    return `${MONTHS_UPPER[start.getUTCMonth()]} ${start.getUTCFullYear()}`;
   }
-  if (start.getFullYear() === end.getFullYear()) {
-    return `${MONTHS_UPPER[start.getMonth()]} — ${MONTHS_UPPER[end.getMonth()]} ${start.getFullYear()}`;
+  if (start.getUTCFullYear() === end.getUTCFullYear()) {
+    return `${MONTHS_UPPER[start.getUTCMonth()]} — ${MONTHS_UPPER[end.getUTCMonth()]} ${start.getUTCFullYear()}`;
   }
-  return `${MONTHS_UPPER[start.getMonth()]} ${start.getFullYear()} — ${MONTHS_UPPER[end.getMonth()]} ${end.getFullYear()}`;
+  return `${MONTHS_UPPER[start.getUTCMonth()]} ${start.getUTCFullYear()} — ${MONTHS_UPPER[end.getUTCMonth()]} ${end.getUTCFullYear()}`;
 }

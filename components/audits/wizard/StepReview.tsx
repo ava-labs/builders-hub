@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { DEPLOYMENT_TARGET_LABELS, URGENCY_LABELS } from "@/lib/audits/constants";
+import { formatUtcDeadline } from "@/lib/audits/status";
 import { MONO_LABEL } from "@/components/audits/shared/classes";
 import { CHECK_POP } from "@/components/audits/shared/motion";
 import { formatIsoDate, lowerFirst } from "@/components/audits/shared/format";
@@ -51,7 +52,7 @@ function summaryLines(
   const timelineParts = [
     values.needed_by ? `needed by ${formatIsoDate(values.needed_by)}` : "no needed-by date",
     values.quote_deadline
-      ? `quotes close ${formatIsoDate(values.quote_deadline)}`
+      ? `quotes close ${formatUtcDeadline(values.quote_deadline)}`
       : "no quote deadline",
   ];
   if (values.urgency) timelineParts.push(lowerFirst(URGENCY_LABELS[values.urgency]));
@@ -65,11 +66,23 @@ function summaryLines(
 
 export function StepReview() {
   const form = useFormContext<AuditWizardValues>();
-  const { setStep, consent, setConsent, firms } = useAuditWizard();
+  const {
+    setStep,
+    consent,
+    setConsent,
+    shareHandle,
+    setShareHandle,
+    shareCalendar,
+    setShareCalendar,
+    firms,
+  } = useAuditWizard();
   const values = form.watch();
   const chosenCount = values.shortlist_auditor_ids.length
     ? firms.filter((f) => values.shortlist_auditor_ids.includes(f.id)).length
     : 0;
+  // An empty handle or link has nothing to share, so its box waits for one.
+  const handleEmpty = values.contact_handle.trim() === "";
+  const calendarEmpty = values.contact_calendar_url.trim() === "";
 
   return (
     <div className="space-y-6">
@@ -109,39 +122,107 @@ export function StepReview() {
         />
       </div>
 
-      <div className="grid gap-6 sm:grid-cols-2 sm:gap-4">
-        <FormField
-          control={form.control}
-          name="contact_handle"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>
-                Telegram <span className="font-normal text-muted-foreground">· optional</span>
-              </FormLabel>
-              <FormControl>
-                <Input {...field} placeholder="@handle" className="h-11 md:h-10" />
-              </FormControl>
-              <FormDescription>For quick questions during the audit.</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="contact_calendar_url"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>
-                Calendar link <span className="font-normal text-muted-foreground">· optional</span>
-              </FormLabel>
-              <FormControl>
-                <Input {...field} inputMode="url" placeholder="cal.com/you" className="h-11 md:h-10" />
-              </FormControl>
-              <FormDescription>Lets the winning firm book a kickoff call directly.</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+      {/* Each column pairs a field with its share box, and the two boxes
+          differ in height: items-start keeps each column at its own. */}
+      <div className="grid items-start gap-6 sm:grid-cols-2 sm:gap-4">
+        <div className="space-y-3">
+          <FormField
+            control={form.control}
+            name="contact_handle"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>
+                  Telegram <span className="font-normal text-muted-foreground">· optional</span>
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    onChange={(event) => {
+                      field.onChange(event);
+                      // Clearing the field unticks the share.
+                      if (event.target.value.trim() === "") setShareHandle(false);
+                    }}
+                    placeholder="@handle"
+                    className="h-11 md:h-10"
+                  />
+                </FormControl>
+                <FormDescription>For quick questions during the audit.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          {/* The Telegram share. Chosen at sending like the consent below, so
+              never autosaved; the server stamps it only with a stored handle. */}
+          <label className="flex cursor-pointer items-start gap-3">
+            <Checkbox
+              checked={shareHandle}
+              disabled={handleEmpty}
+              onCheckedChange={(next) => setShareHandle(next === true)}
+              className="mt-0.5"
+              aria-labelledby="share-handle-label"
+              aria-describedby="share-handle-hint"
+            />
+            <span className="text-sm leading-snug text-zinc-700 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 dark:text-zinc-300">
+              <span id="share-handle-label">
+                Share my Telegram handle with the firms that receive this request
+              </span>
+              <span id="share-handle-hint" className="mt-1 block text-muted-foreground">
+                They can message you before they quote. Your name and email stay hidden until you
+                accept a quote.
+              </span>
+            </span>
+          </label>
+        </div>
+        <div className="space-y-3">
+          <FormField
+            control={form.control}
+            name="contact_calendar_url"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>
+                  Calendar link <span className="font-normal text-muted-foreground">· optional</span>
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    onChange={(event) => {
+                      field.onChange(event);
+                      // Clearing the field unticks the share.
+                      if (event.target.value.trim() === "") setShareCalendar(false);
+                    }}
+                    inputMode="url"
+                    placeholder="cal.com/you"
+                    className="h-11 md:h-10"
+                  />
+                </FormControl>
+                <FormDescription>For a kickoff call once you pick a firm.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          {/* The calendar share, the Telegram one's twin: chosen at sending,
+              never autosaved, stamped by the server only with a stored link
+              that passes the submit gate. */}
+          <label className="flex cursor-pointer items-start gap-3">
+            <Checkbox
+              checked={shareCalendar}
+              disabled={calendarEmpty}
+              onCheckedChange={(next) => setShareCalendar(next === true)}
+              className="mt-0.5"
+              aria-labelledby="share-calendar-label"
+              aria-describedby="share-calendar-hint"
+            />
+            <span className="text-sm leading-snug text-zinc-700 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 dark:text-zinc-300">
+              <span id="share-calendar-label">
+                Share my calendar link with the firms that receive this request
+              </span>
+              <span id="share-calendar-hint" className="mt-1 block text-muted-foreground">
+                They can book a call with you before they quote. Your booking page may show them
+                your name and email.
+              </span>
+            </span>
+          </label>
+        </div>
       </div>
 
       {/* Completed-step receipt rows: check circle + wash + underlined Edit (board 1c). */}
@@ -189,9 +270,8 @@ export function StepReview() {
           aria-describedby="consent-copy"
         />
         <span id="consent-copy" className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
-          I understand that my contact details in this request are shared with the vetted audit
-          firms on the Ava Labs whitelist that receive it, and with the winning firm once I accept a
-          quote.
+          I understand that the firm whose quote I accept receives my contact details. If I share my
+          Telegram handle or calendar link above, every firm that receives this request can see it.
         </span>
       </label>
     </div>

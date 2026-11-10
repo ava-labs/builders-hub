@@ -3,6 +3,7 @@ import { startMockDeployment } from '@/lib/quick-l1/mock-orchestrator';
 import type { DeployRequest, DeployResponse } from '@/lib/quick-l1/types';
 import { getUserId, rateLimited } from '@/app/api/managed-testnet-nodes/utils';
 import { getAuthSession } from '@/lib/auth/authSession';
+import { withQuickL1WafToken } from '@/lib/quick-l1/waf';
 
 /**
  * POST /api/quick-l1/deploy
@@ -15,7 +16,7 @@ import { getAuthSession } from '@/lib/auth/authSession';
  *     server-side from the session.
  *
  * Behavior:
- *   - If `QUICK_L1_SERVICE_URL` is set, proxies to the Railway microservice
+ *   - If `QUICK_L1_SERVICE_URL` is set, proxies to the quick-l1 service
  *     and attaches `x-quick-l1-secret` (service-to-service auth) plus the
  *     authenticated userId in the body.
  *   - Otherwise (local dev without the upstream), runs the in-memory
@@ -38,8 +39,8 @@ async function handlePost(
   request: NextRequest,
 ): Promise<NextResponse<DeployResponse | { error: string }>> {
   // Gate the whole endpoint behind builders-hub auth — no deploys for
-  // anonymous callers. In development mode `getUserId` returns a fixed
-  // `'dev-user-id'` so local flows keep working.
+  // anonymous callers. In development `getUserId` falls back to a fixed
+  // `'dev-user-id'` when signed out, so local flows keep working.
   const { userId, error } = await getUserId();
   if (error) return error as NextResponse<{ error: string }>;
   if (!userId) {
@@ -61,7 +62,7 @@ async function handlePost(
   }
   // Mirror avalanchego's CreateChainTx rule (vms/platformvm/txs/create_chain_tx.go):
   // ASCII letters, digits, and spaces only — no `_`, `-`, `.`, emoji, accents.
-  // Catching this here avoids a round trip to the Railway service
+  // Catching this here avoids a round trip to the quick-l1 service
   // (which also re-validates) and gives the user a faster 400.
   const trimmedChainName = clientBody.chainName.trim();
   if (
@@ -84,7 +85,7 @@ async function handlePost(
   // Validate the validatorMode shape before forwarding. The backend's
   // zod schema rejects unknown discriminators, but catching it here
   // gives the client a 400 without spending a round-trip on the
-  // Railway service.
+  // quick-l1 service.
   //
   // Note: nested fields on validatorMode (e.g. stakingTokenAddress for
   // erc20-pos) pass through to the backend untouched — zod handles the
@@ -138,7 +139,7 @@ async function handlePost(
         { status: 503 },
       );
     }
-    const res = await fetch(`${upstream.replace(/\/$/, '')}/deploy`, {
+    const res = await fetch(withQuickL1WafToken(`${upstream.replace(/\/$/, '')}/deploy`), {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
@@ -152,6 +153,13 @@ async function handlePost(
       status: res.status,
       headers: { 'content-type': res.headers.get('content-type') ?? 'application/json' },
     });
+  }
+
+  if (process.env.VERCEL_ENV === 'production') {
+    return NextResponse.json(
+      { error: 'QUICK_L1_SERVICE_URL not configured on this server' },
+      { status: 503 },
+    );
   }
 
   const { jobId } = startMockDeployment(body);

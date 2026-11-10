@@ -93,7 +93,8 @@ function buildUserUpdateData(
     if (profileData.name !== undefined) updateData.name = profileData.name;
     if (profileData.bio !== undefined) updateData.bio = profileData.bio;
     if (profileData.notification_email !== undefined) updateData.notification_email = profileData.notification_email;
-    if (profileData.image !== undefined) updateData.image = profileData.image;
+    // no client sets the photo: the profile has no upload, and
+    // only sign-in writes User.image (a URL from the request would show to everyone)
     if (profileData.country !== undefined) updateData.country = profileData.country;
     if (profileData.linkedin_account !== undefined) updateData.linkedin_account = nullableTrimmedString(profileData.linkedin_account);
     if (profileData.wallet !== undefined) updateData.wallet = profileData.wallet ?? [];
@@ -135,7 +136,7 @@ export async function updateExtendedProfile(
         throw new Error("User not found");
     }
 
-    // Only check availability when the username actually changes — legacy
+    // Only check availability when the username actually changes: legacy
     // duplicate user_names exist (no unique constraint), and re-submitting an
     // unchanged name must never 409 or auto-save loops forever.
     if (

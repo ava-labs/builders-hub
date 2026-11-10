@@ -27,26 +27,25 @@ const ROLE_STYLES: Record<
   { wrapper: string; icon: React.ComponentType<{ className?: string }>; iconColor: string }
 > = {
   0: {
-    wrapper: 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border-red-200 dark:border-red-900/50',
+    wrapper: 'border-red-200 bg-red-50/60 text-red-700 dark:border-red-900/60 dark:bg-red-950/20 dark:text-red-300',
     icon: ShieldX,
-    iconColor: 'text-red-500',
+    iconColor: 'text-red-600 dark:text-red-400',
   },
   1: {
     wrapper:
-      'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/50',
+      'border-emerald-200 bg-emerald-50/60 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/20 dark:text-emerald-300',
     icon: ShieldCheck,
-    iconColor: 'text-emerald-500',
+    iconColor: 'text-emerald-600 dark:text-emerald-400',
   },
   2: {
-    wrapper:
-      'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-900/50',
+    wrapper: 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900',
     icon: ShieldAlert,
-    iconColor: 'text-purple-500',
+    iconColor: 'text-current',
   },
   3: {
-    wrapper: 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-900/50',
+    wrapper: 'border-zinc-900 bg-white text-zinc-900 dark:border-zinc-300 dark:bg-zinc-950 dark:text-zinc-100',
     icon: Shield,
-    iconColor: 'text-blue-500',
+    iconColor: 'text-current',
   },
 };
 
@@ -129,12 +128,12 @@ export function PrecompileRoleBadge({
     return (
       <div
         className={cn(
-          'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium',
-          'bg-zinc-50 dark:bg-zinc-900/50 text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800',
+          'inline-flex items-center gap-1.5 border px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.12em]',
+          'border-zinc-200 bg-zinc-50/60 text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-400',
           className,
         )}
       >
-        <Wallet className="w-3.5 h-3.5" />
+        <Wallet className="h-3 w-3" />
         Wallet not connected
       </div>
     );
@@ -144,8 +143,8 @@ export function PrecompileRoleBadge({
     return (
       <div
         className={cn(
-          'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium',
-          'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900/50',
+          'inline-flex items-center gap-1.5 border px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.12em]',
+          'border-amber-200 bg-amber-50/60 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/20 dark:text-amber-300',
           className,
         )}
         title={error}
@@ -162,8 +161,8 @@ export function PrecompileRoleBadge({
     return (
       <div
         className={cn(
-          'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium',
-          'bg-zinc-50 dark:bg-zinc-900/50 text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800',
+          'inline-flex items-center gap-1.5 border px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.12em]',
+          'border-zinc-200 bg-zinc-50/60 text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-400',
           className,
         )}
       >
@@ -180,16 +179,16 @@ export function PrecompileRoleBadge({
   return (
     <div
       className={cn(
-        'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium',
+        'inline-flex items-center gap-1.5 border px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.12em]',
         style.wrapper,
         className,
       )}
       title={compact ? `${ROLE_NAMES[role]} — ${ROLE_DESCRIPTIONS[role]}` : undefined}
     >
-      <Icon className={cn('w-3.5 h-3.5', style.iconColor)} />
+      <Icon className={cn('h-3 w-3', style.iconColor)} />
       <span>{ROLE_NAMES[role]}</span>
       {!compact && (
-        <span className="text-[10px] font-normal opacity-80 hidden sm:inline">
+        <span className="hidden font-sans text-[11px] font-normal normal-case tracking-normal opacity-80 sm:inline">
           {insufficient ? '— not authorized' : `— ${ROLE_DESCRIPTIONS[role]}`}
         </span>
       )}

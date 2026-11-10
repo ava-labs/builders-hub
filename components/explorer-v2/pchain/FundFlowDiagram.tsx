@@ -1,90 +1,60 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import Link from "next/link";
+import { cn } from "@/lib/utils";
+import { TxTypePill, feeInk, idInk, txToneText } from "@/components/explorer-v2/ui";
 import { formatAvax, truncate } from "@/components/explorer-v2/format";
-import { chainDisplayName, type AssetAmount, type ImportedFrom, type Utxo } from "@/lib/pchain-explorer";
+import { fadeUpStyle, useReveal, wipeStyle } from "@/components/explorer-v2/motion";
+import { chainDisplayName, txTypeLabel, type AssetAmount, type ImportedFrom, type Utxo } from "@/lib/pchain-explorer";
 import { chainOfId, crossChainTxUrl } from "@/lib/crosschain-links";
+import { assetAmount, crossOf, homeChain, sumBig } from "./utxo";
 
-/**
- * Fund flow as a hand-rolled Sankey in the landing-v2 drafting-sheet idiom.
- * Inputs (left) and outputs (right) sit on an even row grid with aligned label
- * columns; thin filled ribbons (width ∝ nAVAX, tightly clamped) fan through a
- * central TX conduit. Semantic colors: staked = steel, reward = good, burn/fee
- * = red, cross-chain (import source / export destination) = brand blue; plain
- * value transfers stay neutral. Deterministic (SSR-safe), framer-motion
- * draw-in, hover-to-isolate, "+N more" grouping.
- */
+/* A tx's UTXOs as a flow, in the ledger's own type: what it consumed on
+   the left, what it produced on the right, each ribbon as wide as its
+   amount, all meeting at the tx in the middle. A ribbon wears its family's
+   tone, the one the type chips wear: a stake green, a reward amber, a
+   move to or from another chain teal, an L1 balance blue, the fee red;
+   plain value stays gray. Hover a ribbon or its label and the rest steps
+   back. The ribbons wipe in once, the first time the flow comes into
+   view. Shared by the P-Chain, the X-Chain and the C-Chain's atomic txs. */
 
-const VBW = 1000;
-const IN_X = 300;
-const OUT_X = 700;
-const LABEL_IN = 286;
-const LABEL_OUT = 714;
-const CEN_L = 462;
-const CEN_R = 538;
-const ROWH = 48;
-const REGION_TOP = 84;
-const MINW = 1.5;
-const MAXW = 9;
+const ROW_PX = 48;
 const MAX_ROWS = 7;
+const MINW = 2;
+const MAXW = 14;
+const GAP = 3;
+/* the conduit's edges, in the ribbon column's 0..100 space */
+const C_L = 43;
+const C_R = 57;
 
-const STEEL = "#A2AFB2";
-const GOOD = "#4e9a52";
-const RED = "#E6212F";
-const BLUE = "#0061E2";
+type Kind = "input" | "transfer" | "stake" | "reward" | "cross" | "balance" | "fee";
 
-type Kind = "input" | "transfer" | "staked" | "reward" | "burn" | "crosschain";
-interface Flow {
+const GRAY = "text-zinc-400 dark:text-zinc-500";
+const TONE: Record<Kind, string> = {
+  input: GRAY,
+  transfer: GRAY,
+  stake: txToneText("stake"),
+  reward: txToneText("reward"),
+  cross: txToneText("export"),
+  balance: txToneText("subnet"),
+  fee: feeInk,
+};
+const KEY: Partial<Record<Kind, string>> = { stake: "Stake", reward: "Reward", cross: "Cross-chain", balance: "L1 balance", fee: "Fee" };
+
+interface Node {
   key: string;
   amount: number;
-  addresses: string[];
   kind: Kind;
-  overflow?: number;
+  /** the amount, as read */
   label: string;
-  sub?: string; // explicit sub-label (cross-chain / burn); else derived from address
-  href?: string; // explicit link (cross-chain claim); else derived from address
+  /** an owner or a note under the amount */
+  sub?: string;
+  href?: string;
 }
 
-function build(utxos: Utxo[], side: "in" | "out", reward: boolean): Flow[] {
-  const flows: Flow[] = utxos.map((u, i) => ({
-    // the index rides along because the indexer can emit the same utxoId
-    // twice (unmerged ReplacingMergeTree rows) — keys must survive that
-    key: `${side}-${u.utxoId || "u"}-${i}`,
-    amount: Number(u.amount || 0),
-    addresses: u.addresses ?? [],
-    kind: side === "in" ? "input" : u.staked ? "staked" : reward ? "reward" : "transfer",
-    label: formatAvax(u.amount),
-  }));
-  flows.sort((a, b) => b.amount - a.amount);
-  if (flows.length <= MAX_ROWS) return flows;
-  const head = flows.slice(0, MAX_ROWS - 1);
-  const tail = flows.slice(MAX_ROWS - 1);
-  const amt = tail.reduce((t, f) => t + f.amount, 0);
-  head.push({
-    key: `${side}-more`,
-    amount: amt,
-    addresses: [],
-    kind: side === "in" ? "input" : "transfer",
-    overflow: tail.length,
-    label: `+${tail.length} more`,
-    sub: formatAvax(amt),
-  });
-  return head;
-}
-
-const KIND_COLOR: Record<Kind, { cls?: string; hex?: string }> = {
-  input: { cls: "fill-zinc-400 dark:fill-zinc-600" },
-  transfer: { cls: "fill-zinc-400 dark:fill-zinc-600" },
-  staked: { hex: STEEL },
-  reward: { hex: GOOD },
-  burn: { hex: RED },
-  crosschain: { hex: BLUE },
-};
-const KIND_LABEL: Partial<Record<Kind, string>> = { staked: "Staked", reward: "Reward", burn: "Burn / fee", crosschain: "Cross-chain" };
-
-/* Whether a tx actually moves any UTXOs / value. Shared by the diagram and the
-   table view so both fall back to the same explanatory empty state. */
+/* Whether a tx moves any UTXOs or value. Shared by the diagram and the
+   table view, so both fall back to the same empty state. */
 export function hasFundMovement({
   consumed,
   emitted,
@@ -100,55 +70,46 @@ export function hasFundMovement({
   sourceChain?: string;
   destinationChain?: string;
 }): boolean {
-  return (
-    consumed.length > 0 ||
-    emitted.length > 0 ||
-    burned.some((a) => Number(a.amount || 0) > 0) ||
-    !!importedFrom ||
-    !!sourceChain ||
-    !!destinationChain
-  );
+  return consumed.length > 0 || emitted.length > 0 || burned.some((a) => Number(a.amount || 0) > 0) || !!importedFrom || !!sourceChain || !!destinationChain;
 }
 
-/* Explanatory empty state — teaches what the tx did instead of a blank panel. */
-export function NoFundMovement({ txType }: { txType: string }) {
-  return (
-    <div className="flex flex-col items-center gap-4 py-12 text-center">
-      <span className="inline-flex items-center gap-1.5 border border-zinc-200 px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-600 dark:border-zinc-800 dark:text-zinc-300">
-        <span className="size-1 bg-[#4e9a52]" aria-hidden />
-        {txType.replace(/Tx$/, "")}
-      </span>
-      <p className="max-w-md font-mono text-[12px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-        {explainNoMovement(txType)}
-      </p>
-      <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-600">
-        No UTXOs created or spent
-      </span>
-    </div>
-  );
-}
-
-/* Plain-language explanation for tx types that move no UTXOs, so the fund-flow
-   panel teaches instead of showing an empty diagram. */
+/* what a tx that moves no UTXOs did, in plain words */
 function explainNoMovement(type: string): string {
   const t = type.toLowerCase();
   if (t.includes("rewardautorenew"))
-    return "Settles an auto-renewed staking cycle: the earned reward compounds back into the validator's stake, and any non-compounded share is minted directly into state as a reward UTXO (see Reward Payout). Nothing flows through the transaction itself.";
+    return "It closes an auto-renewed staking cycle: the reward compounds into the validator's stake, and any share not compounded is minted into state as a reward UTXO. Nothing flows through the transaction itself.";
   if (t.includes("reward"))
-    return "Marks the end of a validation period and settles its staking reward. Payouts are minted directly into state as reward UTXOs rather than moving through the transaction; an aborted vote mints nothing.";
+    return "It ends a validation period and pays its staking reward: the payout is minted into state as reward UTXOs, not moved through the transaction. An aborted vote mints nothing.";
   if (t.includes("setautorenew") || t.includes("config"))
-    return "Updates a validator's auto-renew configuration: staking period and compounding. It changes on-chain state only and moves no funds.";
+    return "It updates a validator's auto-renew configuration, its staking period and compounding. It changes state only and moves no funds.";
   if (t.includes("advancetime"))
-    return "Advances the P-Chain timestamp so scheduled staking events (validators starting/ending) can be processed. It carries no funds.";
-  if (t.includes("disable"))
-    return "Disables an L1 validator. It updates validator state and refunds are handled separately, so this record itself moves no UTXOs.";
-  return "This transaction records on-chain state and does not create or spend any UTXOs.";
+    return "It advances the P-Chain's clock so scheduled staking events, validators starting and ending, can run. It carries no funds.";
+  if (t.includes("disable")) return "It disables an L1 validator. It changes validator state, and its refund is handled separately, so this record moves no UTXOs.";
+  return "It records a change of state and creates or spends no UTXOs.";
+}
+
+export function NoFundMovement({ txType }: { txType: string }) {
+  return (
+    <div className="flex flex-col gap-2 py-2">
+      <p className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">No UTXOs consumed or produced</p>
+      <p className="max-w-2xl text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">{explainNoMovement(txType)}</p>
+    </div>
+  );
 }
 
 function ribbon(sx: number, sy: number, dx: number, dy: number, w: number): string {
   const h = w / 2;
   const mx = (sx + dx) / 2;
   return `M ${sx},${sy - h} C ${mx},${sy - h} ${mx},${dy - h} ${dx},${dy - h} L ${dx},${dy + h} C ${mx},${dy + h} ${mx},${sy + h} ${sx},${sy + h} Z`;
+}
+
+/** the biggest rows, and the rest summed into one */
+function capped(nodes: Node[], side: string): Node[] {
+  const sorted = [...nodes].sort((a, b) => b.amount - a.amount);
+  if (sorted.length <= MAX_ROWS) return sorted;
+  const tail = sorted.slice(MAX_ROWS - 1);
+  const amt = tail.reduce((t, n) => t + n.amount, 0);
+  return [...sorted.slice(0, MAX_ROWS - 1), { key: `${side}-more`, amount: amt, kind: side === "in" ? "input" : "transfer", label: `+${tail.length} more`, sub: formatAvax(amt) }];
 }
 
 export function FundFlowDiagram({
@@ -160,6 +121,7 @@ export function FundFlowDiagram({
   importedFrom,
   sourceChain,
   destinationChain,
+  balance = 0,
 }: {
   consumed: Utxo[];
   emitted: Utxo[];
@@ -169,232 +131,189 @@ export function FundFlowDiagram({
   importedFrom?: ImportedFrom;
   sourceChain?: string;
   destinationChain?: string;
+  /** nAVAX the tx moved into an L1 validator's balance: it leaves the burn for its own ribbon */
+  balance?: number;
 }) {
   const [hover, setHover] = useState<string | null>(null);
-  const reward = txType.startsWith("Reward");
-
-  // Some tx types (reward / auto-renew settlements, state-only records) move no
-  // UTXOs at all — a Sankey of nothing looks broken, so show a tidy empty state.
+  const [seen, shown] = useReveal<HTMLDivElement>();
   const movement = hasFundMovement({ consumed, emitted, burned, importedFrom, sourceChain, destinationChain });
 
   const model = useMemo(() => {
-    const burnedAmt = burned.reduce((t, a) => t + Number(a.amount || 0), 0);
-    const emittedTotal = emitted.reduce((t, u) => t + Number(u.amount || 0), 0);
-
-    const ins = build(consumed, "in", reward);
-    const outs = build(emitted, "out", reward);
-    if (burnedAmt > 0) outs.push({ key: "burn", amount: burnedAmt, addresses: [], kind: "burn", label: formatAvax(burnedAmt), sub: "burn · fee" });
-
-    // Cross-chain: imports get a source node (origin chain + EVM sender);
-    // exports get a destination node. (Import origin is resolvable because the
-    // source export id is embedded in the consumed UTXO; an export's counterpart
-    // import isn't discoverable, so we show the destination chain only.)
-    const isImport = !!importedFrom || !!sourceChain;
     const network = base.split("/")[2];
-    if (isImport) {
-      // every atomic input on an import came from the source chain — its
-      // utxo key embeds the originating export tx, so the left-side entry
-      // links straight to that tx (the address, when present, stays as the
-      // visible sub-label; the click-through is the origin).
-      for (const f of ins) {
-        const u = consumed.find((c) => f.key.startsWith(c.utxoId));
-        if (!u || !u.txHash) continue;
-        const atomic =
-          u.utxoType === "atomic-import" ||
-          u.utxoType === "IMPORTED" ||
-          (u.addresses ?? []).length === 0 ||
-          !!chainOfId(u.createdOnChainId);
-        if (!atomic) continue;
-        f.href = crossChainTxUrl(network, u.createdOnChainId || sourceChain, u.txHash);
-        if (!f.sub && (u.addresses ?? []).length === 0) f.sub = `exported in ${truncate(u.txHash, 12)} →`;
-      }
-    }
-    if (isImport && ins.length === 0) {
-      // the source ribbon fills the left side only when the import has no
-      // consumed rows of its own (P-chain atomic inputs are not local
-      // UTXOs); when consumed refs exist they already carry the origin
-      // link, and a second ribbon would just duplicate them.
+    const home = homeChain(base);
+    const reward = txType.startsWith("Reward");
+    const owner = (u: Utxo) => (u.addresses[0] ? `${truncate(u.addresses[0], 10)}${u.addresses.length > 1 ? ` +${u.addresses.length - 1}` : ""}` : undefined);
+    const addressHref = (u: Utxo) => (u.addresses.length === 1 ? `${base}/address/${u.addresses[0]}` : undefined);
+
+    const ins: Node[] = consumed.map((u, i) => {
+      const from = crossOf(u, "in", home) ?? (sourceChain && !u.addresses.length ? chainOfId(sourceChain) : undefined);
+      // an atomic input's key embeds the export that made it: the label goes there
+      return {
+        // the index rides along: the indexer can list a utxoId twice
+        key: `in-${u.utxoId || "u"}-${i}`,
+        amount: Number(u.amount || 0),
+        kind: from ? "cross" : "input",
+        label: assetAmount(u),
+        sub: from ? `from ${from}${u.addresses.length ? "" : ` · ${truncate(u.txHash, 8)}`}` : owner(u),
+        href: from && u.txHash ? crossChainTxUrl(network, u.createdOnChainId || sourceChain, u.txHash) : addressHref(u),
+      };
+    });
+    const exported = (u: Utxo) => !!destinationChain && (u.consumedOnChainId === destinationChain || !!crossOf(u, "out", home));
+    const outs: Node[] = emitted.map((u, i) => {
+      const to = exported(u) ? (crossOf(u, "out", home) ?? chainOfId(destinationChain)) : undefined;
+      const claim = to && u.consumingTxHash ? crossChainTxUrl(network, u.consumedOnChainId || destinationChain, u.consumingTxHash) : undefined;
+      return {
+        key: `out-${u.utxoId || "u"}-${i}`,
+        amount: Number(u.amount || 0),
+        kind: u.staked ? "stake" : reward ? "reward" : to ? "cross" : "transfer",
+        label: assetAmount(u),
+        sub: to ? `to ${to}${u.consumingTxHash ? ` · claimed ${truncate(u.consumingTxHash, 6)}` : ""}` : owner(u),
+        href: claim ?? addressHref(u),
+      };
+    });
+    const left = capped(ins, "in");
+    const right = capped(outs, "out");
+    const burnt = Number(sumBig(burned));
+    const toBalance = Math.min(balance, burnt);
+    if (toBalance > 0) right.push({ key: "balance", amount: toBalance, kind: "balance", label: formatAvax(toBalance), sub: "L1 balance" });
+    if (burnt - toBalance > 0) right.push({ key: "fee", amount: burnt - toBalance, kind: "fee", label: formatAvax(burnt - toBalance), sub: "fee · burned" });
+
+    // an import with no inputs of its own: one source ribbon from the chain it came from
+    if ((importedFrom || sourceChain) && left.length === 0) {
       const exp = importedFrom?.exports?.[0];
-      // fallback: an atomic input ref (no local owner data) embeds the
-      // originating export tx id; a local fee input (has owners) does not.
-      const atomicIn = consumed.find((u) => (u.addresses ?? []).length === 0);
-      const originTx = exp?.txHash ?? atomicIn?.txHash;
-      const amt =
-        importedFrom?.exports?.reduce((t, e) => t + Number(e.amount || 0), 0) ||
-        consumed.reduce((t, u) => t + Number(u.amount || 0), 0) ||
-        emittedTotal;
-      ins.unshift({
+      const amt = importedFrom?.exports?.reduce((t, e) => t + Number(e.amount || 0), 0) || outs.reduce((t, n) => t + n.amount, 0);
+      left.push({
         key: "xc-src",
         amount: amt,
-        addresses: [],
-        kind: "crosschain",
+        kind: "cross",
         label: importedFrom?.chainName ?? chainDisplayName(sourceChain) ?? "Cross-chain",
-        sub: originTx
-          ? `exported in ${truncate(originTx, 12)} →`
-          : exp?.evmSenders?.[0]
-            ? truncate(exp.evmSenders[0], 12)
-            : "imported →",
-        href: originTx ? crossChainTxUrl(network, sourceChain, originTx) : undefined,
+        sub: exp?.txHash ? `exported in ${truncate(exp.txHash, 8)}` : exp?.evmSenders?.[0] ? truncate(exp.evmSenders[0], 10) : "imported",
+        href: exp?.txHash ? crossChainTxUrl(network, sourceChain, exp.txHash) : undefined,
       });
-    } else if (ins.length === 0) {
-      ins.push({ key: "src", amount: emittedTotal, addresses: [], kind: "input", label: "P-Chain", sub: "funds" });
-    }
-    if (destinationChain) {
-      // the exported outputs know their claim (consuming tx on the
-      // destination chain) — the node links to it and says so, exactly
-      // like the table view's "spent in" link
-      const claimed = emitted.find((u) => u.utxoType === "exported" || u.utxoType === "EXPORTED" ? u.consumingTxHash : false) ?? emitted.find((u) => u.consumingTxHash);
-      outs.push({
-        key: "xc-dst",
-        amount: emittedTotal || 1,
-        addresses: [],
-        kind: "crosschain",
-        label: chainDisplayName(destinationChain) ?? "Destination",
-        sub: claimed?.consumingTxHash ? `claimed in ${truncate(claimed.consumingTxHash, 12)} →` : "destination →",
-        href: claimed?.consumingTxHash
-          ? crossChainTxUrl(network, claimed.consumedOnChainId || destinationChain, claimed.consumingTxHash)
-          : undefined,
-      });
+    } else if (left.length === 0) {
+      left.push({ key: "src", amount: outs.reduce((t, n) => t + n.amount, 0), kind: "input", label: "P-Chain", sub: reward ? "minted" : "state" });
     }
 
-    const rows = Math.max(ins.length, outs.length, 1);
-    const regionH = rows * ROWH;
-    const H = REGION_TOP + regionH + 8;
-    const centerY = REGION_TOP + regionH / 2;
-    const maxAmt = Math.max(1, ...ins.map((f) => f.amount), ...outs.map((f) => f.amount));
-    const w = (a: number) => Math.max(MINW, Math.min(MAXW, (a / maxAmt) * MAXW));
-    const rowY = (i: number, n: number) => REGION_TOP + (regionH - n * ROWH) / 2 + ROWH * (i + 0.5);
-    const stackCenters = (flows: Flow[]) => {
-      const total = flows.reduce((t, f) => t + w(f.amount), 0) + (flows.length - 1) * 2;
-      let acc = centerY - total / 2;
-      return flows.map((f) => {
-        const bw = w(f.amount);
-        const cy = acc + bw / 2;
-        acc += bw + 2;
-        return cy;
+    const rows = Math.max(left.length, right.length, 1);
+    const height = rows * ROW_PX;
+    const max = Math.max(1, ...left.map((n) => n.amount), ...right.map((n) => n.amount));
+    const w = (a: number) => Math.max(MINW, Math.min(MAXW, (a / max) * MAXW));
+    const slot = (i: number, n: number) => (height - n * ROW_PX) / 2 + ROW_PX * (i + 0.5);
+    // where each ribbon meets the conduit: stacked, centered on the middle
+    const stack = (nodes: Node[]) => {
+      const total = nodes.reduce((t, n) => t + w(n.amount), 0) + (nodes.length - 1) * GAP;
+      let at = height / 2 - total / 2;
+      return nodes.map((n) => {
+        const c = at + w(n.amount) / 2;
+        at += w(n.amount) + GAP;
+        return c;
       });
     };
-    const inSeg = stackCenters(ins);
-    const outSeg = stackCenters(outs);
-    const inputs = ins.map((f, i) => ({ f, w: w(f.amount), slotCy: rowY(i, ins.length), segCy: inSeg[i] }));
-    const outputs = outs.map((f, i) => ({ f, w: w(f.amount), slotCy: rowY(i, outs.length), segCy: outSeg[i] }));
-    const stackTop = Math.min(inSeg[0], outSeg[0]) - MAXW / 2;
-    const stackBot = Math.max(inSeg[inSeg.length - 1], outSeg[outSeg.length - 1]) + MAXW / 2;
-
-    const kinds = new Set<Kind>([...inputs, ...outputs].map((n) => n.f.kind));
-    return { inputs, outputs, H, centerY, cenTop: stackTop - 8, cenBot: stackBot + 8, nIn: consumed.length, nOut: emitted.length, kinds };
-  }, [consumed, emitted, burned, reward, importedFrom, sourceChain, destinationChain]);
-
-  const fillOp = (key: string, b: number) => (hover === key ? Math.min(0.9, b + 0.3) : hover ? b * 0.12 : b);
-  const op = (key: string) => (hover && hover !== key ? 0.25 : 1);
+    const inAt = stack(left);
+    const outAt = stack(right);
+    const top = Math.min(inAt[0] - w(left[0].amount) / 2, (outAt[0] ?? height / 2) - w(right[0]?.amount ?? 0) / 2) - 8;
+    const bottom =
+      Math.max(inAt[inAt.length - 1] + w(left[left.length - 1].amount) / 2, (outAt[outAt.length - 1] ?? height / 2) + w(right[right.length - 1]?.amount ?? 0) / 2) + 8;
+    const kinds = new Set([...left, ...right].map((n) => n.kind));
+    return { left, right, height, w, slot, inAt, outAt, top, bottom, kinds };
+  }, [consumed, emitted, burned, txType, base, importedFrom, sourceChain, destinationChain, balance]);
 
   if (!movement) return <NoFundMovement txType={txType} />;
 
+  const fill = (key: string) => (hover === key ? 0.85 : hover ? 0.12 : 0.45);
+  const dim = (key: string) => (hover && hover !== key ? 0.35 : 1);
+  // the labels keep their room on a phone; from md the ribbons get theirs
+  const grid = "grid grid-cols-[minmax(0,1fr)_3rem_minmax(0,1fr)] gap-x-2 md:grid-cols-[minmax(0,1fr)_minmax(8rem,1.3fr)_minmax(0,1fr)] md:gap-x-3";
+
+  const label = (n: Node, i: number, side: "in" | "out") => {
+    // a phone drops the marker for the label's room: the ribbon carries the tone
+    const mark = <span className={cn("hidden size-1.5 shrink-0 bg-current md:block", TONE[n.kind])} aria-hidden />;
+    // the row fades up once; the hover dims an inner layer, which the fade's last frame does not hold
+    const body = (
+      <span className={cn("flex min-w-0 items-center gap-2.5 transition-opacity duration-200", side === "in" && "justify-end")} style={{ opacity: dim(n.key) }}>
+        {side === "out" && mark}
+        <span className={cn("flex min-w-0 flex-col gap-0.5", side === "in" && "items-end text-right")}>
+          <span className="max-w-full truncate font-mono text-[12px] tabular-nums text-zinc-900 md:text-[12.5px] dark:text-zinc-50">{n.label}</span>
+          {n.sub && <span className={cn("max-w-full truncate font-mono text-[11px] transition-colors", n.href ? cn(idInk, "group-hover:text-[#E6212F]") : "text-zinc-400 dark:text-zinc-500")}>{n.sub}</span>}
+        </span>
+        {side === "in" && mark}
+      </span>
+    );
+    const cls = cn("group flex h-12 min-w-0 items-center", side === "in" ? "justify-end" : "justify-start");
+    const events = { onMouseEnter: () => setHover(n.key), onMouseLeave: () => setHover(null), style: fadeUpStyle(shown, 120 + i * 40) };
+    return n.href ? (
+      <Link key={n.key} href={n.href} className={cls} {...events}>
+        {body}
+      </Link>
+    ) : (
+      <div key={n.key} className={cls} {...events}>
+        {body}
+      </div>
+    );
+  };
+
   return (
-    <div className="overflow-x-auto">
-      <svg viewBox={`0 0 ${VBW} ${model.H}`} preserveAspectRatio="xMidYMid meet" className="w-full min-w-[760px] select-none" role="img" aria-label="Transaction fund flow">
-        <ColHeader x={LABEL_IN} anchor="end" label={`Inputs · ${model.nIn}`} rule={[24, IN_X]} />
-        <ColHeader x={LABEL_OUT} anchor="start" label={`Outputs · ${model.nOut}`} rule={[OUT_X, VBW - 24]} />
-        <line x1={IN_X} y1={REGION_TOP} x2={IN_X} y2={model.H - 8} className="stroke-zinc-200 dark:stroke-zinc-800" strokeWidth={1} />
-        <line x1={OUT_X} y1={REGION_TOP} x2={OUT_X} y2={model.H - 8} className="stroke-zinc-200 dark:stroke-zinc-800" strokeWidth={1} />
-
-        {model.inputs.map(({ f, w, slotCy, segCy }) => {
-          const { cls, hex } = KIND_COLOR[f.kind];
-          return (
-            <motion.path key={f.key} d={ribbon(IN_X, slotCy, CEN_L, segCy, w)} className={cls} fill={hex}
-              stroke={hex ?? "currentColor"} strokeOpacity={hover === f.key ? 0.7 : 0.35} strokeWidth={0.6}
-              initial={{ opacity: 0 }} animate={{ opacity: 1, fillOpacity: fillOp(f.key, 0.6) }}
-              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-              onMouseEnter={() => setHover(f.key)} onMouseLeave={() => setHover(null)} />
-          );
-        })}
-        {model.outputs.map(({ f, w, slotCy, segCy }) => {
-          const { cls, hex } = KIND_COLOR[f.kind];
-          return (
-            <motion.path key={f.key} d={ribbon(CEN_R, segCy, OUT_X, slotCy, w)} className={cls} fill={hex}
-              stroke={hex ?? "currentColor"} strokeOpacity={hover === f.key ? 0.7 : 0.35} strokeWidth={0.6}
-              initial={{ opacity: 0 }} animate={{ opacity: 1, fillOpacity: fillOp(f.key, 0.6) }}
-              transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-              onMouseEnter={() => setHover(f.key)} onMouseLeave={() => setHover(null)} />
-          );
-        })}
-
-        <rect x={CEN_L} y={model.cenTop} width={CEN_R - CEN_L} height={model.cenBot - model.cenTop}
-          className="fill-white stroke-zinc-900 dark:fill-zinc-950 dark:stroke-zinc-100" strokeWidth={1.25} />
-        <rect x={CEN_L} y={model.cenTop} width={CEN_R - CEN_L} height={3} fill={RED} />
-        <circle cx={(CEN_L + CEN_R) / 2} cy={model.centerY} r={3} fill={RED}>
-          <animate attributeName="opacity" values="1;0.3;1" dur="2s" repeatCount="indefinite" />
-        </circle>
-        <text x={(CEN_L + CEN_R) / 2} y={model.cenTop - 12} textAnchor="middle" className="fill-zinc-900 dark:fill-zinc-50"
-          fontSize={11} fontWeight={700} fontFamily="var(--font-mono)" style={{ letterSpacing: "0.08em" }}>
-          {txType.replace(/Tx$/, "").toUpperCase()}
-        </text>
-
-        {model.inputs.map(({ f, slotCy }) => (
-          <NodeLabel key={f.key} f={f} mx={IN_X} labelX={LABEL_IN} y={slotCy} side="in" base={base} opacity={op(f.key)}
-            onEnter={() => setHover(f.key)} onLeave={() => setHover(null)} />
-        ))}
-        {model.outputs.map(({ f, slotCy }) => (
-          <NodeLabel key={f.key} f={f} mx={OUT_X} labelX={LABEL_OUT} y={slotCy} side="out" base={base} opacity={op(f.key)}
-            onEnter={() => setHover(f.key)} onLeave={() => setHover(null)} />
-        ))}
-      </svg>
-
-      {/* legend — only the meaningful semantic colors; neutral transfers are implicit */}
-      <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-zinc-200 pt-4 dark:border-zinc-800">
-        {(["staked", "reward", "burn", "crosschain"] as const)
+    <div ref={seen} className="flex flex-col gap-3">
+      <div className={cn(grid, "items-end font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500")}>
+        <span className="text-right">Consumed · {consumed.length}</span>
+        {/* a phone has no room for the type between the columns: the page head names it */}
+        <span className="hidden justify-center md:flex">
+          <TxTypePill type={txType} label={txTypeLabel(txType)} />
+        </span>
+        <span className="md:hidden" aria-hidden />
+        <span>Produced · {emitted.length}</span>
+      </div>
+      <div className={grid} style={{ height: model.height }}>
+        <div className="flex min-w-0 flex-col justify-center">{model.left.map((n, i) => label(n, i, "in"))}</div>
+        <div className="relative">
+          <svg viewBox={`0 0 100 ${model.height}`} preserveAspectRatio="none" className="absolute inset-0 h-full w-full" style={wipeStyle(shown)} aria-hidden>
+            {model.left.map((n, i) => (
+              <path
+                key={n.key}
+                d={ribbon(0, model.slot(i, model.left.length), C_L, model.inAt[i], model.w(n.amount))}
+                className={cn("fill-current transition-[fill-opacity] duration-200", TONE[n.kind])}
+                fillOpacity={fill(n.key)}
+                onMouseEnter={() => setHover(n.key)}
+                onMouseLeave={() => setHover(null)}
+              />
+            ))}
+            {model.right.map((n, i) => (
+              <path
+                key={n.key}
+                d={ribbon(C_R, model.outAt[i], 100, model.slot(i, model.right.length), model.w(n.amount))}
+                className={cn("fill-current transition-[fill-opacity] duration-200", TONE[n.kind])}
+                fillOpacity={fill(n.key)}
+                onMouseEnter={() => setHover(n.key)}
+                onMouseLeave={() => setHover(null)}
+              />
+            ))}
+          </svg>
+          {/* the tx: a block the ribbons pass through, in the tape's projection */}
+          <span
+            aria-hidden
+            className="absolute"
+            style={{ left: `${C_L}%`, width: `${C_R - C_L}%`, top: model.top, height: model.bottom - model.top }}
+          >
+            <span className="absolute -top-1.5 left-0 h-1.5 w-full origin-bottom-left skew-x-[-45deg] border border-b-0 border-zinc-300 bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800" />
+            <span className="absolute -right-1.5 top-0 h-full w-1.5 origin-top-left skew-y-[-45deg] border border-l-0 border-zinc-300 bg-zinc-200 dark:border-zinc-700 dark:bg-zinc-900" />
+            <span className="absolute inset-0 border border-zinc-300 bg-white dark:border-zinc-700 dark:bg-zinc-950">
+              <span className={cn("absolute inset-x-0 top-0 h-[3px] bg-current", txToneText(txType))} />
+            </span>
+          </span>
+        </div>
+        <div className="flex min-w-0 flex-col justify-center">{model.right.map((n, i) => label(n, i, "out"))}</div>
+      </div>
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-zinc-200 pt-3 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+        {(Object.keys(KEY) as Kind[])
           .filter((k) => model.kinds.has(k))
           .map((k) => (
-            <LegendChip key={k} label={KIND_LABEL[k]!} style={{ background: KIND_COLOR[k].hex }} />
+            <span key={k} className="flex items-center gap-1.5">
+              <span className={cn("size-2 bg-current", TONE[k])} aria-hidden />
+              {KEY[k]}
+            </span>
           ))}
-        <span className="ml-auto font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-600">ribbon width ∝ amount</span>
+        <span className="ml-auto text-zinc-400 dark:text-zinc-500">width by amount</span>
       </div>
     </div>
-  );
-}
-
-function NodeLabel({
-  f, mx, labelX, y, side, base, opacity, onEnter, onLeave,
-}: {
-  f: Flow; mx: number; labelX: number; y: number; side: "in" | "out"; base: string; opacity: number; onEnter: () => void; onLeave: () => void;
-}) {
-  const { cls, hex } = KIND_COLOR[f.kind];
-  const anchor = side === "in" ? "end" : "start";
-  const addr = f.addresses[0];
-  const sub = f.sub ?? (addr ? truncate(addr, 14) : "");
-  const g = (
-    <g opacity={opacity} onMouseEnter={onEnter} onMouseLeave={onLeave} style={{ transition: "opacity 0.2s" }}>
-      <rect x={mx - 3.5} y={y - 3.5} width={7} height={7} className={cls} fill={hex} />
-      <text x={labelX} y={sub ? y - 3 : y + 4} textAnchor={anchor} className="fill-zinc-900 dark:fill-zinc-50" fontSize={13} fontFamily="var(--font-mono)" style={{ letterSpacing: "-0.01em" }}>
-        {f.label}
-      </text>
-      {sub && (
-        <text x={labelX} y={y + 12} textAnchor={anchor} className="fill-zinc-400 dark:fill-zinc-500" fontSize={10.5} fontFamily="var(--font-mono)">
-          {sub}
-        </text>
-      )}
-    </g>
-  );
-  if (f.href) return <a href={f.href}>{g}</a>;
-  return addr && !f.overflow ? <a href={`${base}/address/${addr}`}>{g}</a> : g;
-}
-
-function ColHeader({ x, anchor, label, rule }: { x: number; anchor: "start" | "end"; label: string; rule: [number, number] }) {
-  return (
-    <g>
-      <text x={x} y={44} textAnchor={anchor} className="fill-zinc-500 dark:fill-zinc-400" fontSize={11} fontWeight={700} fontFamily="var(--font-mono)" style={{ letterSpacing: "0.18em" }}>
-        {label.toUpperCase()}
-      </text>
-      <line x1={rule[0]} y1={56} x2={rule[1]} y2={56} className="stroke-zinc-200 dark:stroke-zinc-800" strokeWidth={1} />
-    </g>
-  );
-}
-
-function LegendChip({ label, style }: { label: string; style?: React.CSSProperties }) {
-  return (
-    <span className="flex items-center gap-2">
-      <span className="h-2 w-4" style={style} />
-      <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">{label}</span>
-    </span>
   );
 }

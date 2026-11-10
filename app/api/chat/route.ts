@@ -637,13 +637,12 @@ export async function POST(req: Request) {
           }
         : {}),
       github_search_code: tool({
-        description: 'Search for code in core Avalanche repositories including avalanchego, subnet-evm, coreth, avalanche-cli, platform-cli, icm-services, avalanche-network-runner, icm-contracts, hypersdk, libevm, and builders-hub. Use this to find functions, types, implementations, or understand how Avalanche works internally.',
+        description: 'Search for code in core Avalanche repositories including avalanchego, subnet-evm, avalanche-cli, platform-cli, icm-services, avalanche-network-runner, icm-contracts, hypersdk, libevm, and builders-hub. Use this to find functions, types, implementations, or understand how Avalanche works internally.',
         inputSchema: z.object({
           query: z.string().describe('Search query - keywords, function names, type names, or concepts'),
           repo: z.enum([
             'avalanchego',
             'subnet-evm',
-            'coreth',
             'avalanche-cli',
             'platform-cli',
             'icm-services',
@@ -674,7 +673,6 @@ export async function POST(req: Request) {
           repo: z.enum([
             'avalanchego',
             'subnet-evm',
-            'coreth',
             'avalanche-cli',
             'platform-cli',
             'icm-services',
@@ -916,7 +914,7 @@ You are the help panel on a Builders Hub page. The CURRENT PAGE block in the con
       ? `## Bubble Mode: STRICT
 You are the quick-help bubble on the Builders Hub. Your job is to help users FIND things fast.
 - MAX 2-3 sentences per answer. No walls of text.
-- Always link to the ACTUAL relevant page (e.g. [Network Stats](/stats), [Create an L1](/console/create-l1), [ICM Docs](/docs/cross-chain/icm/overview)). Never use /chat as a link destination for content; link to where the thing actually lives.
+- Always link to the ACTUAL relevant page (e.g. [Network Stats](/stats), [Create an L1](/console/create-l1), [ICM Docs](/docs/cross-chain)). Never use /chat as a link destination for content; link to where the thing actually lives.
 - Do NOT call render_component for flows/tools; just link to the console page.
 - Do NOT call suggest_followups; keep responses minimal.
 - End with: "Want to dig deeper? [Continue in full chat](/chat)". This is the ONLY acceptable use of a /chat link.
@@ -943,7 +941,7 @@ You are the quick-help bubble on the Builders Hub. Your job is to help users FIN
 - **metrics_lookup**: For stats questions (active accounts, TPS, validators, etc.), call \`metrics_lookup\` first to get numbers, then \`render_component("OverviewStats")\` to show visually. For burns → \`render_component("LiveBlockBurns")\`, ICM traffic → \`render_component("ICMFlowDiagram")\`, ICTT → \`render_component("ICTTDashboard")\`.
 - **YouTube**: Embed with \`render_component("YouTubeEmbed", { videoId, title })\`. Never paste bare YouTube links.
 - **blockchain_lookup_***: For tx hashes, addresses, validators, subnets, chains. Follow up on \`_lookupHints\` in results.
-- **github_search_code / github_get_file**: Search core Avalanche repos: avalanchego, subnet-evm, coreth, avalanche-cli, platform-cli, icm-services, avalanche-network-runner, icm-contracts, hypersdk, libevm, and builders-hub. Check pre-indexed code context below first. **Max 3 searches per question.**
+- **github_search_code / github_get_file**: Search core Avalanche repos: avalanchego, subnet-evm, avalanche-cli, platform-cli, icm-services, avalanche-network-runner, icm-contracts, hypersdk, libevm, and builders-hub. Check pre-indexed code context below first. **Max 3 searches per question.**
 - **cli_lookup_command**: For any Avalanche CLI / Platform CLI / tmpnet question (commands, flags, workflows). Faster and more accurate than generic docs search.
 - **rpc_lookup_method**: For any RPC method / namespace question across C-Chain, P-Chain, X-Chain, Subnet-EVM, or node APIs.
 - **acp_lookup**: For any ACP-specific question. Pass \`number\` when known to get the structured record (status, track, authors, cross-references). Otherwise pass \`query\`.

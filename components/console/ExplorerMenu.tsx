@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { BarChart3, ChevronDown, Compass, ExternalLink } from 'lucide-react';
+import { ArrowRight, BarChart3, ChevronDown, Compass, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -19,6 +19,8 @@ interface ExplorerMenuProps {
   setupHref?: string;
   /** Optional Lucide-style icon override for the trigger button (defaults to BarChart3). */
   icon?: React.ComponentType<{ className?: string }>;
+  /** Restyles the trigger button (merged over the default outline button). */
+  buttonClassName?: string;
 }
 
 /**
@@ -41,13 +43,14 @@ export function ExplorerMenu({
   customExplorerUrl,
   setupHref = '/console/layer-1/explorer-setup',
   icon: IconComponent = BarChart3,
+  buttonClassName,
 }: ExplorerMenuProps) {
   const options = getExplorerOptions({ evmChainId, isTestnet, customExplorerUrl });
 
   if (options.length === 0) {
     return (
       <Link href={setupHref}>
-        <Button variant="outline" size="sm">
+        <Button variant="outline" size="sm" className={buttonClassName}>
           <IconComponent className="w-4 h-4 mr-2" />
           Setup Explorer
         </Button>
@@ -59,7 +62,7 @@ export function ExplorerMenu({
     const opt = options[0];
     return (
       <ExplorerOptionLink option={opt}>
-        <Button variant="outline" size="sm">
+        <Button variant="outline" size="sm" className={buttonClassName}>
           <IconComponent className="w-4 h-4 mr-2" />
           Open Explorer
         </Button>
@@ -70,25 +73,43 @@ export function ExplorerMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm">
+        <Button variant="outline" size="sm" className={buttonClassName}>
           <IconComponent className="w-4 h-4 mr-2" />
           Open Explorer
           <ChevronDown className="w-3.5 h-3.5 ml-1.5 opacity-60" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-64">
+      <DropdownMenuContent
+        align="end"
+        className="w-72 rounded-none border-zinc-200 bg-white p-0 shadow-xl dark:border-zinc-800 dark:bg-zinc-950"
+      >
+        <div className="border-b border-zinc-200 px-3.5 py-2.5 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+          Open in
+        </div>
         {options.map((opt) => (
-          <DropdownMenuItem key={opt.id} asChild>
-            <ExplorerOptionLink option={opt} className="flex items-start gap-2 cursor-pointer">
+          <DropdownMenuItem
+            key={opt.id}
+            asChild
+            className="rounded-none px-3.5 py-2.5 focus:bg-transparent data-[highlighted]:bg-transparent"
+          >
+            <ExplorerOptionLink
+              option={opt}
+              className="group/opt flex cursor-pointer items-start gap-2.5 border-b border-zinc-200 last:border-b-0 dark:border-zinc-800"
+            >
               {opt.internal ? (
-                <Compass className="w-3.5 h-3.5 mt-0.5 shrink-0 text-muted-foreground" />
+                <Compass className="mt-0.5 h-3.5 w-3.5 shrink-0 text-zinc-400" />
               ) : (
-                <ExternalLink className="w-3.5 h-3.5 mt-0.5 shrink-0 text-muted-foreground" />
+                <ExternalLink className="mt-0.5 h-3.5 w-3.5 shrink-0 text-zinc-400 transition-colors group-hover/opt:text-[#E6212F] group-data-[highlighted]/opt:text-[#E6212F]" />
               )}
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium">{opt.label}</div>
-                <div className="text-xs text-muted-foreground truncate">{opt.description}</div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[13px] font-medium text-zinc-900 underline-offset-4 group-hover/opt:underline group-data-[highlighted]/opt:underline dark:text-zinc-50">
+                  {opt.label}
+                </div>
+                <div className="truncate font-mono text-[11px] text-zinc-500 dark:text-zinc-400">{opt.description}</div>
               </div>
+              {opt.internal && (
+                <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 -translate-x-1 text-[#E6212F] opacity-0 transition-all group-hover/opt:translate-x-0 group-hover/opt:opacity-100 group-data-[highlighted]/opt:translate-x-0 group-data-[highlighted]/opt:opacity-100" />
+              )}
             </ExplorerOptionLink>
           </DropdownMenuItem>
         ))}

@@ -1,9 +1,23 @@
 //FIXME: Sooner or later we should use the SDK
 
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
-import { networkIDs } from '@avalabs/avalanchejs';
+import { MAINNET_NETWORK_ID } from '@avalanche-sdk/client/methods';
 
 const endpoint = 'https://glacier-api.avax.network';
+
+/**
+ * A Glacier (Data API) response that is not OK. `status` is its HTTP status, so a caller can tell a miss from an
+ * outage.
+ */
+export class GlacierHttpError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'GlacierHttpError';
+    this.status = status;
+  }
+}
 
 interface BlockchainInfo {
   createBlockTimestamp: number;
@@ -23,7 +37,7 @@ export async function getBlockchainInfo(
 ): Promise<BlockchainInfo & { isTestnet: boolean }> {
   // Get current network from wallet store
   const { avalancheNetworkID } = useWalletStore.getState();
-  const currentNetwork = avalancheNetworkID === networkIDs.MainnetID ? 'mainnet' : 'testnet';
+  const currentNetwork = avalancheNetworkID === MAINNET_NETWORK_ID ? 'mainnet' : 'testnet';
   const otherNetwork = currentNetwork === 'mainnet' ? 'testnet' : 'mainnet';
 
   try {
@@ -59,7 +73,7 @@ export async function getBlockchainInfoForNetwork(
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch blockchain info: ${response.statusText}`);
+    throw new GlacierHttpError(`Failed to fetch blockchain info: ${response.statusText}`, response.status);
   }
 
   const data: BlockchainInfo = await response.json();
@@ -89,7 +103,8 @@ interface SubnetInfo {
   locktime: number;
   subnetOwnershipInfo: SubnetOwnershipInfo;
   isL1: boolean;
-  l1ConversionTransactionHash: string;
+  /** Absent until the subnet converts to an L1, and always absent for the Primary Network. */
+  l1ConversionTransactionHash?: string;
   l1ValidatorManagerDetails?: L1ValidatorManagerDetails; // Optional based on response structure
   blockchains: SubnetBlockchainInfo[];
 }
@@ -100,7 +115,7 @@ export async function getSubnetInfo(
 ): Promise<SubnetInfo & { isTestnet: boolean }> {
   // Get current network from wallet store
   const { avalancheNetworkID } = useWalletStore.getState();
-  const currentNetwork = avalancheNetworkID === networkIDs.MainnetID ? 'mainnet' : 'testnet';
+  const currentNetwork = avalancheNetworkID === MAINNET_NETWORK_ID ? 'mainnet' : 'testnet';
   const otherNetwork = currentNetwork === 'mainnet' ? 'testnet' : 'mainnet';
 
   try {
@@ -136,7 +151,7 @@ export async function getSubnetInfoForNetwork(
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch subnet info: ${response.statusText}`);
+    throw new GlacierHttpError(`Failed to fetch subnet info: ${response.statusText}`, response.status);
   }
 
   const data: SubnetInfo = await response.json();

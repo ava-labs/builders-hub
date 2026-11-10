@@ -7,12 +7,7 @@ import { Alert } from '@/components/toolbox/components/Alert';
 import { hexToBytes, bytesToHex, encodeFunctionData, Abi } from 'viem';
 import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
 import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
-import {
-  getRegistrationJustification,
-  newL1ValidatorWeightMessage,
-  newWarpMessage,
-  packWarpIntoAccessList,
-} from '@avalanche-sdk/interchain/warp';
+import { newL1ValidatorWeightMessage, newWarpMessage, packWarpIntoAccessList } from '@avalanche-sdk/interchain/warp';
 import { hexToCB58 } from '@avalanche-sdk/client/utils';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
@@ -34,6 +29,8 @@ import {
   parseAggregationError,
   type RemediationLink,
 } from '@/components/toolbox/hooks/contracts/parseAggregationError';
+import { SigningSubnetStatus, signingSubnetWaitText } from './SigningSubnetStatus';
+import { NO_L1_SELECTED } from '@/components/toolbox/utils/vmcLookupText';
 
 export type WeightUpdateType = 'ChangeWeight' | 'Delegation';
 export type OwnerType = 'PoAManager' | 'StakingManager' | 'EOA' | null;
@@ -43,6 +40,10 @@ export interface CompletePChainWeightUpdateProps {
   subnetIdL1: string;
   pChainTxId?: string;
   signingSubnetId?: string;
+  /** useVMCAddress is loading the signing subnet */
+  signingSubnetLoading: boolean;
+  /** The useVMCAddress lookup error */
+  signingSubnetError: string | null;
   onSuccess: (data: { txHash: string; message: string }) => void;
   onError: (message: string) => void;
 
@@ -73,6 +74,8 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
   subnetIdL1,
   pChainTxId,
   signingSubnetId,
+  signingSubnetLoading,
+  signingSubnetError,
   onSuccess,
   onError,
   updateType,
@@ -141,8 +144,8 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
       return false;
     }
     if (!subnetIdL1) {
-      setErrorState('L1 Subnet ID is required.');
-      onError('L1 Subnet ID is required.');
+      setErrorState(NO_L1_SELECTED);
+      onError(NO_L1_SELECTED);
       return false;
     }
     if (!managerAddress) {
@@ -153,6 +156,12 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
     if (!chainPublicClient) {
       setErrorState('Wallet or chain configuration is not properly initialized.');
       onError('Wallet or chain configuration is not properly initialized.');
+      return false;
+    }
+    const signingSubnetWait = signingSubnetWaitText(signingSubnetId, signingSubnetLoading, signingSubnetError);
+    if (signingSubnetWait) {
+      setErrorState(signingSubnetWait);
+      onError(signingSubnetWait);
       return false;
     }
 
@@ -217,26 +226,12 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
       );
       const l1ValidatorWeightMessage = hexToBytes(unsignedMsg.toHex() as `0x${string}`);
 
-      // Step 3: Get justification (only for ChangeWeight, delegation doesn't need it)
-      let justification: Uint8Array | undefined;
-      if (isChangeWeight) {
-        const fetchedJustification = await getRegistrationJustification(
-          weightMessageData.validationIdHex,
-          subnetIdL1,
-          chainPublicClient!,
-        );
-
-        if (!fetchedJustification) {
-          throw new Error('No justification logs found for this validation ID');
-        }
-        justification = fetchedJustification;
-      }
-
-      // Step 4: Aggregate P-Chain signature
+      // Step 3: Aggregate P-Chain signature. No justification: the P-Chain checks an L1ValidatorWeight message
+      // against its own state only, for a weight change and a delegation alike (avalanchego
+      // vms/platformvm/network/warp.go, verifyL1ValidatorWeight).
       const aggregateSignaturePromise = aggregateSignature({
         message: bytesToHex(l1ValidatorWeightMessage),
-        ...(justification && { justification: bytesToHex(justification) }),
-        signingSubnetId: signingSubnetId || subnetIdL1,
+        signingSubnetId,
       });
 
       notify(
@@ -250,7 +245,7 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
       const signature = await aggregateSignaturePromise;
       setPChainSignature(signature.signedMessage);
 
-      // Step 5: Complete the weight update on EVM
+      // Step 4: Complete the weight update on EVM
       const signedPChainWarpMsgBytes = hexToBytes(`0x${signature.signedMessage}`);
       const accessList = packWarpIntoAccessList(signedPChainWarpMsgBytes);
       setCastAccessList(accessList);
@@ -336,13 +331,15 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
   }
 
   if (!subnetIdL1) {
-    return <div className="text-sm text-zinc-500 dark:text-zinc-400">Please select an L1 subnet first.</div>;
+    return <div className="text-sm text-zinc-500 dark:text-zinc-400">{NO_L1_SELECTED}</div>;
   }
 
+  // A pending or completed tx is covered by isProcessing and updateComplete. A reverted tx
+  // leaves the button enabled, so the user can try again.
   const isButtonDisabled =
     isProcessing ||
-    !!txHash ||
     !pChainTxIdState.trim() ||
+    !signingSubnetId ||
     (isDelegation && !delegationIDState.trim()) ||
     isLoadingOwnership ||
     (isChangeWeight && isContractOwner === false && !useMultisig) ||
@@ -479,21 +476,29 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
               <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">Checking contract ownership...</p>
             )}
 
+            {step1Complete && !step2Complete && (
+              <SigningSubnetStatus
+                signingSubnetId={signingSubnetId}
+                isLoading={signingSubnetLoading}
+                error={signingSubnetError}
+                className="mt-2"
+              />
+            )}
+
             {step1Complete && !step2Complete && !(!isCoreWallet && pChainSignature) && (
               <div className="mt-2">
                 <Button
                   onClick={handleCompleteWeightUpdate}
                   disabled={isButtonDisabled}
                   loading={isProcessing}
+                  loadingText="Processing..."
                   className="w-full"
                 >
                   {isLoadingOwnership
                     ? 'Checking ownership...'
-                    : isProcessing
-                      ? 'Processing...'
-                      : isCoreWallet
-                        ? `Complete ${isDelegation ? 'Delegation' : 'Weight Change'}`
-                        : 'Aggregate Signatures'}
+                    : isCoreWallet
+                      ? `Complete ${isDelegation ? 'Delegation' : 'Weight Change'}`
+                      : 'Aggregate Signatures'}
                 </Button>
               </div>
             )}

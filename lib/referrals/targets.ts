@@ -18,7 +18,7 @@ export const BUILDER_HUB_SIGNUP_TARGET: ReferralTargetPreset = {
   detail: "Active signup link",
   targetType: "bh_signup",
   targetId: null,
-  destinationUrl: "/",
+  destinationUrl: "/signup",
 };
 
 export const ACTIVE_GRANT_TARGETS: ReferralTargetPreset[] = [

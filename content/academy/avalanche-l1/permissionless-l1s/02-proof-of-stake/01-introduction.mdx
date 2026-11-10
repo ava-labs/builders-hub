@@ -8,7 +8,7 @@ icon: Book
 
 ## The Transformation: Two Pieces of the Puzzle
 
-Converting from PoA to PoS isn't about replacing your entire blockchain—it's about strategically combining two concepts you may have already learned in separate courses:
+Converting from PoA to PoS isn't about replacing your entire blockchain. It's about strategically combining two concepts you may have already learned in separate courses:
 
 <img src="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/PoS.png" alt="Proof of Stake Architecture" />
 
@@ -30,8 +30,8 @@ Avalanche uses Proof of Stake with support for delegation to secure its network.
 
 Validators must stake AVAX tokens to participate in consensus. The requirements include:
 - **Minimum validator stake**: 2,000 AVAX on Mainnet
-- **Staking duration**: Between 2 weeks and 1 year
-- **Uptime requirement**: Default 80% uptime to receive rewards
+- **Staking duration**: Between 48 hours and 1 year on Mainnet for validators (since the Helicon upgrade, ACP-273). Between 2 weeks and 1 year for delegators.
+- **Uptime requirement**: At least 90% uptime to receive rewards, for validations that start at or after the Helicon upgrade (ACP-267). Validations that started earlier need at least 80%.
 
 ### Delegation
 
@@ -51,15 +51,15 @@ This weight determines how much influence they have during the consensus polling
 ### Staking Lifecycle
 
 1. **Submission**: Validators or delegators submit staking transactions with a specified duration
-2. **Pending**: Stake enters a pending state until the start time
+2. **Start**: Since the Durango upgrade, the stake starts when the P-Chain accepts the transaction. There is no pending state.
 3. **Active**: Validators participate in consensus and earn rewards
 4. **Completion**: At the end of the staking period, rewards are distributed and stake is unlocked
 
 ### Consensus Participation
 
-Validators with sufficient stake participate in Avalanche's consensus mechanism by repeatedly polling small random samples of other validators, weighted by their stake. The consensus algorithm itself—including Snowman consensus for linear chains—is covered in detail in the [Avalanche Consensus section](/academy/avalanche-l1/avalanche-fundamentals/02-avalanche-consensus-intro/01-avalanche-consensus-intro).
+Validators with sufficient stake participate in Avalanche's consensus mechanism by repeatedly polling small random samples of other validators, weighted by their stake. The consensus algorithm itself (including Snowman consensus for linear chains) is covered in detail in the [Avalanche Consensus section](/academy/avalanche-l1/avalanche-fundamentals/02-avalanche-consensus-intro/01-avalanche-consensus-intro).
 
-Unlike traditional Delegated Proof of Stake (DPoS) systems where a fixed number of delegates are elected, Avalanche allows **anyone meeting the minimum stake requirement** to become a validator. There's no voting mechanism to elect validators—participation is purely stake-based, making it more permissionless and decentralized.
+Unlike traditional Delegated Proof of Stake (DPoS) systems where a fixed number of delegates are elected, Avalanche allows **anyone meeting the minimum stake requirement** to become a validator. There's no voting mechanism to elect validators. Participation is purely stake-based, making it more permissionless and decentralized.
 
 <Quiz quizId="4062"/>
 

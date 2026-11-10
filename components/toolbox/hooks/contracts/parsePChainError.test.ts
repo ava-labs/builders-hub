@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { parsePChainError } from './parsePChainError';
+import { WALLET_REJECTED_TEXT } from '@/components/toolbox/lib/walletRejection';
 
 // The createSubnet/createChain "internal error" surfaced as raw viem boilerplate
 // (DevRel weekly, Jun 01 2026). These pin the user-facing translation and, just
@@ -25,7 +26,7 @@ describe('parsePChainError', () => {
   });
 
   it('maps the common user/expected rejects', () => {
-    expect(parsePChainError(new Error('User rejected the request'))).toBe('Transaction was rejected by user');
+    expect(parsePChainError(new Error('User rejected the request'))).toBe(WALLET_REJECTED_TEXT);
     expect(parsePChainError(new Error('insufficient funds for tx'))).toBe(
       'Insufficient P-Chain balance for transaction',
     );

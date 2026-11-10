@@ -6,23 +6,73 @@
  * P-Chain indexer stalled for ~24h, so the console showed a balance that
  * predated the user's last two imports while Core showed an atomic-memory
  * entry that an ImportTx had already consumed. Neither number matched the
- * node. `platform.getBalance` is authoritative and cheap, so read it first
- * and treat the indexer as a fallback only.
+ * node. The node is authoritative, so read it first and treat the indexer
+ * as a fallback only.
+ *
+ * The node read is the Avalanche SDK's pChain.getBalance, which sums
+ * platform.getUTXOs as platform.getBalance did (avalanchego deprecated
+ * getBalance in v1.9.12, and the SDK stopped calling it in 0.1.4).
  */
 
-import { getPChainRpcUrl } from './avalancheEndpoints';
+import { createPChainClient } from '@avalanche-sdk/client';
+import type { GetBalanceReturnType } from '@avalanche-sdk/client/methods/pChain';
+import { avalanche, avalancheFuji } from 'viem/chains';
 
-/** platform.getBalance result: nAVAX as decimal strings. */
-interface PlatformGetBalanceResult {
-  balance: string;
-  unlocked: string;
-  lockedStakeable: string;
-  lockedNotStakeable: string;
-}
+/** One budget for the whole read: for a large UTXO set the SDK reads several pages, up to 3 times. */
+const READ_BUDGET_MS = 10_000;
+
+/**
+ * And at most 21 requests, retries included: platform.getStakingAssetID and 20 platform.getUTXOs pages, the bound of
+ * the 20-page cap before the SDK. Anyone can send UTXOs to an address, and the SDK reads a set of more than one page
+ * at least twice and stops on a page of fewer than 1,024, so a set of 10,240 UTXOs or more runs out of requests.
+ */
+const READ_BUDGET_REQUESTS = 21;
 
 /** The node rejects a bech32 address without its chain prefix. */
 function withPChainPrefix(address: string): string {
   return address.includes('-') ? address : `P-${address}`;
+}
+
+/**
+ * The SDK's pChain.getBalance from the public node, within one budget of time
+ * and requests: a stale balance is worse than a missing one, so a hung or slow
+ * node must not hold the caller, and a large UTXO set must not cost unbounded
+ * requests. The budget's signal aborts every request of the read, and the
+ * caller gets the error when the budget runs out. `maxRequests` (21 by
+ * default) sets the request budget. Throws on transport or RPC error.
+ */
+export async function getPChainNodeBalance(
+  isTestnet: boolean,
+  addresses: string[],
+  maxRequests: number = READ_BUDGET_REQUESTS,
+): Promise<GetBalanceReturnType> {
+  const budget = new AbortController();
+  // An AbortError: viem retries any other abort reason
+  const stop = (why: string) => budget.abort(new DOMException(`P-Chain balance: ${why}`, 'AbortError'));
+  const timer = setTimeout(() => stop('no answer from the node in time'), READ_BUDGET_MS);
+  let requests = 0;
+  try {
+    const pChain = createPChainClient({
+      chain: (isTestnet ? avalancheFuji : avalanche) as never,
+      transport: {
+        type: 'http',
+        config: {
+          fetchOptions: { signal: budget.signal },
+          onFetchRequest: () => {
+            if (++requests > maxRequests) stop(`more than ${maxRequests} requests`);
+          },
+        },
+      },
+    });
+    const outOfBudget = new Promise<never>((_, reject) => {
+      budget.signal.addEventListener('abort', () => reject(budget.signal.reason), { once: true });
+    });
+    return await Promise.race([pChain.getBalance({ addresses }), outOfBudget]);
+  } finally {
+    clearTimeout(timer);
+    // Stops what the read still has in flight: when one request fails, the SDK's other requests would go on.
+    budget.abort();
+  }
 }
 
 /**
@@ -35,28 +85,6 @@ function withPChainPrefix(address: string): string {
  * Throws on transport or RPC error so the caller can fall back.
  */
 export async function getPChainUnlockedNAvax(isTestnet: boolean, pChainAddress: string): Promise<bigint> {
-  const response = await fetch(getPChainRpcUrl(isTestnet), {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
-      jsonrpc: '2.0',
-      id: 1,
-      method: 'platform.getBalance',
-      params: { addresses: [withPChainPrefix(pChainAddress)] },
-    }),
-    // A stale balance is worse than a missing one, so don't let a hung node
-    // hold the header's loading state open indefinitely.
-    signal: AbortSignal.timeout(10_000),
-  });
-
-  if (!response.ok) {
-    throw new Error(`platform.getBalance failed: ${response.status} ${response.statusText}`);
-  }
-
-  const json = (await response.json()) as { result?: PlatformGetBalanceResult; error?: { message?: string } };
-  if (json.error || !json.result?.unlocked) {
-    throw new Error(`platform.getBalance error: ${json.error?.message ?? 'no result'}`);
-  }
-
-  return BigInt(json.result.unlocked);
+  const { unlocked } = await getPChainNodeBalance(isTestnet, [withPChainPrefix(pChainAddress)]);
+  return unlocked;
 }

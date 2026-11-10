@@ -8,6 +8,7 @@ import { DocsSubNav } from '@/components/navigation/docs-subnav';
 import { DocsNavbarToggle } from '@/components/navigation/docs-navbar-toggle';
 import { ForceMobileSidebar } from '@/components/navigation/force-mobile-sidebar';
 import { NavbarDropdownInjector } from '@/components/navigation/navbar-dropdown-injector';
+import { SidebarActive } from '@/components/docs-book/sidebar-active';
 import { useIsMobile } from '@/hooks/use-mobile';
 import {
   documentationOptions,
@@ -120,6 +121,7 @@ export function DocsLayoutWrapper({
       <ForceMobileSidebar />
       <DocsNavbarToggle />
       <DocsSubNav />
+      <SidebarActive />
       <DocsLayout {...docsOptions}>
       {children}
     </DocsLayout>

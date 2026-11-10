@@ -18,7 +18,9 @@ import versions from '@/scripts/versions.json';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import { ContractDeployViewer, ContractSource } from '@/components/console/contract-deploy-viewer';
-import { Check, Rocket, ExternalLink, Copy, Info, FileCode } from 'lucide-react';
+import { Button } from '@/components/toolbox/components/Button';
+import { Success } from '@/components/toolbox/components/Success';
+import { CopyValue, DocsLink, Fact, Facts, Panel } from '@/components/toolbox/console/icm/ui';
 
 const ICM_COMMIT = versions['ava-labs/icm-services'];
 
@@ -54,7 +56,6 @@ function TeleporterRegistry({ onSuccess }: BaseConsoleToolProps) {
   const viemChain = useViemChainStore();
   const selectedL1 = useSelectedL1();
   const { notify } = useConsoleNotifications();
-  const [copied, setCopied] = useState(false);
 
   if (criticalError) {
     throw criticalError;
@@ -103,131 +104,50 @@ function TeleporterRegistry({ onSuccess }: BaseConsoleToolProps) {
     }
   }
 
-  const handleCopy = async (text: string) => {
-    await navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   const deployForm = (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="shrink-0 px-4 py-3 border-b border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50">
-        <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Deploy TeleporterRegistry</h3>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-          Registry for versioned Teleporter protocol upgrades
-        </p>
-      </div>
-
-      {/* Scrollable content */}
-      <div className="flex-1 overflow-auto p-4 space-y-4">
-        {/* Info callout */}
-        <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-          <div className="flex items-start gap-2">
-            <Info className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
-            <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
-              TeleporterRegistry manages protocol versions. It allows applications to upgrade to new Teleporter versions
-              seamlessly while maintaining backwards compatibility.
-            </p>
-          </div>
-        </div>
-
-        {/* Target Network */}
-        <div className="p-3 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700">
-          <span className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block mb-1">
-            Target Network
+    <Panel
+      eyebrow="Registry"
+      title="Deploy TeleporterRegistry"
+      description="Tracks Teleporter versions so apps can move to a new version without breaking older messages."
+      footer={
+        <>
+          <DocsLink href="https://github.com/ava-labs/icm-services/tree/main/icm-contracts/avalanche/teleporter/registry">
+            Registry docs
+          </DocsLink>
+          <span className="font-mono text-[10.5px] text-zinc-400 dark:text-zinc-500">@{ICM_COMMIT.slice(0, 7)}</span>
+        </>
+      }
+    >
+      <Facts>
+        <Fact label="Target network">
+          <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <span>{selectedL1?.name || 'Unknown'}</span>
+            <span className="font-mono text-[11.5px] text-zinc-500 dark:text-zinc-400">
+              Chain ID {selectedL1?.evmChainId}
+            </span>
           </span>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-              {selectedL1?.name || 'Unknown'}
-            </span>
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400 font-mono">
-              Chain ID: {selectedL1?.evmChainId}
-            </span>
-          </div>
-        </div>
+        </Fact>
+        <Fact label="Messenger arg">
+          <CopyValue value={messengerAddress} />
+        </Fact>
+        <Fact label="Initial version">
+          <span className="font-mono">1</span>
+        </Fact>
+      </Facts>
 
-        {/* Constructor Arguments */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <FileCode className="w-4 h-4 text-zinc-400" />
-            <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Constructor Arguments</span>
-          </div>
-
-          <div className="p-3 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-                TeleporterMessenger Address
-              </span>
-              <button
-                onClick={() => handleCopy(messengerAddress)}
-                className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
-              >
-                {copied ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3 text-zinc-400" />}
-              </button>
-            </div>
-            <code className="text-[11px] font-mono text-zinc-700 dark:text-zinc-300 break-all">{messengerAddress}</code>
-            <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-2">
-              Initial protocol entry: version <code className="text-amber-600 dark:text-amber-400">1</code>
-            </p>
-          </div>
-        </div>
-
-        {/* Deploy Button / Success */}
-        {teleporterRegistryAddress ? (
-          <div className="space-y-3">
-            <div className="p-3 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
-              <div className="flex items-center gap-2 mb-2">
-                <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
-                <span className="text-sm font-medium text-green-700 dark:text-green-300">
-                  Registry Deployed Successfully
-                </span>
-              </div>
-              <div className="space-y-1">
-                <span className="text-[10px] font-medium text-green-600 dark:text-green-400 uppercase tracking-wider block">
-                  Contract Address
-                </span>
-                <code className="text-[11px] font-mono text-green-700 dark:text-green-300 break-all">
-                  {teleporterRegistryAddress}
-                </code>
-              </div>
-            </div>
-
-            <button
-              onClick={handleDeploy}
-              disabled={isDeploying}
-              className="w-full py-2.5 text-sm font-medium rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
-            >
-              <Rocket className="w-4 h-4" />
-              {isDeploying ? 'Deploying...' : 'Redeploy Registry'}
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={handleDeploy}
-            disabled={isDeploying}
-            className="w-full py-2.5 text-sm font-medium rounded-lg bg-blue-500 hover:bg-blue-600 text-white disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
-          >
-            <Rocket className="w-4 h-4" />
-            {isDeploying ? 'Deploying...' : 'Deploy TeleporterRegistry'}
-          </button>
-        )}
-      </div>
-
-      {/* Footer */}
-      <div className="shrink-0 px-4 py-2.5 border-t border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-between">
-        <a
-          href="https://github.com/ava-labs/icm-services/tree/main/icm-contracts/avalanche/teleporter/registry"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 flex items-center gap-1 transition-colors"
-        >
-          <ExternalLink className="w-3 h-3" />
-          Registry Docs
-        </a>
-        <span className="text-[11px] text-zinc-400 font-mono">@{ICM_COMMIT.slice(0, 7)}</span>
-      </div>
-    </div>
+      {teleporterRegistryAddress ? (
+        <>
+          <Success label="Registry address" value={teleporterRegistryAddress} confirmed />
+          <Button variant="outline" onClick={handleDeploy} loading={isDeploying} loadingText="Deploying">
+            Redeploy registry
+          </Button>
+        </>
+      ) : (
+        <Button onClick={handleDeploy} loading={isDeploying} loadingText="Deploying">
+          Deploy TeleporterRegistry
+        </Button>
+      )}
+    </Panel>
   );
 
   return <ContractDeployViewer contracts={CONTRACT_SOURCES}>{deployForm}</ContractDeployViewer>;

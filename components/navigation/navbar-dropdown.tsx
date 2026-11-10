@@ -3,11 +3,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { ChevronDown, Moon, Sun, UserRound } from 'lucide-react';
-import { menuSections, singleItems } from './nav-config';
+import { menuSections, singleItems, type NavItem, type NavSection } from './nav-config';
 import { useSession } from 'next-auth/react';
-import { useLoginModalTrigger } from '@/hooks/useLoginModal';
 import { hasTeam1AcademyAccess } from '@/lib/auth/roles';
+import { useLoginModalTrigger } from '@/hooks/useLoginModal';
+import { AuthButtons } from '@/components/login/user-button/AuthButtons';
 
 /**
  * Custom navbar dropdown menu for tablet/mobile breakpoints (≤1023px)
@@ -19,9 +21,13 @@ import { hasTeam1AcademyAccess } from '@/lib/auth/roles';
 export function NavbarDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
+  const { openLoginModal } = useLoginModalTrigger();
+  const handleLogin = (mode: 'signin' | 'signup') => {
+    setIsOpen(false);
+    openLoginModal(undefined, mode);
+  };
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { data: session, status } = useSession();
-  const { openLoginModal } = useLoginModalTrigger();
   const isAuthenticated = status === 'authenticated';
   const canSeeTeam1 = hasTeam1AcademyAccess(session?.user?.custom_attributes);
   const visibleMenuSections = menuSections.map((section) => ({
@@ -68,8 +74,11 @@ export function NavbarDropdown() {
       {isOpen && (
         <>
           {/* Dropdown menu — v2 sheet: squared, hairline-ruled ledger */}
+          {/* The privacy banner covers the bottom of the viewport until the visitor answers it. While it
+              shows, the sheet ends above it, so the last items can scroll into view and be tapped.
+              4rem is the sheet top (under the 3.5rem navbar) plus a small gap. */}
           <div
-            className="absolute right-0 top-full mt-2 w-[90vw] max-w-md bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 shadow-[0_12px_24px_-12px_rgb(0_0_0_/_0.15)] z-[100] max-h-[70vh] overflow-y-auto"
+            className="absolute right-0 top-full mt-2 w-[90vw] max-w-md bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 shadow-[0_12px_24px_-12px_rgb(0_0_0_/_0.15)] z-[100] max-h-[calc(100dvh-var(--fd-banner-height,0px)-var(--privacy-banner-inset,0px)-4rem)] overflow-y-auto"
           >
             <div className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
               {/* Controls row: theme + login */}
@@ -105,45 +114,12 @@ export function NavbarDropdown() {
                     <UserRound className="size-4.5" strokeWidth={1.25} />
                   </Link>
                 ) : (
-                  <button
-                    type="button"
-                    aria-label="Login"
-                    title="Login"
-                    className="inline-flex h-8 w-8 items-center justify-center border border-zinc-200 dark:border-zinc-800 text-zinc-500 hover:border-zinc-400 hover:text-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-500 dark:hover:text-zinc-50 transition-colors"
-                    onClick={() => {
-                      setIsOpen(false);
-                      openLoginModal(window.location.href);
-                    }}
-                  >
-                    <UserRound className="size-4.5" strokeWidth={1.25} />
-                  </button>
+                  <AuthButtons onLogIn={() => handleLogin('signin')} onSignUp={() => handleLogin('signup')} />
                 )}
               </div>
               {/* Menu sections */}
               {visibleMenuSections.map((section) => (
-                <div key={section.title} className="flex flex-col px-4 py-3">
-                  <Link
-                    href={section.href}
-                    className="mb-1.5 font-mono text-[10px] tracking-[0.18em] uppercase text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50 transition-colors"
-                  >
-                    {section.title}
-                  </Link>
-                  {section.items.map((item) => (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className="inline-flex items-center gap-2 py-1.5 text-sm text-zinc-700 dark:text-zinc-300 transition-colors hover:text-zinc-950 dark:hover:text-zinc-50"
-                      {...(item.external ? { target: '_blank', rel: 'noreferrer noopener' } : {})}
-                    >
-                      {item.text}
-                      {item.badge ? (
-                        <span className="rounded-full border border-brand/40 px-1.5 py-px font-mono text-[9px] uppercase tracking-[0.1em] text-brand dark:border-brand-soft/40 dark:text-brand-soft">
-                          {item.badge}
-                        </span>
-                      ) : null}
-                    </Link>
-                  ))}
-                </div>
+                <NavSectionBlock key={section.title} section={section} />
               ))}
 
               {/* Single items */}
@@ -164,3 +140,63 @@ export function NavbarDropdown() {
   );
 }
 
+/**
+ * One section of the sheet: its title link, then a two-up row of picture
+ * cards for items that carry an image, then text rows for the rest. A
+ * section with one card puts its text rows in the column beside the card.
+ */
+export function NavSectionBlock({ section }: { section: NavSection }) {
+  const cards = section.items.filter((item): item is NavItem & { image: string } => Boolean(item.image));
+  const rows = section.items.filter((item) => !item.image);
+  const beside = cards.length % 2 === 1 && rows.length > 0;
+  const rowLinks = rows.map((item) => (
+    <Link
+      key={item.href}
+      href={item.href}
+      className={`inline-flex items-center gap-2 text-zinc-700 dark:text-zinc-300 transition-colors hover:text-zinc-950 dark:hover:text-zinc-50 ${beside ? 'whitespace-nowrap py-1 text-[13px]' : 'py-1.5 text-sm'}`}
+      {...(item.external ? { target: '_blank', rel: 'noreferrer noopener' } : {})}
+    >
+      {item.text}
+      {item.badge ? (
+        <span className="rounded-full border border-brand/40 px-1.5 py-px font-mono text-[9px] uppercase tracking-[0.1em] text-brand dark:border-brand-soft/40 dark:text-brand-soft">
+          {item.badge}
+        </span>
+      ) : null}
+    </Link>
+  ));
+  return (
+    <div className="flex flex-col px-4 py-3">
+      <Link
+        href={section.href}
+        className="mb-1.5 font-mono text-[10px] tracking-[0.18em] uppercase text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50 transition-colors"
+      >
+        {section.title}
+      </Link>
+      {cards.length > 0 ? (
+        <div className="grid grid-cols-2 gap-2.5 py-1">
+          {cards.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="flex flex-col gap-1.5 text-sm text-zinc-700 dark:text-zinc-300 transition-colors hover:text-zinc-950 dark:hover:text-zinc-50"
+            >
+              <Image
+                src={item.image}
+                alt=""
+                width={1536}
+                height={864}
+                sizes="208px"
+                className="aspect-video w-full object-cover border border-zinc-200 dark:border-zinc-800"
+              />
+              <span>{item.text}</span>
+            </Link>
+          ))}
+          {beside ? (
+            <div className="flex flex-col border-l border-zinc-200 pl-3 dark:border-zinc-800">{rowLinks}</div>
+          ) : null}
+        </div>
+      ) : null}
+      {beside ? null : rowLinks}
+    </div>
+  );
+}

@@ -3,9 +3,11 @@ import { getTxHistoryStore } from '@/components/toolbox/stores/txHistoryStore';
 import { useConsoleLog } from './use-console-log';
 import { Chain, createPublicClient, http } from 'viem';
 import { classifyEvmTxError } from '@/components/toolbox/lib/evmErrors';
+import { failureText } from '@/components/toolbox/lib/walletRejection';
 import { ReceiptUnknownError, waitForReceiptWithWalletFallback } from '@/components/toolbox/lib/walletReceipt';
 import { usePathname } from 'next/navigation';
 import posthog from 'posthog-js';
+import { revertReasonOf } from '@/lib/trace-revert';
 import l1ChainsData from '@/constants/l1-chains.json';
 import {
   getAllCustomChains,
@@ -56,7 +58,7 @@ const getMessages = (type: EVMTransactionType, name: string) => {
 };
 
 const useEVMNotifications = () => {
-  // Hooks must be called unconditionally — the previous `typeof window !== 'undefined' ? ... : false`
+  // Hooks must be called unconditionally. The previous `typeof window !== 'undefined' ? ... : false`
   // guard skipped the hook on SSR which shifted React's internal hook list between renders and
   // surfaced as transient `Cannot read properties of undefined` errors caught by `StepErrorBoundary`
   // on first mount of phases like ICTT Remote and ICM Demo. Zustand returns the initial state in
@@ -107,7 +109,7 @@ const useEVMNotifications = () => {
           });
 
           // The page's RPC can be blocked (mixed content) or stale while the
-          // wallet's works — a timed-out wait is NOT a failure verdict, the
+          // wallet's works. A timed-out wait is NOT a failure verdict: the
           // tx may have landed (issue #4450). The fallback asks the wallet's
           // transport before deciding; an unresolvable outcome surfaces as
           // ReceiptUnknownError and is handled as unknown in the catch below.
@@ -119,26 +121,10 @@ const useEVMNotifications = () => {
           if (receipt.status === 'reverted') {
             let revertMessage = `Transaction reverted (hash: ${hash})`;
 
-            // On Fuji, auto-trace the failed tx for richer error context
-            if (isTestnet) {
-              try {
-                const traceResp = await fetch('/api/debug-rpc', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    method: 'debug_traceTransaction',
-                    params: [hash, { tracer: 'callTracer', tracerConfig: { onlyTopCall: false } }],
-                  }),
-                });
-                if (traceResp.ok) {
-                  const traceData = await traceResp.json();
-                  const reason = traceData?.result?.revertReason || traceData?.result?.error;
-                  if (reason) revertMessage = `Transaction reverted: ${reason} (hash: ${hash})`;
-                }
-              } catch {
-                // Trace failed, use default message
-              }
-            }
+            // On the C-Chain and Fuji, the indexed trace names the reason
+            // (lib/trace-revert.ts); any other chain keeps the default message
+            const reason = await revertReasonOf(viemChain.id, hash, receipt.blockNumber);
+            if (reason) revertMessage = `Transaction reverted: ${reason} (hash: ${hash})`;
 
             txHistoryState.updateTxStatus(hash, 'failed', revertMessage);
             throw new Error(revertMessage);
@@ -199,7 +185,7 @@ const useEVMNotifications = () => {
           ? classified.message.startsWith("Couldn't confirm")
             ? `${options.name}: ${classified.message}`
             : `Couldn't confirm ${options.name}: ${classified.message}`
-          : messages.error + classified.message;
+          : failureText(messages.error, classified.message);
         const unknownHash =
           (error as { txHash?: string })?.txHash ??
           classified.txHash ??
@@ -214,7 +200,7 @@ const useEVMNotifications = () => {
 
         // Update tx history store if a hash was captured before the error
         // (error might occur during confirmation, not during signing).
-        // Unknown outcomes are NOT recorded as failed — that would be a lie.
+        // Unknown outcomes are NOT recorded as failed: that would be a lie.
         if (!receiptUnknown) {
           getTxHistoryStore(Boolean(isTestnet)).getState().updateTxStatus(
             error?.transactionHash || '',

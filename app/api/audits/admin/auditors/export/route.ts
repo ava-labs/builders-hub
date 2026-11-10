@@ -20,6 +20,7 @@ export async function GET() {
         "firm",
         "quote_email",
         "team_emails",
+        "github_usernames",
         "services",
         "status",
         "invited_at",
@@ -36,6 +37,14 @@ export async function GET() {
         auditor.firm_name,
         auditor.quote_email,
         auditor.members.map((member) => member.email).join("; "),
+        // "email: username" for each person who set one, the quote email first.
+        [
+          { email: auditor.quote_email, github_username: auditor.github_username },
+          ...auditor.members,
+        ]
+          .filter((person) => person.github_username)
+          .map((person) => `${person.email}: ${person.github_username}`)
+          .join("; "),
         auditor.services.join("; "),
         auditor.active ? (auditor.first_login_at ? "active" : "invited") : "inactive",
         auditor.invited_at,

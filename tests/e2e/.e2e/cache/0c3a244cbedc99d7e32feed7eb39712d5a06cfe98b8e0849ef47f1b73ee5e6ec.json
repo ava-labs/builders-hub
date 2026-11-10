@@ -1,0 +1,98 @@
+{
+  "schemaVersion": "trace-1",
+  "createdAt": "2026-10-05T03:19:45.452Z",
+  "payload": {
+    "actions": [
+      {
+        "name": "hover",
+        "summary": "hover over listitem \"Ecosystem\"",
+        "target": {
+          "role": "listitem",
+          "name": "Ecosystem"
+        }
+      },
+      {
+        "name": "tap",
+        "summary": "tap link \"Grants & Funding Research grants and th…\"",
+        "target": {
+          "role": "link",
+          "name": "Grants & Funding Research grants and the Blizzard Fund for your project."
+        }
+      }
+    ],
+    "executor": {
+      "name": "e2e-default-agent",
+      "version": "2"
+    },
+    "recordedFor": {
+      "testId": "ai/journey-site.e2e.ts::visitor%20goes%20from%20the%20home%20page%20to%20Grants%20and%20then%20to%20Integrations",
+      "targetId": "desktop",
+      "instructionDigest": "c4df81fcac1e56948cfc9bef72682ec2fd726255fe99543002093bc59e028db9",
+      "paramsDigest": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "callIndex": 0,
+      "agent": "default"
+    },
+    "summary": "Hovered the Ecosystem nav item, then tapped \"Grants & Funding\" in its menu. The app navigated to /grants, titled \"Grants | Avalanche Builder Hub\". The page shows the \"Grants\" heading and the Grant Programs section.",
+    "startPath": "/",
+    "endPath": "/grants",
+    "endAnchors": [
+      {
+        "text": "Grants"
+      },
+      {
+        "text": "Fund Your Vision"
+      },
+      {
+        "text": "Empowering innovators to build the future of blockchain technology with scalable and sustainable solutions."
+      },
+      {
+        "role": "link",
+        "name": "View Programs"
+      },
+      {
+        "role": "link",
+        "name": "Bug Bounty"
+      },
+      {
+        "role": "heading",
+        "name": "Grant Programs"
+      },
+      {
+        "role": "image",
+        "name": "Call for Research Proposals"
+      },
+      {
+        "role": "heading",
+        "name": "Call for Research Proposals"
+      }
+    ],
+    "goneAnchors": [
+      {
+        "text": "network"
+      },
+      {
+        "text": "."
+      },
+      {
+        "text": "Build an L1"
+      },
+      {
+        "text": "Build on C-Chain"
+      },
+      {
+        "role": "link",
+        "name": "READ THE ARCHITECTURE →"
+      },
+      {
+        "text": "JPMorgan"
+      },
+      {
+        "text": "Franklin Templeton"
+      },
+      {
+        "text": "T. Rowe Price"
+      }
+    ],
+    "endWaitMs": 12523
+  }
+}

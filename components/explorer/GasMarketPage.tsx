@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { rpcCall, useLiveTargetPct } from "@/components/explorer-v2/gas/live-target";
 import { cn } from "@/lib/utils";
 import {
   useExplorerTimeRange,
@@ -14,14 +15,18 @@ import type {
   GasHistoryDays,
   GasHourPoint,
   GasMarket,
-  GasProtocol,
   GasRangeDays,
 } from "@/lib/explorer-clickhouse";
 import type { L1Chain } from "@/types/stats";
-import { LiveReadout } from "@/components/explorer-v2/evm/EvmOverviewStats";
-import { ShareMap, TAIL_TONE } from "@/components/explorer-v2/ShareMap";
-import { dayLong, dayShort, hourLong, truncate } from "@/components/explorer-v2/format";
+import { LiveReadout, type LiveCell } from "@/components/explorer-v2/evm/EvmOverviewStats";
+import { ShareMap } from "@/components/explorer-v2/ShareMap";
+import { dayLong, dayShort, formatDollars, hourLong } from "@/components/explorer-v2/format";
+import { ACTIONS } from "@/lib/fee-market";
 import { ColumnsBlock, TraceBlock, WeekGrid, cellName, type TraceRow } from "@/components/explorer-v2/gas/instruments";
+import { protocolShareParts } from "@/components/explorer-v2/gas/buyers";
+import { GasBurn } from "@/components/explorer-v2/gas/burn";
+import { FLOOR_DAY, FeeMarketNow, FloorNote } from "@/components/explorer-v2/gas/fee-market";
+import { CONTINUOUS_EXECUTION_CHAINS } from "@/components/explorer-v2/evm/useHeadStream";
 
 /* The chain's gas market as one instrument, in depth: what a unit of
    blockspace costs right now (RPC, live), what your transaction costs in
@@ -45,18 +50,6 @@ interface FeeSnapshot {
   tipLowWei: number | null;
   tipMidWei: number | null;
   tipFastWei: number | null;
-}
-
-async function rpcCall(rpcUrl: string, method: string, params: unknown[]): Promise<unknown> {
-  const res = await fetch(rpcUrl, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const body = await res.json();
-  if (body.error) throw new Error(body.error.message);
-  return body.result;
 }
 
 function median(sortedAsc: number[]): number | null {
@@ -197,6 +190,20 @@ export function nanoUnit(symbol?: string): string {
   return symbol === "AVAX" ? "nAVAX" : "gwei";
 }
 
+/** the Base Fee readout, shared by an L1's Gas tab and its chain overview
+ *  (the C-Chain's overview shows the base fee charged: gas/base-fee.ts) */
+export function baseFeeCell(baseFeeWei: number | null, symbol: string | undefined, base: string, values?: number[]): LiveCell {
+  return {
+    label: "Base Fee",
+    live: true,
+    href: `${base}/gas/base-fee`,
+    value: baseFeeWei !== null ? fmtNano(baseFeeWei) : "—",
+    unit: baseFeeWei !== null ? nanoUnit(symbol) : undefined,
+    sub: "per gas",
+    values,
+  };
+}
+
 export function fmtGas(gas: number): string {
   if (gas >= 1e12) return `${(gas / 1e12).toFixed(2)}T`;
   if (gas >= 1e9) return `${(gas / 1e9).toFixed(2)}B`;
@@ -212,19 +219,7 @@ function fmtNative(wei: number): string {
   return v.toExponential(1);
 }
 
-function fmtUsd(usd: number): string {
-  if (usd >= 1) return `$${usd.toFixed(2)}`;
-  if (usd >= 0.01) return `$${usd.toFixed(3)}`;
-  if (usd <= 0) return "$0.00";
-  // sub-cent is where these chains live: keep three significant digits,
-  // however many zeros that takes, instead of hiding behind "<$0.01"
-  const decimals = Math.min(12, Math.ceil(-Math.log10(usd)) + 2);
-  return `$${usd.toFixed(decimals).replace(/0$/, "")}`;
-}
 
-function shortAddr(addr: string): string {
-  return `${addr.slice(0, 8)}…${addr.slice(-4)}`;
-}
 
 /* offline fallback for the classics — the API decodes selectors through
    Sourcify's signature database, but these paint even when that lookup
@@ -256,13 +251,6 @@ export function selectorName(selector: string, decoded?: string | null): string 
   return sig?.split("(")[0] ?? selector;
 }
 
-/* what a transaction costs right now — typical gas of common actions */
-const ACTIONS: { label: string; gas: number }[] = [
-  { label: "Native Transfer", gas: 21_000 },
-  { label: "ERC-20 Transfer", gas: 55_000 },
-  { label: "DEX Swap", gas: 165_000 },
-  { label: "NFT Mint", gas: 120_000 },
-];
 
 
 
@@ -285,106 +273,8 @@ const ACTIONS: { label: string; gas: number }[] = [
 /* ---------------------------------------------------------------- */
 
 
-/* display name: registry protocol, else sourcify name, else short addr */
-function protocolLabel(p: GasProtocol, names: Map<string, string>): string {
-  if (!p.address) return p.name;
-  return names.get(p.address.toLowerCase()) ?? shortAddr(p.address);
-}
-
-/* a protocol opens on its busiest contract in the window */
-function protocolHref(p: GasProtocol, base: string): string | null {
-  const a = p.address ?? p.topContract;
-  return a ? `${base}/address/${a}` : null;
-}
 
 
-/* the treemap's table twin — every figure the tiles can't fit */
-export function ProtocolTable({
-  protocols,
-  names,
-  base,
-  symbol,
-}: {
-  protocols: GasProtocol[];
-  names: Map<string, string>;
-  base: string;
-  symbol: string;
-}) {
-  return (
-    <table className="w-full min-w-[46rem] table-fixed border-collapse">
-      <thead>
-        {/* proportional widths: table-fixed would otherwise hand every
-            spare pixel to the one unsized column and strand the numbers
-            against the right edge */}
-        <tr className="border-b border-zinc-200 text-left dark:border-zinc-800">
-          <th className={cn(PTH, "w-[30%]")}>Buyer</th>
-          <th className={cn(PTH, "w-[14%]")}>Category</th>
-          <th className={cn(PTH, "w-[10%] text-right")}>Gas Share</th>
-          <th className={cn(PTH, "w-[12%] text-right")}>Txs</th>
-          <th className={cn(PTH, "w-[10%] text-right")}>Senders</th>
-          <th className={cn(PTH, "w-[12%] text-right")}>Fees ({symbol})</th>
-          <th className={cn(PTH, "w-[12%] text-right")}>Δ prev</th>
-        </tr>
-      </thead>
-      <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
-        {protocols.map((p) => {
-          const label = protocolLabel(p, names);
-          const href = protocolHref(p, base);
-          return (
-            <tr key={p.key}>
-              <td className={cn(PTD, "truncate")}>
-                {href ? (
-                  <Link
-                    href={href}
-                    className="font-medium text-[#0061E2] hover:underline dark:text-[#5f9dff]"
-                  >
-                    {label}
-                  </Link>
-                ) : (
-                  <span className="text-zinc-700 dark:text-zinc-300">{label}</span>
-                )}
-              </td>
-              <td className={cn(PTD, "font-mono text-[11px] uppercase tracking-[0.08em] text-zinc-500 dark:text-zinc-400")}>
-                {p.category ?? "—"}
-              </td>
-              <td className={cn(PTD, "text-right font-mono tabular-nums text-zinc-700 dark:text-zinc-300")}>
-                {p.sharePct.toFixed(1)}%
-              </td>
-              <td className={cn(PTD, "text-right font-mono tabular-nums text-zinc-500 dark:text-zinc-400")}>
-                {p.txs.toLocaleString()}
-              </td>
-              <td className={cn(PTD, "text-right font-mono tabular-nums text-zinc-500 dark:text-zinc-400")}>
-                {p.senders.toLocaleString()}
-              </td>
-              <td className={cn(PTD, "text-right font-mono tabular-nums text-zinc-500 dark:text-zinc-400")}>
-                {p.feesAvax.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-              </td>
-              <td
-                className={cn(
-                  PTD,
-                  "text-right font-mono tabular-nums",
-                  p.deltaPct === null
-                    ? "text-zinc-400 dark:text-zinc-500"
-                    : p.deltaPct >= 0
-                      ? "text-emerald-600 dark:text-emerald-400"
-                      : "text-[#E6212F]",
-                )}
-              >
-                {p.deltaPct === null
-                  ? "—"
-                  : `${p.deltaPct >= 0 ? "+" : ""}${p.deltaPct.toFixed(0)}%`}
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
-  );
-}
-
-const PTH =
-  "px-5 py-2.5 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500 md:px-6";
-const PTD = "px-5 py-3 text-[13px] md:px-6";
 
 /* ---------------------------------------------------------------- */
 /* the page body                                                     */
@@ -392,6 +282,8 @@ const PTD = "px-5 py-3 text-[13px] md:px-6";
 
 export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: string }) {
   const evmChainId = Number(catalog.chainId);
+  // the C-Chain and Fuji: Continuous Execution, the fee market block and its notes
+  const ce = CONTINUOUS_EXECUTION_CHAINS.has(String(evmChainId));
   const symbol = catalog.networkToken?.symbol ?? "";
   const unit = nanoUnit(symbol);
   const fee = useFeeHistory(catalog.rpcUrl);
@@ -453,6 +345,9 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
   const avgUtil = fee.utilization.length
     ? (fee.utilization.reduce((s, u) => s + u, 0) / fee.utilization.length) * 100
     : null;
+  // against the gas target where the chain has one: the block gas limit is a burst ceiling
+  const liveTarget = useLiveTargetPct(catalog.rpcUrl, evmChainId, FEE_HISTORY_BLOCKS);
+  const shownUtil = liveTarget ?? avgUtil;
 
   const gas24h = useMemo(() => {
     if (!market?.hourly.length) return null;
@@ -474,90 +369,105 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
   const costOf = (gas: number): string => {
     if (effectiveWei === null) return "—";
     const wei = effectiveWei * gas;
-    if (usd !== null) return fmtUsd((wei / 1e18) * usd);
+    if (usd !== null) return formatDollars((wei / 1e18) * usd);
     return usdSettled ? `${fmtNative(wei)} ${symbol}` : "…";
   };
   const reverted = market?.reverted;
   const revertedGasPct = reverted && reverted.gas > 0 ? (reverted.revertedGas / reverted.gas) * 100 : null;
 
-  // the window's base-fee series and its typical value, the median of medians
+  // the window's base-fee series
   const feeSeries = isHourly ? market?.hourly ?? [] : windowedDaily;
   const feeRows = useMemo(() => feeTraceRows(feeSeries), [feeSeries]);
-  const feeTypical = feeSeries.length ? [...feeSeries.map((d) => d.p50)].sort((a, b) => a - b)[Math.floor(feeSeries.length / 2)] : null;
+  // the newest period's median: a median across the window mixes the base fee
+  // before and after the validators raised its minimum (Sep 27, 2026)
+  const feeLatest = feeSeries.length ? feeSeries[feeSeries.length - 1].p50 : null;
+
+  // the load readings: on the C-Chain they sit in the fee market block, beside the base and priority fees
+  const loadCells: LiveCell[] = [
+    {
+      label: "Utilization",
+      live: true,
+      href: `${base}/gas/utilization`,
+      value: shownUtil !== null ? shownUtil.toFixed(1) : "—",
+      unit: shownUtil !== null ? "%" : undefined,
+      sub: liveTarget !== null ? `of target, gas reserved · last ${FEE_HISTORY_BLOCKS} blocks` : `of the block gas limit · last ${FEE_HISTORY_BLOCKS} blocks`,
+      values: fee.utilization.length ? fee.utilization.map((u) => u * 100) : undefined,
+    },
+    {
+      // block headers: since Helicon they carry the gas RESERVED
+      // (the sum of every tx's gas limit), not the gas used
+      label: "Gas Reserved · 24h",
+      href: `${base}/gas/utilization`,
+      value: gas24h !== null ? fmtGas(gas24h) : "—",
+      sub: revertedGasPct !== null && range === "day" ? `${revertedGasPct.toFixed(0)}% by reverts` : "hourly",
+      values: market?.hourly.slice(-24).map((h) => h.gas),
+    },
+  ];
 
   const protocolParts = protocolShareParts(market?.protocols ?? [], names, base);
 
   return (
     <div className="flex flex-col gap-12">
       {/* the answer first, as readout blocks: what things cost this
-          second, and the market those prices come off */}
-      <section className="flex flex-col gap-4">
-        <LiveReadout
-          chainId={String(evmChainId)}
-          cells={[
-            {
-              label: "Base Fee",
-              live: true,
-              href: `${base}/gas/base-fee`,
-              value: fee.baseFeeWei !== null ? fmtNano(fee.baseFeeWei) : "—",
-              unit: fee.baseFeeWei !== null ? unit : undefined,
-              sub: "per gas",
-              values: market?.hourly.map((h) => h.p50),
-            },
-            {
-              label: `Send ${symbol || "tokens"}`,
-              live: true,
-              value: costOf(ACTIONS[0].gas),
-              sub: effectiveWei !== null ? `${fmtNano(effectiveWei * ACTIONS[0].gas)} ${unit}` : undefined,
-            },
-            {
-              label: "DEX Swap",
-              live: true,
-              value: costOf(ACTIONS[2].gas),
-              sub: `~${(ACTIONS[2].gas / 1000).toFixed(0)}K gas`,
-            },
-            {
-              label: "Utilization",
-              live: true,
-              href: `${base}/gas/utilization`,
-              value: avgUtil !== null ? avgUtil.toFixed(1) : "—",
-              unit: avgUtil !== null ? "%" : undefined,
-              sub: `last ${FEE_HISTORY_BLOCKS} blocks`,
-              values: fee.utilization.length ? fee.utilization.map((u) => u * 100) : undefined,
-            },
-            {
-              // block headers: since Helicon they carry the gas RESERVED
-              // (the sum of every tx's gas limit), not the gas used
-              label: "Gas Reserved · 24h",
-              href: `${base}/gas/utilization`,
-              value: gas24h !== null ? fmtGas(gas24h) : "—",
-              sub: revertedGasPct !== null && range === "day" ? `${revertedGasPct.toFixed(0)}% by reverts` : "hourly",
-              values: market?.hourly.slice(-24).map((h) => h.gas),
-            },
-          ]}
+          second, and the market those prices come off; on the C-Chain the
+          fee market block prices a tx and holds the load readings */}
+      {ce ? (
+        <FeeMarketNow
+          rpcUrl={catalog.rpcUrl}
+          symbol={symbol || "AVAX"}
+          usd={usd}
+          usdSettled={usdSettled}
+          base={base}
+          load={loadCells}
         />
-        <p className="font-mono text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500">
-          Priced at the live base fee plus the median priority tip, with typical gas per action
-          {usd !== null ? `, ${symbol} at $${usd >= 1 ? usd.toFixed(2) : usd.toPrecision(3)}` : ""}. An ERC-20 transfer costs {costOf(ACTIONS[1].gas)} and an NFT mint {costOf(ACTIONS[3].gas)}. Real costs vary by contract.
-        </p>
-      </section>
+      ) : (
+        <section className="flex flex-col gap-4">
+          <LiveReadout
+            chainId={String(evmChainId)}
+            cells={[
+              baseFeeCell(fee.baseFeeWei, symbol, base, market?.hourly.map((h) => h.p50)),
+              {
+                label: `Send ${symbol || "tokens"}`,
+                live: true,
+                value: costOf(ACTIONS[0].gas),
+                sub: effectiveWei !== null ? `${fmtNano(effectiveWei * ACTIONS[0].gas)} ${unit}` : undefined,
+              },
+              {
+                label: "DEX Swap",
+                live: true,
+                value: costOf(ACTIONS[2].gas),
+                sub: `~${(ACTIONS[2].gas / 1000).toFixed(0)}K gas`,
+              },
+              ...loadCells,
+            ]}
+          />
+          <p className="font-mono text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500">
+            Priced at the live base fee plus the median priority tip, with typical gas per action
+            {usd !== null ? `, ${symbol} at $${usd >= 1 ? usd.toFixed(2) : usd.toPrecision(3)}` : ""}. An ERC-20 transfer costs {costOf(ACTIONS[1].gas)} and an NFT mint {costOf(ACTIONS[3].gas)}. Real costs vary by contract.
+          </p>
+        </section>
+      )}
 
       {/* the fee over the clock beside the last blocks' fullness */}
       <div className="grid grid-cols-1 items-start gap-x-6 gap-y-8 lg:grid-cols-2">
         {feeRows.length ? (
-          <TraceBlock
-            label="Base Fee"
-            note={isHourly ? "last 48 hours" : null}
-            href={`${base}/gas/base-fee`}
-            figure={feeTypical !== null ? fmtFee(feeTypical) : "—"}
-            unit={unit}
-            sub={`typical ${isHourly ? "hour" : "day"} · the band holds the middle half of blocks`}
-            legend={<BandKey unit={unit} />}
-            rows={feeRows}
-            band
-            fmt={fmtFee}
-            tip={(r) => <FeeTip r={r} unit={unit} />}
-          />
+          <div className="flex flex-col gap-3">
+            <TraceBlock
+              label="Base Fee"
+              note={isHourly ? "last 48 hours" : null}
+              href={`${base}/gas/base-fee`}
+              figure={feeLatest !== null ? fmtFee(feeLatest) : "—"}
+              unit={unit}
+              sub={`median of the latest ${isHourly ? "hour" : "day"} · the band holds the middle half of blocks`}
+              legend={<BandKey unit={unit} />}
+              rows={feeRows}
+              band
+              fmt={fmtFee}
+              tip={(r) => <FeeTip r={r} unit={unit} />}
+            />
+            {/* mainnet history, where the window shows the step */}
+            {evmChainId === 43114 && feeRows.some((r) => r.key === FLOOR_DAY) && <FloorNote />}
+          </div>
         ) : (
           <HistoryEmpty missing={isHourly ? marketMissing : historyMissing} />
         )}
@@ -610,6 +520,9 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
           />
         </div>
       )}
+
+      {/* the AVAX the gas cost: burned per day, and who paid the most of it */}
+      <GasBurn chainId={evmChainId} base={base} range={range} usd={usd} />
 
       {/* the longer record, and when blockspace is cheap */}
       <div className="grid grid-cols-1 items-start gap-x-6 gap-y-8 lg:grid-cols-2">
@@ -672,7 +585,7 @@ export function FeeTip({ r, unit }: { r: TraceRow; unit: string }) {
 }
 
 /* the Helicon date inside a daily series, if the window holds it */
-const HELICON_DAY = "2026-09-22";
+export const HELICON_DAY = "2026-09-22";
 
 export function HeliconNote() {
   return (
@@ -735,23 +648,6 @@ export function WeekBlock({ cells, unit, href, stale, note }: { cells: GasMarket
 }
 
 
-/** the buyers as share-map parts; the long-tail group is a remainder, so it closes the strip */
-export function protocolShareParts(protocols: GasProtocol[], names: Map<string, string>, base: string) {
-  return [...protocols].sort((a, b) => Number(/long tail/i.test(a.name) && !a.address) - Number(/long tail/i.test(b.name) && !b.address)).map((p) => {
-    const tail = !p.address && /long tail/i.test(p.name);
-    const named = p.address ? names.get(p.address.toLowerCase()) : p.name;
-    return {
-      key: p.key,
-      label: named ?? (p.address ? truncate(p.address, 10) : p.name),
-      value: p.gas,
-      mono: !named,
-      href: protocolHref(p, base) ?? undefined,
-      sub: [p.category, `${p.txs.toLocaleString("en-US")} txs`, `${p.senders.toLocaleString("en-US")} sender${p.senders === 1 ? "" : "s"}`].filter(Boolean).join(" · "),
-      detail: p.address ?? undefined,
-      tone: tail ? TAIL_TONE : undefined,
-    };
-  });
-}
 
 /* legend chip for the band charts — the one place identity needs naming */
 export function BandKey({ unit }: { unit: string }) {

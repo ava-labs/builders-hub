@@ -38,7 +38,7 @@ export function isReferralTargetType(value: unknown): value is ReferralTargetTyp
 export function getDefaultReferralDestination(targetType: ReferralTargetType): string {
   switch (targetType) {
     case "bh_signup":
-      return "/";
+      return "/signup";
     case "hackathon_registration":
       return "/events/registration-form";
     case "build_games_application":

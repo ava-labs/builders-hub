@@ -5,7 +5,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Board, SectionHeader, StatCell, StatDash, StatFigure, StatStrip, HEAD, LoadMore } from "@/components/explorer-v2/ui";
 import { formatAvax, timeAgo } from "@/components/explorer-v2/format";
-import { NotFound } from "@/components/explorer-v2/pchain/PchainTx";
+import { NotFound } from "@/components/explorer-v2/detail-parts";
 import {
   VersionBreakdownCard,
   calculateVersionStats,

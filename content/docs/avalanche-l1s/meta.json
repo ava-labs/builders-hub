@@ -17,6 +17,7 @@
     "---EVM Configuration---",
     "...evm-configuration/evm-l1-customization",
     "...evm-configuration/customize-avalanche-l1",
+    "add-utility/deploy-smart-contract",
     "precompiles",
     "custom-precompiles",
     "---Custom Virtual Machines---",

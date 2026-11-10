@@ -21,6 +21,7 @@ const submittable = (attachments: unknown) => ({
   needed_by: new Date(),
   contact_name: "A",
   contact_email: "a@b.example",
+  nsloc: 4200,
   attachments,
 });
 

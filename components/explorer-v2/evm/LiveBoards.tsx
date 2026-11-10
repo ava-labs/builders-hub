@@ -6,13 +6,16 @@ import { motion } from "framer-motion";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Board, SectionHeader, HEAD, ROW, INK, MUTED, RowSkeleton, idInk, fnInk, feeInk, RowDoor } from "@/components/explorer-v2/ui";
-import { formatNumber, truncate, ageShort } from "@/components/explorer-v2/format";
+import { truncate, ageShort } from "@/components/explorer-v2/format";
+import { Belt, Height, MotionRow, PHONE_ROWS, ROWS, ROW_H, ViewAll, useFreeze, useOpening } from "./belt";
 import { prewarmContractNames, useVerifiedContracts } from "@/lib/sourcify-client";
 import { useMethodNames } from "./bits";
 import { knownAddress } from "@/lib/evm-explorer";
-import { useTokenList, formatTokenAmount, type TokenInfo } from "@/lib/token-list";
+import { useTokenList, type TokenInfo } from "@/lib/token-list";
 import { TokenMark } from "./TokenMark";
 import { CONTINUOUS_EXECUTION_CHAINS, type Head } from "./useHeadStream";
+import { useTicker } from "@/components/explorer-v2/network/ticker";
+import { txNewer, type TxRow } from "./tx-window";
 
 /* The home page's two live boards, in the ledger's own grammar: one line
    per row, a header naming every column, ink for identity, one
@@ -28,6 +31,8 @@ import { CONTINUOUS_EXECUTION_CHAINS, type Head } from "./useHeadStream";
    leave thinking the chain is fast, because it is. */
 
 export { HEAD, ROW, INK, MUTED, RowSkeleton, ageShort };
+// the belt's parts, for the pages that set them with the boards
+export { Belt, Height, MotionRow, PHONE_ROWS, ROWS, ROW_H, ViewAll, useFreeze, useOpening };
 
 /** a transferred amount beside its method: two places when it is money,
  *  four when it is small, a floor when it is dust */
@@ -36,12 +41,6 @@ export function fmtAmount(v: number): string {
   if (v >= 1) return v.toFixed(2);
   if (v >= 0.0001) return v.toFixed(4);
   return "<0.0001";
-}
-
-/** A height, every digit in the same ink: the belt's motion already
- *  says which row is new, so the number itself stays quiet and even. */
-export function Height({ value }: { value: number }) {
-  return <span className={INK}>{formatNumber(value)}</span>;
 }
 
 /** Gas as the row's one bar: fills the column, no percent beside it. A full
@@ -66,13 +65,13 @@ export function phaseOf(number: number, executedHeight: number | null, settledHe
   return "accepted";
 }
 
-const PHASE_TITLE: Record<Phase, string> = {
-  accepted: "final: accepted by consensus; state root pending",
-  executed: "final: state root pending, committed by a later block",
+export const PHASE_TITLE: Record<Phase, string> = {
+  accepted: "final: accepted by consensus; the state root is not committed yet",
+  executed: "final: executed; a later block commits the state root",
   settled: "final: state root committed",
 };
 
-/** The state root as one mark and one word. Pending: a light gray dot
+/** The state root as one mark and one word. Accepted: a light gray dot
  *  that breathes, every dot on the page in the same phase, because they
  *  are all the same wait. Committed: the dot settles solid and darker and
  *  the word turns over. No bar, no fill: the commit lands whenever the
@@ -126,7 +125,7 @@ export function PhaseTrack({
       />
       {label && (
         <motion.span
-          key={committed ? "committed" : "pending"}
+          key={committed ? "committed" : "accepted"}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.4, delay: committed ? delayMs / 1000 : 0 }}
@@ -135,132 +134,11 @@ export function PhaseTrack({
             committed ? "text-zinc-500 dark:text-zinc-400" : "text-zinc-400 dark:text-zinc-500",
           )}
         >
-          {committed ? "committed" : "pending"}
+          {committed ? "committed" : "accepted"}
         </motion.span>
       )}
     </span>
   );
-}
-
-/* ------------------------------------------------------------------ */
-/* Motion: the board is a belt. It shows ROWS rows in a clip window one
-   row taller than it looks; a newcomer slides in from above and pushes
-   every row down together, the last one slides out under the clip line
-   and is dropped once hidden. One curve everywhere, the tape's: sharp
-   attack, long decay. */
-
-const EASE = [0.22, 1, 0.36, 1] as const;
-const ROWS = 10;
-/** row pitch: the 44 px row plus its 1 px rule */
-export const ROW_H = 45;
-
-export function Belt({ children, rows = ROWS }: { children: React.ReactNode; rows?: number }) {
-  return (
-    // one row past the window exists for the slide-out; on small screens
-    // rows are two lines tall and the window cannot be fixed, so the
-    // caller hides the extra row itself
-    <div className="relative md:overflow-hidden" style={{ ["--belt-h" as string]: `${rows * ROW_H}px` }}>
-      <div className="md:h-(--belt-h)">{children}</div>
-    </div>
-  );
-}
-
-export function MotionRow({
-  children,
-  animateIn,
-  overflow = false,
-}: {
-  children: React.ReactNode;
-  animateIn: boolean;
-  /** the row past the window: present for the slide-out on desktop,
-   *  hidden on small screens where the window is not fixed */
-  overflow?: boolean;
-}) {
-  return (
-    <motion.div
-      layout="position"
-      initial={animateIn ? { y: -ROW_H, opacity: 0 } : false}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.5, ease: EASE }}
-      className={cn("border-b border-zinc-200 dark:border-zinc-800", overflow && "max-md:hidden")}
-    >
-      {children}
-    </motion.div>
-  );
-}
-
-/* A stream arrives in bursts (a 30-tx block lands as one poll) but should
-   read as a ticker. Newcomers wait in a queue and are released one at a
-   time; the cadence tightens as the backlog grows so the board never
-   falls far behind the chain. */
-export function useDrip<T extends { hash: string }>(
-  incoming: T[],
-  visibleMax: number,
-  enabled: boolean,
-  onEnqueue?: (items: T[]) => void,
-  /** hold the belt still (the pointer is over it); newcomers queue up and
-   *  catch up, skipping ahead if needed, once released */
-  paused = false,
-): T[] {
-  const [visible, setVisible] = useState<T[]>([]);
-  const queue = useRef<T[]>([]);
-  const pausedRef = useRef(paused);
-  pausedRef.current = paused;
-  const seen = useRef(new Set<string>());
-  const painted = useRef(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    if (!enabled) return;
-    // incoming is newest-first; queue oldest-first so release order is
-    // chronological, and the very first batch paints whole
-    const fresh = incoming.filter((t) => !seen.current.has(t.hash));
-    if (!fresh.length) return;
-    for (const t of fresh) seen.current.add(t.hash);
-    if (seen.current.size > 2000) seen.current = new Set([...seen.current].slice(-1000));
-    onEnqueue?.(fresh);
-    if (!painted.current) {
-      painted.current = true;
-      setVisible(fresh.slice(0, visibleMax));
-      return;
-    }
-    queue.current.push(...fresh.slice().reverse());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [incoming, enabled]);
-
-  useEffect(() => {
-    if (!enabled) return;
-    let cancelled = false;
-    const tick = () => {
-      if (cancelled) return;
-      const q = queue.current;
-      if (q.length && !pausedRef.current) {
-        // far behind: skip to the newest window rather than replaying
-        // history. The ticker stays calm and near-real-time; the tab
-        // behind "View all" has every transaction.
-        if (q.length > visibleMax * 3) q.splice(0, q.length - visibleMax * 2);
-        const next = q.shift()!;
-        setVisible((v) => [next, ...v].slice(0, visibleMax));
-      }
-      const backlog = queue.current.length;
-      const delay = backlog > 20 ? 160 : backlog > 6 ? 230 : 320;
-      timer.current = setTimeout(tick, delay);
-    };
-    timer.current = setTimeout(tick, 320);
-    return () => {
-      cancelled = true;
-      if (timer.current) clearTimeout(timer.current);
-    };
-  }, [enabled, visibleMax]);
-
-  return enabled ? visible : incoming.slice(0, visibleMax);
-}
-
-/** the last value seen before `frozen` went true, until it goes false */
-export function useFreeze<T>(value: T, frozen: boolean): T {
-  const held = useRef(value);
-  if (!frozen) held.current = value;
-  return frozen ? held.current : value;
 }
 
 /* ------------------------------------------------------------------ */
@@ -306,6 +184,8 @@ export function LatestBlocksBoard({
   const [hover, setHover] = useState(false);
   const shown = useFreeze({ rows: incomingRows, tip, executedHeight }, hover);
   const rows = shown.rows;
+  // the rows it opens with stand still (a page opened from memory has them at once)
+  const opening = useOpening(rows, (b) => String(b.number));
   return (
     <section className="flex flex-col gap-4">
       <SectionHeader
@@ -337,10 +217,14 @@ export function LatestBlocksBoard({
         {loading && rows.length === 0 && <RowSkeleton n={ROWS} />}
         <Belt>
           {rows.map((b, i) => (
-            <MotionRow key={b.number} animateIn overflow={i >= ROWS}>
+            <MotionRow key={b.number} animateIn={!opening.has(String(b.number))} overflow={i >= PHONE_ROWS}>
               <Link href={`${base}/block/${b.number}`} className={cn(ROW, cols)}>
                 <Height value={b.number} />
-                <span className={cn(INK, "md:text-right")}>{b.txCount}</span>
+                {/* phones drop the header row, so the count names its unit */}
+                <span className={cn(INK, "text-right")}>
+                  {b.txCount}
+                  <span className="text-zinc-400 md:hidden dark:text-zinc-500"> tx</span>
+                </span>
                 <span className="col-span-2 md:col-span-1">
                   <GasBar used={b.gasUsed} limit={b.gasLimit} />
                 </span>
@@ -364,25 +248,6 @@ export function LatestBlocksBoard({
 /* ------------------------------------------------------------------ */
 /* Transactions: status · hash · method · from → to · fee               */
 
-/** one row, whichever feed it came from: the settlement stream carries
- *  its fee (receipt), the indexer fallback leaves it null and the board
- *  fetches receipts itself */
-export interface TxRow {
-  hash: string;
-  blockNumber: number;
-  from: string;
-  to: string; // "" for contract creation
-  value: string; // wei, decimal string
-  methodId: string;
-  success: boolean;
-  feeWei: number | null;
-  /** "100.00 USDT": a decoded ERC-20 transfer amount, when the feed had
-   *  calldata and the list knows the token */
-  tokenAmount?: string | null;
-  /** unix seconds, when the feed carries it (the list page shows age) */
-  timestamp?: number;
-}
-
 /** A party to the tx: the token list's mark when it is a token, else the
  *  verified name when Sourcify has one, a protocol fixture's label, else
  *  the truncated address */
@@ -394,6 +259,7 @@ export function Party({
   href,
   len = 6,
   full = false,
+  column = false,
 }: {
   addr: string;
   name: string | null | undefined;
@@ -405,8 +271,12 @@ export function Party({
   /** the whole address where the column has room (the list page); the
    *  row's own grid decides, so nothing is cut that did not have to be */
   full?: boolean;
+  /** the sender in a from → to cell: as wide as its short address in every
+   *  row, so each row's arrow and recipient start on the same line; a longer
+   *  name is cut */
+  column?: boolean;
 }) {
-  const fixture = knownAddress(addr);
+  const fixture = knownAddress(addr, chainId);
   const label = name ?? fixture?.label;
   const inner =
     token && chainId ? (
@@ -423,12 +293,15 @@ export function Party({
     ) : (
       <span className={cn("truncate", idInk)}>{truncate(addr, len)}</span>
     );
+  // a short address is len characters, the ellipsis and four; a whole one 42
+  const fixed = column ? (full ? "w-[15ch] shrink-0 min-[1400px]:w-[42ch]" : "shrink-0") : undefined;
+  const width = column && !full ? { width: `${len + 5}ch` } : undefined;
   return href ? (
-    <Link href={href} title={addr} className="flex min-w-0 items-center hover:text-[#E6212F] [&>*]:hover:text-[#E6212F]" onClick={(e) => e.stopPropagation()}>
+    <Link href={href} title={addr} className={cn("flex min-w-0 items-center hover:text-[#E6212F] [&>*]:hover:text-[#E6212F]", fixed)} style={width} onClick={(e) => e.stopPropagation()}>
       {inner}
     </Link>
   ) : (
-    <span className="flex min-w-0 items-center" title={addr}>
+    <span className={cn("flex min-w-0 items-center", fixed)} style={width} title={addr}>
       {inner}
     </span>
   );
@@ -448,21 +321,21 @@ export function LatestTxsBoard({
   symbol: string;
   base: string;
   loading: boolean;
-  /** rows arrive from the receipts stream; enter with motion */
+  /** the chain streams its receipts: the board is a ticker, and a row
+   *  that comes after the first paint slides in */
   streaming: boolean;
 }) {
   // the ticker: one row at a time, names warmed before a row is released;
   // it holds still while the pointer is over it so a row can be clicked
   const [hover, setHover] = useState(false);
-  const rows = useDrip(
-    txs,
-    ROWS + 1,
-    streaming,
-    (fresh) => {
-      void prewarmContractNames(chainId, fresh.map((t) => t.to));
-    },
-    hover,
-  );
+  const rows = useTicker(txs, ROWS + 1, {
+    key: (t) => t.hash,
+    newer: txNewer,
+    paused: hover,
+    onEnqueue: (fresh) => void prewarmContractNames(chainId, fresh.map((t) => t.to)),
+    enabled: streaming,
+  });
+  const opening = useOpening(rows, (t) => t.hash);
   const tokens = useTokenList(chainId);
   const contracts = useVerifiedContracts(chainId, rows.map((t) => t.to));
   const method = useMethodNames(chainId, rows);
@@ -493,20 +366,23 @@ export function LatestTxsBoard({
           const m = method(t);
           const value = Number(t.value);
           return (
-            <MotionRow key={t.hash} animateIn={streaming} overflow={i >= ROWS}>
+            <MotionRow key={t.hash} animateIn={streaming && !opening.has(t.hash)} overflow={i >= PHONE_ROWS}>
             <RowDoor href={`${base}/tx/${t.hash}`} className={cn(ROW, cols)}>
-              {/* status: a red X only when it reverted, the row stays quiet otherwise */}
-              <span className="flex h-3 w-3 items-center justify-center">
+              {/* status: a red X only when it reverted, the row stays quiet otherwise.
+                  Phones stack the row as hash and method, the parties across,
+                  then value and fee; the X rides the hash there */}
+              <span className="flex h-3 w-3 items-center justify-center max-md:hidden">
                 {!t.success && <X className="h-3 w-3 text-[#E6212F]" strokeWidth={2.5} aria-label="reverted" />}
               </span>
-              <Link href={`${base}/tx/${t.hash}`} className={cn(INK, idInk, "truncate hover:text-[#E6212F]")} onClick={(e) => e.stopPropagation()}>
-                {truncate(t.hash, 6)}
+              <Link href={`${base}/tx/${t.hash}`} className={cn(INK, idInk, "flex min-w-0 items-center gap-1.5 hover:text-[#E6212F]")} onClick={(e) => e.stopPropagation()}>
+                {!t.success && <X className="h-3 w-3 shrink-0 text-[#E6212F] md:hidden" strokeWidth={2.5} aria-label="reverted" />}
+                <span className="truncate">{truncate(t.hash, 6)}</span>
               </Link>
-              <span className={cn("truncate font-mono text-[12px]", m.named ? fnInk : "text-zinc-400 dark:text-zinc-500")} title={t.methodId || undefined}>
+              <span className={cn("truncate font-mono text-[12px] max-md:text-right", m.named ? fnInk : "text-zinc-400 dark:text-zinc-500")} title={t.methodId || undefined}>
                 {m.label}
               </span>
-              <span className="flex min-w-0 items-center gap-2 font-mono text-[12px] text-zinc-500 dark:text-zinc-400">
-                <Party addr={t.from} name={null} href={`${base}/address/${t.from}`} />
+              <span className="flex min-w-0 items-center gap-2 font-mono text-[12px] text-zinc-500 max-md:col-span-2 dark:text-zinc-400">
+                <Party addr={t.from} name={null} href={`${base}/address/${t.from}`} column />
                 <span className="shrink-0 text-zinc-300 dark:text-zinc-700">→</span>
                 {t.to ? (
                   <Party
@@ -534,7 +410,7 @@ export function LatestTxsBoard({
                   <span className="text-zinc-300 dark:text-zinc-700">—</span>
                 )}
               </span>
-              <span className={cn("font-mono text-[12.5px] tabular-nums md:text-right", feeInk)}>
+              <span className={cn("font-mono text-[12.5px] tabular-nums text-right", feeInk)}>
                 {t.feeWei !== null ? (
                   <>
                     {(t.feeWei / 1e18).toFixed(6)} <span className="text-[11px] text-zinc-400 dark:text-zinc-500">{symbol}</span>
@@ -554,17 +430,3 @@ export function LatestTxsBoard({
     </section>
   );
 }
-
-/* ------------------------------------------------------------------ */
-
-function ViewAll({ href }: { href: string }) {
-  return (
-    <Link
-      href={href}
-      className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-[#E6212F] dark:text-zinc-500"
-    >
-      View all →
-    </Link>
-  );
-}
-

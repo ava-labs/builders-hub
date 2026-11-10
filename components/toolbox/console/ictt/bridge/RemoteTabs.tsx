@@ -4,7 +4,7 @@ import { Plus, X } from 'lucide-react';
 import { useL1ByChainId } from '@/components/toolbox/stores/l1ListStore';
 import { cn } from '@/lib/utils';
 import type { Remote } from './types';
-import { chainAccent } from './utils/chain-color';
+import { Dot, Empty, TextAction, type Tone } from './ui';
 
 interface RemoteTabsProps {
   remotes: Remote[];
@@ -25,24 +25,19 @@ export function RemoteTabs({
 }: RemoteTabsProps) {
   if (remotes.length === 0) {
     return (
-      <div
-        className={cn(
-          'flex items-center justify-between gap-2 rounded-xl border border-dashed border-emerald-300/60 bg-emerald-50/40 px-3 py-2 text-sm dark:border-emerald-900/60 dark:bg-emerald-950/20',
-          className,
-        )}
+      <Empty
+        eyebrow="Remotes"
+        className={className}
+        action={
+          onAddRemote && (
+            <TextAction icon={Plus} onClick={onAddRemote}>
+              Deploy first remote
+            </TextAction>
+          )
+        }
       >
-        <span className="text-emerald-800 dark:text-emerald-300">No remotes deployed yet.</span>
-        {onAddRemote && (
-          <button
-            type="button"
-            onClick={onAddRemote}
-            className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-2.5 py-1 text-xs font-medium text-white shadow-sm transition-colors hover:bg-emerald-500"
-          >
-            <Plus className="h-3 w-3" aria-hidden />
-            Deploy first remote
-          </button>
-        )}
-      </div>
+        No remotes deployed yet.
+      </Empty>
     );
   }
 
@@ -54,7 +49,10 @@ export function RemoteTabs({
     <div
       role="tablist"
       aria-label="Remote chains"
-      className={cn('inline-flex items-center gap-1 rounded-lg bg-zinc-100/80 p-1 dark:bg-zinc-800/60', className)}
+      className={cn(
+        'flex items-center gap-5 overflow-x-auto border-b border-zinc-200 [scrollbar-width:none] dark:border-zinc-800',
+        className,
+      )}
     >
       {remotes.map((remote) => (
         <RemoteTab
@@ -66,17 +64,14 @@ export function RemoteTabs({
         />
       ))}
       {onAddRemote && (
-        <>
-          <span aria-hidden className="mx-0.5 h-4 w-px bg-zinc-200 dark:bg-zinc-700" />
-          <button
-            type="button"
-            onClick={onAddRemote}
-            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-zinc-500 transition-colors hover:text-zinc-900 dark:hover:text-zinc-100"
-          >
-            <Plus className="h-3 w-3" aria-hidden />
-            Add remote
-          </button>
-        </>
+        <button
+          type="button"
+          onClick={onAddRemote}
+          className="-mb-px inline-flex shrink-0 items-center gap-1.5 border-b-2 border-transparent pb-2.5 font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-400 underline-offset-4 transition-colors hover:text-zinc-900 hover:underline dark:text-zinc-500 dark:hover:text-zinc-100"
+        >
+          <Plus className="h-3 w-3" aria-hidden />
+          Add remote
+        </button>
       )}
     </div>
   );
@@ -91,24 +86,21 @@ interface RemoteTabProps {
 
 function RemoteTab({ remote, isActive, onSelect, onRemoveFromView }: RemoteTabProps) {
   const l1 = useL1ByChainId(remote.l1Id) ?? null;
-  const accent = chainAccent(remote.l1Id);
   const isReady = Boolean(remote.registeredAt && remote.collateralizedAt);
   const isRegistered = Boolean(remote.registeredAt);
 
-  const dotClass = isReady ? 'bg-emerald-500' : isRegistered ? 'bg-amber-400' : accent.dot;
+  const tone: Tone = isReady ? 'ok' : isRegistered ? 'pending' : 'idle';
   const tooltip = isReady
-    ? 'Live — registered and collateralized'
+    ? 'Live: registered and collateralized'
     : isRegistered
-      ? 'Registered — needs collateral'
+      ? 'Registered: needs collateral'
       : 'Not registered';
 
   return (
     <span
       className={cn(
-        'group/tab inline-flex items-center gap-0.5 rounded-md text-xs font-medium transition-colors',
-        isActive
-          ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-900 dark:text-zinc-100'
-          : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100',
+        'group/tab -mb-px inline-flex shrink-0 items-center gap-1 border-b-2 pb-2.5 transition-colors',
+        isActive ? 'border-[#E6212F]' : 'border-transparent',
       )}
     >
       <button
@@ -116,11 +108,16 @@ function RemoteTab({ remote, isActive, onSelect, onRemoveFromView }: RemoteTabPr
         role="tab"
         aria-selected={isActive}
         onClick={() => onSelect(remote.id)}
-        className="inline-flex items-center gap-1.5 px-2.5 py-1"
+        className={cn(
+          'inline-flex items-center gap-2 font-mono text-[11px] font-bold uppercase tracking-[0.18em] transition-colors',
+          isActive
+            ? 'text-zinc-900 dark:text-zinc-50'
+            : 'text-zinc-400 hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100',
+        )}
         title={tooltip}
       >
-        <span aria-hidden className={cn('h-1.5 w-1.5 rounded-full', dotClass)} />
-        <span className="max-w-[120px] truncate">{l1?.name ?? 'Unknown chain'}</span>
+        <Dot tone={tone} />
+        <span className="max-w-[140px] truncate">{l1?.name ?? 'Unknown chain'}</span>
       </button>
       {onRemoveFromView && (
         <button
@@ -136,7 +133,7 @@ function RemoteTab({ remote, isActive, onSelect, onRemoveFromView }: RemoteTabPr
                   );
             if (ok) onRemoveFromView(remote.id);
           }}
-          className="mr-1 rounded p-0.5 text-zinc-400 opacity-0 transition-opacity group-hover/tab:opacity-100 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-200"
+          className="p-0.5 text-zinc-400 opacity-0 transition-opacity group-hover/tab:opacity-100 hover:text-[#E6212F] focus:opacity-100"
         >
           <X className="h-3 w-3" />
         </button>

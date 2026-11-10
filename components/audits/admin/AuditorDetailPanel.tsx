@@ -31,6 +31,7 @@ import { AUDITS_DIALOG, MONO_LABEL_META, MONO_LABEL_SM } from "@/components/audi
 import { formatIsoDate, monogramOf } from "@/components/audits/shared/format";
 import { isAllowedLogoSrc } from "@/lib/audits/logoSrc";
 import { LogoControl } from "@/components/audits/shared/LogoControl";
+import { GithubUsername } from "@/components/audits/shared/GithubUsername";
 
 export type PanelState = { mode: "add" } | { mode: "edit"; auditor: AdminAuditorRow } | null;
 
@@ -53,8 +54,9 @@ export function AuditorDetailPanel({ state, onClose }: AuditorDetailPanelProps) 
   const [services, setServices] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   // Team emails keep the sheet open: this list is the truth while it is open,
-  // router.refresh() syncs the table underneath.
-  const [members, setMembers] = useState<AdminAuditorMember[]>([]);
+  // router.refresh() syncs the table underneath. Seeded from the row so the
+  // first paint already lists the team; the effect below resyncs it.
+  const [members, setMembers] = useState<AdminAuditorMember[]>(auditor?.members ?? []);
   const [memberEmail, setMemberEmail] = useState("");
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
   const [website, setWebsite] = useState("");
@@ -166,6 +168,7 @@ export function AuditorDetailPanel({ state, onClose }: AuditorDetailPanelProps) 
           email: body.member.email,
           invited_at: new Date(body.member.invited_at),
           first_login_at: null,
+          github_username: null,
         },
       ]);
       setMemberEmail("");
@@ -238,6 +241,10 @@ export function AuditorDetailPanel({ state, onClose }: AuditorDetailPanelProps) 
                   "Vetted by security first."
                 )}
               </SheetDescription>
+              {/* The quote-email person's own, set from the portal; read-only here. */}
+              {auditor ? (
+                <GithubUsername value={auditor.github_username} className="mt-0.5" />
+              ) : null}
             </div>
             {auditor ? (
               <label className="flex shrink-0 items-center gap-2 text-sm text-zinc-600 dark:text-zinc-300">
@@ -401,9 +408,10 @@ export function AuditorDetailPanel({ state, onClose }: AuditorDetailPanelProps) 
                 ) : (
                   members.map((member) => (
                     <li key={member.id} className="flex items-center gap-3 px-3.5 py-2.5 text-sm">
-                      <span className="min-w-0 flex-1 truncate font-mono text-[13px]">
-                        {member.email}
-                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-mono text-[13px]">{member.email}</p>
+                        <GithubUsername value={member.github_username} />
+                      </div>
                       <span className={MONO_LABEL_META}>
                         {member.first_login_at
                           ? "active"

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Steps, Step } from '@/components/toolbox/components/Steps';
 import { Input, type Suggestion } from '@/components/toolbox/components/Input';
 import InitiateDelegatorRemoval from '@/components/toolbox/console/permissionless-l1s/withdraw/InitiateDelegatorRemoval';
 import CompleteDelegatorRemoval from '@/components/toolbox/console/permissionless-l1s/withdraw/CompleteDelegatorRemoval';
@@ -173,13 +173,12 @@ export default function RemoveDelegationBase({ tokenType, onSuccess }: RemoveDel
 
   return (
     <div className="space-y-6">
-      {globalError && <Alert variant="error">Error: {globalError}</Alert>}
-
+      {/* Each step's tool shows its own error next to its button. globalError only shows the reset button. */}
       <Steps>
         <L1SubnetStep
           subnetId={l1State.subnetIdL1}
           onSubnetIdChange={l1State.setSubnetIdL1}
-          description="Choose the L1 subnet where you want to remove a delegation."
+          description="Choose the L1 where you want to remove a delegation."
           validatorManagerDetails={validatorManagerDetails}
           validatorManagerError={validatorManagerDetails.error}
           isExpanded={l1State.isValidatorManagerDetailsExpanded}
@@ -315,6 +314,8 @@ export default function RemoveDelegationBase({ tokenType, onSuccess }: RemoveDel
             subnetIdL1={l1State.subnetIdL1}
             initialEvmTxHash={initiateRemovalTxHash}
             signingSubnetId={validatorManagerDetails.signingSubnetId}
+            signingSubnetLoading={validatorManagerDetails.isLoading}
+            signingSubnetError={validatorManagerDetails.error}
             txHashLabel="Initiate Removal Transaction Hash"
             txHashPlaceholder="Enter the transaction hash from the initiate removal step (0x...)"
             onSuccess={(txId) => {
@@ -348,6 +349,8 @@ export default function RemoveDelegationBase({ tokenType, onSuccess }: RemoveDel
             tokenType={tokenType}
             subnetIdL1={l1State.subnetIdL1}
             signingSubnetId={validatorManagerDetails.signingSubnetId}
+            signingSubnetLoading={validatorManagerDetails.isLoading}
+            signingSubnetError={validatorManagerDetails.error}
             pChainTxId={pChainTxId}
             onSuccess={(data) => {
               setRemovalCompleteTxHash(data.txHash);

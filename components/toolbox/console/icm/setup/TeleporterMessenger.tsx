@@ -17,7 +17,20 @@ import { useConnectedWallet } from '@/components/toolbox/contexts/ConnectedWalle
 import versions from '@/scripts/versions.json';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import { ContractDeployViewer, ContractSource } from '@/components/console/contract-deploy-viewer';
-import { Check, Wallet, Rocket, ExternalLink, Copy } from 'lucide-react';
+import { Button } from '@/components/toolbox/components/Button';
+import { RawInput } from '@/components/toolbox/components/Input';
+import { Success } from '@/components/toolbox/components/Success';
+import { Steps, Step } from '@/components/toolbox/components/Steps';
+import {
+  CopyValue,
+  DocsLink,
+  Fact,
+  Facts,
+  Loading,
+  MONO_VALUE,
+  Panel,
+  StatusLine,
+} from '@/components/toolbox/console/icm/ui';
 
 const MINIMUM_BALANCE = parseEther('11');
 
@@ -57,7 +70,6 @@ function TeleporterMessenger({ onSuccess }: BaseConsoleToolProps) {
   const [txHash, setTxHash] = useState('');
   const [amount, setAmount] = useState(formatEther(MINIMUM_BALANCE));
   const [isSending, setIsSending] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   if (criticalError) {
     throw criticalError;
@@ -134,200 +146,85 @@ function TeleporterMessenger({ onSuccess }: BaseConsoleToolProps) {
     }
   };
 
-  const handleCopy = async (text: string) => {
-    await navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   const hasEnoughBalance = deployerBalance >= MINIMUM_BALANCE;
 
   const deployForm = (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="shrink-0 px-4 py-3 border-b border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50">
-        <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Deploy TeleporterMessenger</h3>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-          Core contract for cross-chain message sending and receiving
-        </p>
-      </div>
-
-      {/* Scrollable content */}
-      <div className="flex-1 overflow-auto p-4 space-y-4">
-        {/* Info callout */}
-        <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-          <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
-            TeleporterMessenger uses a deterministic deployment. The contract address is the same across all chains.
-            Fund the deployer address, then broadcast the pre-signed transaction.
-          </p>
-        </div>
-
-        {/* Step 1: Deployer Info */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <div
-              className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                hasEnoughBalance || isDeployed
-                  ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                  : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
-              }`}
-            >
-              {hasEnoughBalance || isDeployed ? <Check className="w-3 h-3" /> : '1'}
-            </div>
-            <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Fund Deployer Address</span>
-          </div>
-
-          {/* Deployer Address Card */}
-          <div className="p-3 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-                Deployer Address
-              </span>
-              <button
-                onClick={() => handleCopy(deployerAddress)}
-                className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
-              >
-                {copied ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3 text-zinc-400" />}
-              </button>
-            </div>
-            <code className="text-[11px] font-mono text-zinc-700 dark:text-zinc-300 break-all">{deployerAddress}</code>
-          </div>
-
-          {/* Balance Status */}
-          {!isDeployed && (
-            <div className="p-3 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block mb-1">
-                    Deployer Balance
+    <Panel
+      eyebrow="Deterministic deploy"
+      title="Deploy TeleporterMessenger"
+      description="The contract that sends and receives cross-chain messages. Its address is the same on every chain: fund the deployer, then broadcast the pre-signed transaction."
+      footer={
+        <>
+          <DocsLink href="https://github.com/ava-labs/icm-services/blob/main/icm-contracts/avalanche/teleporter/README.md">
+            Teleporter docs
+          </DocsLink>
+          <span className="font-mono text-[10.5px] text-zinc-400 dark:text-zinc-500">@{ICM_COMMIT.slice(0, 7)}</span>
+        </>
+      }
+    >
+      <Steps>
+        <Step>
+          <h3>Fund the deployer</h3>
+          <p>The pre-signed transaction is paid from this address.</p>
+          <Facts>
+            <Fact label="Deployer">
+              <CopyValue value={deployerAddress} />
+            </Fact>
+            {!isDeployed && (
+              <Fact label="Balance">
+                {isCheckingBalance ? (
+                  <Loading>Checking balance…</Loading>
+                ) : (
+                  <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                    <span className={MONO_VALUE}>{formatEther(deployerBalance)} coins</span>
+                    <StatusLine tone={hasEnoughBalance ? 'done' : 'warn'}>
+                      {hasEnoughBalance ? 'Enough to deploy' : `Needs ${formatEther(MINIMUM_BALANCE)}`}
+                    </StatusLine>
                   </span>
-                  {isCheckingBalance ? (
-                    <span className="text-xs text-zinc-500">Checking...</span>
-                  ) : (
-                    <span
-                      className={`text-sm font-mono ${hasEnoughBalance ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`}
-                    >
-                      {formatEther(deployerBalance)} coins
-                    </span>
-                  )}
-                </div>
-                <div
-                  className={`text-[10px] px-2 py-1 rounded-full ${
-                    hasEnoughBalance
-                      ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                      : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
-                  }`}
-                >
-                  {hasEnoughBalance ? 'Sufficient' : `Need ${formatEther(MINIMUM_BALANCE)}`}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Top Up Form */}
+                )}
+              </Fact>
+            )}
+          </Facts>
+          {isDeployed && <StatusLine tone="done">Not needed: the contract is already deployed.</StatusLine>}
           {!hasEnoughBalance && !isDeployed && (
-            <div className="flex items-center gap-2">
-              <input
+            <div className="flex items-stretch">
+              <label htmlFor="messenger-topup" className="sr-only">
+                Amount to send to the deployer
+              </label>
+              <RawInput
+                id="messenger-topup"
                 type="text"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="flex-1 px-3 py-2 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-mono"
+                className="flex-1 font-mono tabular-nums"
                 placeholder="Amount"
               />
-              <button
-                onClick={handleTopUp}
-                disabled={isSending}
-                className="px-4 py-2 text-sm font-medium rounded-lg bg-amber-500 hover:bg-amber-600 text-white disabled:opacity-50 transition-colors flex items-center gap-2"
-              >
-                <Wallet className="w-4 h-4" />
-                {isSending ? 'Sending...' : 'Send'}
-              </button>
+              <Button onClick={handleTopUp} loading={isSending} loadingText="Sending" stickLeft>
+                Send to deployer
+              </Button>
             </div>
           )}
-        </div>
+        </Step>
 
-        {/* Step 2: Deploy */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <div
-              className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                isDeployed
-                  ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'
-              }`}
-            >
-              {isDeployed ? <Check className="w-3 h-3" /> : '2'}
-            </div>
-            <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Deploy Contract</span>
-          </div>
-
-          {/* Expected Contract Address */}
-          <div className="p-3 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-                Contract Address (Deterministic)
-              </span>
-              <button
-                onClick={() => handleCopy(expectedContractAddress)}
-                className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
-              >
-                <Copy className="w-3 h-3 text-zinc-400" />
-              </button>
-            </div>
-            <code className="text-[11px] font-mono text-zinc-700 dark:text-zinc-300 break-all">
-              {expectedContractAddress}
-            </code>
-          </div>
-
+        <Step>
+          <h3>Deploy the contract</h3>
+          <p>It lands at this address on every chain.</p>
+          <Facts>
+            <Fact label="Contract">
+              <CopyValue value={expectedContractAddress} />
+            </Fact>
+          </Facts>
           {isDeployed ? (
-            <div className="p-3 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
-              <div className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
-                <span className="text-sm font-medium text-green-700 dark:text-green-300">
-                  Contract Already Deployed
-                </span>
-              </div>
-              <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-                TeleporterMessenger is ready for cross-chain messaging.
-              </p>
-            </div>
+            <StatusLine tone="done">Deployed. TeleporterMessenger is ready for cross-chain messages.</StatusLine>
           ) : (
-            <button
-              onClick={handleDeploy}
-              disabled={isDeploying || !hasEnoughBalance}
-              className="w-full py-2.5 text-sm font-medium rounded-lg bg-blue-500 hover:bg-blue-600 text-white disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
-            >
-              <Rocket className="w-4 h-4" />
-              {isDeploying ? 'Deploying...' : 'Deploy TeleporterMessenger'}
-            </button>
+            <Button onClick={handleDeploy} loading={isDeploying} loadingText="Deploying" disabled={!hasEnoughBalance}>
+              Deploy TeleporterMessenger
+            </Button>
           )}
-        </div>
-
-        {/* Transaction Hash */}
-        {txHash && (
-          <div className="p-3 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
-            <span className="text-[10px] font-medium text-green-600 dark:text-green-400 uppercase tracking-wider block mb-1">
-              Transaction Hash
-            </span>
-            <code className="text-[11px] font-mono text-green-700 dark:text-green-300 break-all">{txHash}</code>
-          </div>
-        )}
-      </div>
-
-      {/* Footer */}
-      <div className="shrink-0 px-4 py-2.5 border-t border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-between">
-        <a
-          href="https://github.com/ava-labs/icm-services/blob/main/icm-contracts/avalanche/teleporter/README.md"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 flex items-center gap-1 transition-colors"
-        >
-          <ExternalLink className="w-3 h-3" />
-          Teleporter Docs
-        </a>
-        <span className="text-[11px] text-zinc-400 font-mono">@{ICM_COMMIT.slice(0, 7)}</span>
-      </div>
-    </div>
+          {txHash && <Success label="Deployment transaction" value={txHash} confirmed={isDeployed} />}
+        </Step>
+      </Steps>
+    </Panel>
   );
 
   return <ContractDeployViewer contracts={CONTRACT_SOURCES}>{deployForm}</ContractDeployViewer>;

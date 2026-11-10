@@ -1,24 +1,12 @@
 'use client';
-import { useState, useEffect } from 'react';
-import {
-  Clock,
-  Trash2,
-  XCircle,
-  CheckCircle2,
-  AlertTriangle,
-  RotateCw,
-  ChevronDown,
-  ChevronUp,
-  RefreshCw,
-} from 'lucide-react';
+import { Fragment, useState, useEffect } from 'react';
+import { ArrowLeftRight, ChevronDown, Loader2, RotateCw, Trash2 } from 'lucide-react';
 import { Relayer } from '@/components/toolbox/console/testnet-infra/managed-testnet-relayers/types';
 import {
   calculateTimeRemaining,
   formatTimeRemaining,
   getStatusData,
 } from '@/components/toolbox/console/testnet-infra/managed-testnet-nodes/useTimeRemaining';
-import { Button } from '@/components/toolbox/components/Button';
-import { Input, RawInput } from '@/components/toolbox/components/Input';
 import { CodeBlock, Pre } from 'fumadocs-ui/components/codeblock';
 import { formatEther, parseEther, Chain } from 'viem';
 import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
@@ -26,6 +14,9 @@ import { useConnectedWallet } from '@/components/toolbox/contexts/ConnectedWalle
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useL1ListStore, L1ListItem } from '@/components/toolbox/stores/l1ListStore';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import { Board, HashChip, LiveDot } from '@/components/explorer-v2/ui';
+import { cn } from '@/lib/utils';
+import { BalanceRows, BTN_DANGER, BTN_SECONDARY, ChainMark, EYEBROW, resolveChainInfo } from './ui';
 
 interface RelayerCardProps {
   relayer: Relayer;
@@ -66,6 +57,36 @@ function formatDateSafely(dateValue: string | number): string {
   }
 }
 
+type Tone = 'ok' | 'warn' | 'bad' | 'off';
+
+const TONE_DOT: Record<Tone, string> = {
+  ok: 'bg-emerald-500 dark:bg-emerald-400',
+  warn: 'bg-amber-500',
+  bad: 'bg-red-500',
+  off: 'bg-zinc-400 dark:bg-zinc-600',
+};
+
+const TONE_TEXT: Record<Tone, string> = {
+  ok: 'text-emerald-700 dark:text-emerald-300',
+  warn: 'text-amber-700 dark:text-amber-300',
+  bad: 'text-red-700 dark:text-red-300',
+  off: 'text-zinc-500 dark:text-zinc-400',
+};
+
+function StatusMark({ tone, label, live = false }: { tone: Tone; label: string; live?: boolean }) {
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em]',
+        TONE_TEXT[tone],
+      )}
+    >
+      {live ? <LiveDot /> : <span aria-hidden className={cn('h-1.5 w-1.5 rounded-full', TONE_DOT[tone])} />}
+      {label}
+    </span>
+  );
+}
+
 export default function RelayerCard({
   relayer,
   onDeleteRelayer,
@@ -88,24 +109,7 @@ export default function RelayerCard({
   const statusData = getStatusData(timeRemaining);
 
   // Helper to get chain info from L1 list or fallback
-  const getChainInfo = (config: (typeof relayer.configs)[0]) => {
-    // First check if it's C-Chain
-    if (config.rpcUrl.includes('avax-test.network') || config.subnetId === '11111111111111111111111111111111LpoYY') {
-      return { name: 'C-Chain (Fuji)', coinName: 'AVAX' };
-    }
-
-    // Look up in L1 list by blockchain ID
-    const l1 = l1List.find((item: L1ListItem) => item.id === config.blockchainId);
-    if (l1) {
-      return { name: l1.name, coinName: l1.coinName };
-    }
-
-    // Fallback: use blockchain ID prefix
-    return {
-      name: `${config.blockchainId.substring(0, 8)}...`,
-      coinName: 'Token',
-    };
-  };
+  const getChainInfo = (config: (typeof relayer.configs)[0]) => resolveChainInfo(config, l1List);
 
   const updateTokenAmount = (blockchainId: string, amount: string) => {
     setTokenAmounts((prev) => ({
@@ -229,208 +233,146 @@ export default function RelayerCard({
     }
   };
 
-  const getHealthIcon = () => {
-    if (!relayer.health) {
-      return <XCircle className="w-3 h-3" />;
-    }
-    if (relayer.health.status === 'up') {
-      return <CheckCircle2 className="w-3 h-3" />;
-    }
+  const getHealthStatus = (): { label: string; tone: Tone } => {
+    if (!relayer.health) return { label: 'Unreachable', tone: 'off' };
+    if (relayer.health.status === 'up') return { label: 'Healthy', tone: 'ok' };
     // Check if any component is healthy (degraded state)
     const hasHealthyComponent =
       relayer.health.details && Object.values(relayer.health.details).some((v) => v?.status === 'up');
-    return hasHealthyComponent ? <AlertTriangle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />;
-  };
-
-  const getHealthStatus = () => {
-    if (!relayer.health) {
-      return {
-        label: 'Unreachable',
-        color: 'text-zinc-500 bg-zinc-50 border-zinc-300 dark:bg-zinc-800 dark:border-zinc-600',
-      };
-    }
-    if (relayer.health.status === 'up') {
-      return {
-        label: 'Healthy',
-        color: 'text-green-700 bg-green-50 border-green-300 dark:bg-green-900/20 dark:border-green-700',
-      };
-    }
-    const hasHealthyComponent =
-      relayer.health.details && Object.values(relayer.health.details).some((v) => v?.status === 'up');
-    if (hasHealthyComponent) {
-      return {
-        label: 'Degraded',
-        color: 'text-yellow-700 bg-yellow-50 border-yellow-300 dark:bg-yellow-900/20 dark:border-yellow-700',
-      };
-    }
-    return {
-      label: 'Unhealthy',
-      color: 'text-red-700 bg-red-50 border-red-300 dark:bg-red-900/20 dark:border-red-700',
-    };
-  };
-
-  const getStatusIcon = (iconType: 'expired' | 'warning' | 'active') => {
-    switch (iconType) {
-      case 'expired':
-        return <XCircle className="w-3 h-3" />;
-      case 'warning':
-        return <AlertTriangle className="w-3 h-3" />;
-      case 'active':
-        return <CheckCircle2 className="w-3 h-3" />;
-      default:
-        return <XCircle className="w-3 h-3" />;
-    }
+    return hasHealthyComponent ? { label: 'Degraded', tone: 'warn' } : { label: 'Unhealthy', tone: 'bad' };
   };
 
   const healthStatus = getHealthStatus();
+  const lifecycleTone: Tone =
+    statusData.iconType === 'expired' ? 'off' : statusData.iconType === 'warning' ? 'warn' : 'ok';
+  const chains = relayer.configs.map((config) => ({ config, info: getChainInfo(config) }));
 
   return (
-    <div className="bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors min-w-0">
-      {/* Relayer Header */}
-      <div className="p-4 border-b border-zinc-100 dark:border-zinc-700">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="min-w-0 flex-1">
-              <h3 className="font-medium text-zinc-900 dark:text-zinc-100 mb-1">Relayer</h3>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span
-                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium border ${healthStatus.color}`}
-                >
-                  {getHealthIcon()}
-                  {healthStatus.label}
-                </span>
-                <span
-                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium border ${statusData.color}`}
-                >
-                  {getStatusIcon(statusData.iconType)}
-                  {statusData.label}
-                </span>
-                <span className="text-sm text-zinc-600 dark:text-zinc-400 flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  {formatTimeRemaining(timeRemaining)} remaining
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3">
-            <div className="text-right text-xs text-zinc-500 dark:text-zinc-400 space-y-1">
-              <div>Created: {formatDateSafely(relayer.createdAt)}</div>
-              <div>Expires: {formatDateSafely(relayer.expiresAt)}</div>
-            </div>
-          </div>
+    <Board className="min-w-0 border-x border-t">
+      {/* Status bar: health on the left, time left on the right */}
+      <div className="flex min-h-9 flex-wrap items-center justify-between gap-x-4 gap-y-1 bg-zinc-50/80 px-5 py-2 dark:bg-zinc-900/40">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <StatusMark tone={healthStatus.tone} label={healthStatus.label} live={healthStatus.tone === 'ok'} />
+          <StatusMark tone={lifecycleTone} label={statusData.label} />
         </div>
-      </div>
-
-      {/* Relayer Details (compact) */}
-      <div className="p-4 space-y-4 min-w-0">
-        <Input label="Relayer EVM Address" value={relayer.relayerId || ''} disabled />
-
-        {/* Relayer Balances */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Relayer Balances</div>
-            <button
-              onClick={fetchBalances}
-              disabled={isLoadingBalances}
-              className="p-1 text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 disabled:opacity-50"
-              style={{ lineHeight: 0 }}
-              title="Refresh balances"
-            >
-              <RefreshCw className={`h-4 w-4 ${isLoadingBalances ? 'animate-spin' : ''}`} />
-            </button>
-          </div>
-          <div className="text-xs text-zinc-600 dark:text-zinc-400 mb-2">
-            Ensure the relayer address maintains a positive balance on all configured chains to cover transaction fees.
-          </div>
-          <div className="space-y-2">
-            {relayer.configs.map((config) => {
-              const chainInfo = getChainInfo(config);
-
-              return (
-                <div
-                  key={config.blockchainId}
-                  className="flex items-center justify-between p-3 border rounded-md bg-zinc-50 dark:bg-zinc-900/20"
-                >
-                  <div>
-                    <div className="text-xs font-medium text-zinc-700 dark:text-zinc-300">{chainInfo.name}</div>
-                    <div className="flex items-center gap-1 text-sm text-zinc-500">
-                      {balances[config.blockchainId] !== undefined
-                        ? `${parseFloat(balances[config.blockchainId]).toFixed(4)} ${chainInfo.coinName}`
-                        : 'Loading...'}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <RawInput
-                      value={tokenAmounts[config.blockchainId] || '1'}
-                      onChange={(e) => updateTokenAmount(config.blockchainId, e.target.value)}
-                      placeholder="1.0"
-                      type="number"
-                      step="0.1"
-                      min="0"
-                      className="w-20 h-8"
-                    />
-                    <Button
-                      size="sm"
-                      variant="primary"
-                      className="w-24 px-2 flex-shrink-0 h-8 text-sm"
-                      onClick={() => sendFunds(config)}
-                      loading={isSending}
-                    >
-                      Send {chainInfo.coinName}
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Expandable Chain Details */}
-        <div className="mt-2">
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="flex items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100"
-          >
-            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            {isExpanded ? 'Hide' : 'Show'} Chain Configuration
-          </button>
-
-          {isExpanded && (
-            <div className="mt-2">
-              <CodeBlock lang="json" allowCopy={true}>
-                <Pre>{JSON.stringify(relayer.configs, null, 2)}</Pre>
-              </CodeBlock>
-            </div>
+        <p className="font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
+          {timeRemaining.expired ? (
+            'Expired'
+          ) : (
+            <>
+              <span className={cn('font-bold', TONE_TEXT[lifecycleTone])}>{formatTimeRemaining(timeRemaining)}</span>{' '}
+              left
+            </>
           )}
-        </div>
+        </p>
+      </div>
 
-        {/* Primary Actions */}
-        <div className="mt-2 flex items-center justify-end gap-2 border-t border-zinc-200 dark:border-zinc-700 pt-3">
-          <Button
-            onClick={() => onRestartRelayer(relayer)}
-            variant="secondary"
-            size="sm"
-            loading={isRestartingRelayer}
-            loadingText="Restarting..."
-            className="!w-auto"
-            icon={<RotateCw className="w-4 h-4" />}
-          >
-            Restart Relayer
-          </Button>
-          <Button
-            onClick={() => onDeleteRelayer(relayer)}
-            variant="danger"
-            size="sm"
-            loading={isDeletingRelayer}
-            loadingText="Deleting..."
-            className="!w-auto"
-            icon={<Trash2 className="w-4 h-4" />}
-          >
-            Delete Relayer
-          </Button>
+      {/* Route: every chain it serves, messages flow both ways between them */}
+      <div className="flex flex-col gap-4 px-5 py-5">
+        <p className={EYEBROW}>Route</p>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          {chains.map(({ config, info }, i) => (
+            <Fragment key={config.blockchainId}>
+              {i > 0 && <ArrowLeftRight aria-label="relays both ways" className="h-3.5 w-3.5 shrink-0 text-zinc-400" />}
+              <span className="inline-flex items-center gap-2">
+                <ChainMark name={info.name} logoUrl={info.logoUrl} isCChain={info.isCChain} />
+                <span className="text-[15px] font-semibold text-zinc-900 dark:text-zinc-50">{info.name}</span>
+              </span>
+            </Fragment>
+          ))}
         </div>
       </div>
-    </div>
+
+      {/* Facts: address and dates in one hairline strip */}
+      <dl className="grid grid-cols-1 divide-y divide-zinc-200 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)] sm:divide-x sm:divide-y-0 dark:divide-zinc-800">
+        <div className="flex min-w-0 flex-col gap-1.5 px-5 py-3.5">
+          <dt className={EYEBROW}>Relayer address</dt>
+          <dd className="min-w-0">
+            {relayer.relayerId ? (
+              <HashChip value={relayer.relayerId} len={14} />
+            ) : (
+              <span className="font-mono text-[13px] text-zinc-400">—</span>
+            )}
+          </dd>
+        </div>
+        <div className="flex flex-col gap-1.5 px-5 py-3.5">
+          <dt className={EYEBROW}>Created</dt>
+          <dd className="font-mono text-[13px] tabular-nums text-zinc-900 dark:text-zinc-50">
+            {formatDateSafely(relayer.createdAt)}
+          </dd>
+        </div>
+        <div className="flex flex-col gap-1.5 px-5 py-3.5">
+          <dt className={EYEBROW}>Expires</dt>
+          <dd className="font-mono text-[13px] tabular-nums text-zinc-900 dark:text-zinc-50">
+            {formatDateSafely(relayer.expiresAt)}
+          </dd>
+        </div>
+      </dl>
+
+      <BalanceRows
+        configs={relayer.configs}
+        chainInfo={getChainInfo}
+        balances={balances}
+        isLoadingBalances={isLoadingBalances}
+        onRefresh={fetchBalances}
+        tokenAmounts={tokenAmounts}
+        onAmountChange={updateTokenAmount}
+        onSend={sendFunds}
+        isSending={isSending}
+      />
+
+      {/* Chain configuration disclosure */}
+      <div>
+        <button
+          type="button"
+          onClick={() => setIsExpanded(!isExpanded)}
+          aria-expanded={isExpanded}
+          className="group/disclosure flex w-full items-center justify-between gap-3 px-5 py-3 text-left"
+        >
+          <span className={cn(EYEBROW, 'underline-offset-4 group-hover/disclosure:underline')}>
+            Chain configuration
+          </span>
+          <ChevronDown
+            className={cn(
+              'h-3.5 w-3.5 text-zinc-400 transition-transform group-hover/disclosure:text-zinc-900 dark:group-hover/disclosure:text-zinc-100',
+              isExpanded && 'rotate-180',
+            )}
+          />
+        </button>
+        {isExpanded && (
+          <div className="px-5 pb-4 [&_figure]:my-0 [&_figure]:rounded-none">
+            <CodeBlock lang="json" allowCopy={true}>
+              <Pre>{JSON.stringify(relayer.configs, null, 2)}</Pre>
+            </CodeBlock>
+          </div>
+        )}
+      </div>
+
+      {/* Actions */}
+      <div className="flex flex-wrap items-center justify-end gap-2 px-5 py-3">
+        <button
+          type="button"
+          onClick={() => onRestartRelayer(relayer)}
+          disabled={isRestartingRelayer}
+          className={BTN_SECONDARY}
+        >
+          {isRestartingRelayer ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <RotateCw className="h-3.5 w-3.5" />
+          )}
+          {isRestartingRelayer ? 'Restarting' : 'Restart'}
+        </button>
+        <button
+          type="button"
+          onClick={() => onDeleteRelayer(relayer)}
+          disabled={isDeletingRelayer}
+          className={BTN_DANGER}
+        >
+          {isDeletingRelayer ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+          {isDeletingRelayer ? 'Deleting' : 'Delete'}
+        </button>
+      </div>
+    </Board>
   );
 }

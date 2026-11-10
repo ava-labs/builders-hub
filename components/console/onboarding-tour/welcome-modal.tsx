@@ -56,7 +56,10 @@ export function WelcomeModal() {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleSkip()}>
-      <DialogContent className="sm:max-w-md">
+      {/* A first visit also shows the privacy banner, which stays above every dialog at the bottom of the
+          viewport. Below lg the dialog is centered in the area above the banner (--privacy-banner-inset,
+          components/privacy-policy.tsx), so the banner does not cover Skip and Take the tour. */}
+      <DialogContent className="sm:max-w-md max-lg:top-[calc(50%-var(--privacy-banner-inset,0px)/2)] max-lg:max-h-[calc(100dvh-var(--privacy-banner-inset,0px)-2rem)] max-lg:overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Welcome to Builder Console</DialogTitle>
           <DialogDescription>

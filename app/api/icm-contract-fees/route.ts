@@ -3,6 +3,9 @@ import { getICMContractFeesData } from "@/lib/icm-clickhouse";
 
 const CACHE_CONTROL_HEADER = 'public, max-age=14400, s-maxage=14400, stale-while-revalidate=86400';
 
+// a year read cold from the index is 13 month reads, two at a time: about a minute
+export const maxDuration = 120;
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -11,7 +14,8 @@ export async function GET(request: Request) {
 
     return NextResponse.json(result, {
       headers: {
-        'Cache-Control': CACHE_CONTROL_HEADER,
+        // an empty answer after a failed read is kept by no cache: the next request reads again
+        'Cache-Control': result.dataSource === 'empty-fallback' ? 'no-store' : CACHE_CONTROL_HEADER,
         'X-Data-Source': result.dataSource,
         'X-Cache-Timestamp': result.lastUpdated,
       }

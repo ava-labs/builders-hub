@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Check, RotateCcw } from 'lucide-react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { Button } from '@/components/toolbox/components/Button';
 import SelectValidationID, { ValidationSelection } from '@/components/toolbox/components/SelectValidationID';
@@ -6,6 +7,8 @@ import { Alert } from '@/components/toolbox/components/Alert';
 import { MultisigOption } from '@/components/toolbox/components/MultisigOption';
 import { useValidatorManager } from '@/components/toolbox/hooks/contracts';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
+import { failureText } from '@/components/toolbox/lib/walletRejection';
+import { INVALID_L1_SELECTED, NO_L1_SELECTED } from '@/components/toolbox/utils/vmcLookupText';
 
 interface InitiateValidatorRemovalProps {
   subnetId: string;
@@ -68,7 +71,7 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
     }
 
     if (!validatorManagerAddress) {
-      setErrorState('Validator Manager Address is required. Please select a valid L1 subnet.');
+      setErrorState(INVALID_L1_SELECTED);
       return false;
     }
 
@@ -132,15 +135,15 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
 
         // Only attempt resend fallback if the error suggests a pending removal
         // (e.g. InvalidValidatorStatus or generic reverts). For user rejections,
-        // insufficient funds, ownership errors, etc. — the hook already parsed these.
+        // insufficient funds, ownership errors, etc.: the hook already parsed these.
         const shouldAttemptFallback =
           primaryMessage.includes('reverted') ||
           primaryMessage.includes('Invalid validator status') ||
           primaryMessage.includes('execution');
 
         if (!shouldAttemptFallback) {
-          setErrorState(`Transaction failed: ${primaryMessage}`);
-          onError(`Transaction failed: ${primaryMessage}`);
+          setErrorState(failureText('Transaction failed: ', primaryMessage));
+          onError(failureText('Transaction failed: ', primaryMessage));
           return;
         }
 
@@ -152,8 +155,8 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
           });
 
           if (fallbackReceipt.status === 'reverted') {
-            setErrorState(`Transaction failed: ${primaryMessage}`);
-            onError(`Transaction failed: ${primaryMessage}. Resend also reverted.`);
+            setErrorState(failureText('Transaction failed: ', primaryMessage));
+            onError(`${failureText('Transaction failed: ', primaryMessage)}. Resend also reverted.`);
             return;
           }
 
@@ -165,14 +168,16 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
           });
         } catch (fallbackError: any) {
           const fallbackMessage = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
-          setErrorState(`Transaction failed: ${primaryMessage}`);
-          onError(`Transaction failed: ${primaryMessage}. Resend fallback also failed: ${fallbackMessage}`);
+          setErrorState(failureText('Transaction failed: ', primaryMessage));
+          onError(
+            `${failureText('Transaction failed: ', primaryMessage)}. Resend fallback also failed: ${fallbackMessage}`,
+          );
         }
       }
     } catch (err: any) {
       const message = err instanceof Error ? err.message : String(err);
-      setErrorState(`Transaction failed: ${message}`);
-      onError(`Transaction failed: ${message}`);
+      setErrorState(failureText('Transaction failed: ', message));
+      onError(failureText('Transaction failed: ', message));
     } finally {
       setIsProcessing(false);
     }
@@ -194,7 +199,7 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
 
   // Don't render if no subnet is selected
   if (!subnetId) {
-    return <div className="text-sm text-zinc-500 dark:text-zinc-400">Please select an L1 subnet first.</div>;
+    return <p className="text-[13px] text-zinc-500 dark:text-zinc-400">{NO_L1_SELECTED}</p>;
   }
 
   // Prepare args for multisig
@@ -204,8 +209,8 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-2">
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2">
         <SelectValidationID
           key={`validation-selector-${componentKey}-${subnetId}`}
           value={validation.validationId}
@@ -213,8 +218,8 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
           subnetId={subnetId}
           format="hex"
         />
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          Select the validator you want to remove by its Validation ID
+        <p className="text-[12px] text-zinc-500 dark:text-zinc-400">
+          Pick the validator to remove by its Validation ID.
         </p>
       </div>
 
@@ -242,8 +247,10 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
               !validatorManagerAddress ||
               txSuccess !== null
             }
+            loading={isProcessing}
+            loadingText="Initiating…"
           >
-            Initiate Validator Removal
+            Initiate validator removal
           </Button>
         </MultisigOption>
       )}
@@ -258,9 +265,12 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
             !validatorManagerAddress ||
             txSuccess !== null
           }
-          error={!validatorManagerAddress && subnetId ? 'Could not find Validator Manager for this L1.' : undefined}
+          loading={isProcessing}
+          loadingText="Initiating…"
+          icon={txSuccess ? <Check className="h-3.5 w-3.5" /> : undefined}
+          error={!validatorManagerAddress && subnetId ? INVALID_L1_SELECTED : undefined}
         >
-          {txSuccess ? 'Transaction Completed' : isProcessing ? 'Processing...' : 'Initiate Validator Removal'}
+          {txSuccess ? 'Transaction completed' : 'Initiate validator removal'}
         </Button>
       )}
 
@@ -268,24 +278,26 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
         <Button
           onClick={handleInitiateRemoval}
           disabled={true}
-          error="You are not the owner of this contract. Only the contract owner can remove validators."
+          error="This wallet doesn't own the contract. Only the contract owner can remove validators."
         >
-          Initiate Validator Removal
+          Initiate validator removal
         </Button>
       )}
 
       {ownershipState === 'loading' && (
-        <Button onClick={handleInitiateRemoval} disabled={true} error="Verifying ownership...">
-          Verifying...
+        <Button onClick={handleInitiateRemoval} disabled={true} loading={true} loadingText="Verifying ownership…">
+          Verifying ownership
         </Button>
       )}
 
       {ownershipState === 'error' && (
         <Button
+          variant="outline"
           onClick={() => refetchOwnership?.()}
-          error={ownershipError || 'Failed to verify contract ownership. Click to retry.'}
+          icon={<RotateCcw className="h-3.5 w-3.5" />}
+          error={ownershipError || "Couldn't verify contract ownership. Retry the check."}
         >
-          Retry Ownership Check
+          Retry ownership check
         </Button>
       )}
 

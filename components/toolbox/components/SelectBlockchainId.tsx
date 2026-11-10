@@ -3,7 +3,7 @@ import { useCreateChainStore } from '../stores/createChainStore';
 import { useL1ListStore } from '../stores/l1ListStore';
 import { useMemo } from 'react';
 import { cn } from '../lib/utils';
-import { Globe } from 'lucide-react';
+import { Check, ChevronDown, Globe } from 'lucide-react';
 
 interface BlockchainOption {
   id: string;
@@ -56,8 +56,11 @@ export default function SelectBlockchainId({
   const selectedOption = options.find((option) => option.id === value);
 
   return (
-    <div className="space-y-2 mb-6">
-      <label htmlFor={selectId} className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+    <div className="mb-6 space-y-2">
+      <label
+        htmlFor={selectId}
+        className="block font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400"
+      >
         {label}
       </label>
 
@@ -68,77 +71,94 @@ export default function SelectBlockchainId({
           onClick={() => !disabled && setIsOpen(!isOpen)}
           disabled={disabled}
           className={cn(
-            'w-full rounded-md px-3 py-2.5 text-left',
-            'bg-white dark:bg-zinc-900',
-            'border-1',
+            'flex min-h-10 w-full items-center justify-between gap-2 rounded-none px-3 py-2 text-left text-[13px]',
+            'bg-white dark:bg-zinc-950',
+            'border',
             error
-              ? 'border-red-500 focus:border-red-500 focus:ring-red-500/30'
-              : 'border-zinc-300 dark:border-zinc-700 focus:border-primary focus:ring-primary/30',
+              ? 'border-red-500 focus:border-red-600 dark:border-red-700'
+              : isOpen
+                ? 'border-zinc-900 dark:border-zinc-300'
+                : 'border-zinc-200 hover:border-zinc-400 focus:border-zinc-900 dark:border-zinc-800 dark:hover:border-zinc-600 dark:focus:border-zinc-300',
             'text-zinc-900 dark:text-zinc-100',
-            'shadow-sm',
-            'transition-colors duration-200',
-            'focus:outline-none focus:ring-2',
-            disabled && 'bg-zinc-100 dark:bg-zinc-800 cursor-not-allowed opacity-75',
+            'transition-colors',
+            'focus:outline-none',
+            disabled &&
+              'cursor-not-allowed bg-zinc-50 text-zinc-500 hover:border-zinc-200 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-800',
           )}
         >
           {selectedOption ? (
-            <div className="flex items-center gap-2">
+            <div className="flex min-w-0 items-center gap-2">
               {selectedOption.logoUrl && (
-                <div className="flex items-center h-7">
+                <div className="flex h-7 items-center">
                   <img
                     src={selectedOption.logoUrl}
                     alt={`${selectedOption.name} logo`}
-                    className="w-7 h-7 rounded-full object-cover block"
+                    className="block h-7 w-7 rounded-full object-cover"
                   />
                 </div>
               )}
-              <div>
-                <div className="font-medium mb-0.5">{selectedOption.name}</div>
-                <div className="text-xs text-zinc-500 dark:text-zinc-400">{selectedOption.description}</div>
+              <div className="min-w-0">
+                <div className="mb-0.5 truncate font-medium">{selectedOption.name}</div>
+                <div className="text-[12px] text-zinc-500 dark:text-zinc-400">{selectedOption.description}</div>
               </div>
             </div>
           ) : (
-            <div className="text-zinc-400 dark:text-zinc-500">Select a blockchain ID</div>
+            <div className="text-zinc-400 dark:text-zinc-600">Select a blockchain ID</div>
           )}
+          <ChevronDown
+            className={cn('h-3.5 w-3.5 shrink-0 text-zinc-400 transition-transform', isOpen && 'rotate-180')}
+          />
         </button>
 
         {isOpen && !disabled && (
-          <div className="z-50 mt-1 w-full bg-white dark:bg-zinc-800 rounded-md border border-zinc-200 dark:border-zinc-700 max-h-60 overflow-auto absolute">
-            <div className="py-1">
-              {options.map((option) => (
-                <div
-                  key={option.id}
-                  className="px-3 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-700 cursor-pointer transition-colors text-left"
-                  onClick={() => {
-                    onChange(option.id);
-                    setIsOpen(false);
-                  }}
-                >
-                  <div className="flex items-center gap-2 py-2">
-                    {option.logoUrl ? (
-                      <div className="flex items-center h-7">
-                        <img
-                          src={option.logoUrl}
-                          alt={`${option.name} logo`}
-                          className="w-7 h-7 rounded-full object-cover block"
-                        />
-                      </div>
-                    ) : (
-                      <Globe className="w-7 h-7 text-zinc-400 dark:text-zinc-500" />
+          <div className="absolute z-50 mt-px max-h-60 w-full overflow-auto border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+            <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
+              {options.map((option) => {
+                const isSelected = option.id === value;
+                return (
+                  <div
+                    key={option.id}
+                    className={cn(
+                      'group/opt relative flex cursor-pointer items-center justify-between gap-2 px-3 py-2 text-left transition-colors',
+                      'before:absolute before:inset-y-0 before:left-0 before:w-0.5 before:transition-colors',
+                      isSelected
+                        ? 'before:bg-zinc-900 dark:before:bg-zinc-100'
+                        : 'hover:before:bg-zinc-300 dark:hover:before:bg-zinc-600',
                     )}
-                    <div>
-                      <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-0.5">{option.name}</div>
-                      <div className="text-xs text-zinc-500 dark:text-zinc-400">{option.description}</div>
+                    onClick={() => {
+                      onChange(option.id);
+                      setIsOpen(false);
+                    }}
+                  >
+                    <div className="flex min-w-0 items-center gap-2">
+                      {option.logoUrl ? (
+                        <div className="flex h-7 items-center">
+                          <img
+                            src={option.logoUrl}
+                            alt={`${option.name} logo`}
+                            className="block h-7 w-7 rounded-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <Globe className="h-7 w-7 shrink-0 p-1 text-zinc-400 dark:text-zinc-500" />
+                      )}
+                      <div className="min-w-0">
+                        <div className="mb-0.5 truncate text-[13px] font-medium text-zinc-900 underline-offset-4 group-hover/opt:underline dark:text-zinc-100">
+                          {option.name}
+                        </div>
+                        <div className="text-[12px] text-zinc-500 dark:text-zinc-400">{option.description}</div>
+                      </div>
                     </div>
+                    {isSelected && <Check className="h-3.5 w-3.5 shrink-0 text-zinc-900 dark:text-zinc-100" />}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
       </div>
 
-      {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+      {error && <p className="text-[12px] text-red-700 dark:text-red-400">{error}</p>}
     </div>
   );
 }

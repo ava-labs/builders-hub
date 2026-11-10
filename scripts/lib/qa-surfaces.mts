@@ -1,9 +1,7 @@
 /**
- * Shared helpers for the Academy/Console QA harness scripts.
- *
- * Provides MDX scanning + toolbox import resolution used by:
- *   - scripts/generate-qa-manifest.mts   (writes e2e/qa-manifest.json)
- *   - scripts/check-academy-embeds.mts   (tier-1 CI integrity check)
+ * MDX scanning + toolbox import resolution for scripts/check-academy-embeds.mts
+ * (the CI check that every Academy toolbox import resolves). The browser sweep in
+ * tests/e2e/embeds/embed-pages.ts applies the same rules with Node fs only.
  *
  * Route mapping evidence:
  *   - lib/source.ts: `academy` loader has baseUrl '/academy' and sources

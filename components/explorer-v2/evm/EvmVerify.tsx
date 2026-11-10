@@ -434,7 +434,7 @@ export function EvmVerify({ network, addr }: { network: string; addr: string }) 
         <p className="text-[12px] leading-relaxed text-zinc-500 dark:text-zinc-400">
           Prefer the command line? This page posts to the same API that `hardhat verify` and
           `forge verify-contract` use.{" "}
-          <Link href="/docs/tooling/contract-verification" className="underline underline-offset-2">
+          <Link href="/docs/tooling/contract-verification" prefetch={false} className="underline underline-offset-2">
             See the setup for your tool
           </Link>
           .

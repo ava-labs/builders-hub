@@ -93,7 +93,7 @@ It allows you to specify percentages up to 4 digital positions. To denominate yo
 For reference we list below the Primary Network parameters on Mainnet:
 
 - `AssetID = Avax`
-- `InitialSupply = 240_000_000 Avax`
+- `InitialSupply = 360_000_000 Avax` (the sum of the Mainnet genesis allocations)
 - `MaximumSupply = 720_000_000 Avax`.
 - `MinConsumptionRate = 0.10 * reward.PercentDenominator`.
 - `MaxConsumptionRate = 0.12 * reward.PercentDenominator`.
@@ -108,13 +108,13 @@ For reference we list below the Primary Network parameters on Mainnet:
 - `UptimeRequirement = 0.8`, that is `80%`.
 
 <Callout type="info" title="Three of these parameters change with the Helicon upgrade">
-The Helicon upgrade is active on Fuji as of July 28, 2026 at 15:00 UTC and is scheduled on Mainnet for September 22, 2026 at 15:00 UTC. The values above are the Mainnet values in effect until then. Three of them change once Helicon activates on a network:
+The Helicon upgrade activated on Fuji on July 28, 2026 at 15:00 UTC and on Mainnet on September 22, 2026 at 15:00 UTC. The values above are the genesis values. Helicon changes the effective value of three of them:
 
 - **`MinConsumptionRate` drops from `0.10` to `0.075`** ([ACP-285](/docs/acps/285-reduce-minimum-consumption-rate)). The change is not applied at once: it ramps linearly over the 90 days following activation, and the rate used for a staking period is the one in effect at that period's **start time**. A stake that starts 45 days after activation therefore uses roughly `0.0875`.
-- **The effective uptime requirement rises from `80%` to `90%`** ([ACP-267](/docs/acps/267-uptime-requirement-increase)). This one is not a genesis parameter: `UptimeRequirement` above stays `0.8`, and the `90%` threshold is applied when deciding reward eligibility for any Primary Network validation whose **start time** is at or after Helicon activation. Validations that started earlier are still judged against `80%`, and Avalanche L1 validators keep the requirement set by their own subnet transformation.
+- **The effective uptime requirement rises from `80%` to `90%`** ([ACP-267](/docs/acps/267-uptime-requirement-increase)). This one is not a genesis parameter: `UptimeRequirement` above stays `0.8`, and the `90%` threshold is applied when deciding reward eligibility for any Primary Network validation whose **start time** is at or after Helicon activation. Validations that started earlier are still judged against `80%`. L1 validators have no P-Chain uptime requirement, because the P-Chain pays them no rewards.
 - **`MinStakeDuration` drops to `48 hours` for Primary Network validators** ([ACP-273](/docs/acps/273-reduce-minimum-staking-duration)). Delegators are unaffected and keep the `2 week` minimum. On Fuji the validator minimum is now `12 hours`.
 
-All three are already in effect on Fuji, so reward figures computed from the Mainnet values above will not match Fuji results.
+All three are in effect on Mainnet and Fuji. Reward figures for a stake that starts after Helicon activation use the Helicon values, not the genesis values above.
 </Callout>
 
 ### Interactive Graph

@@ -115,7 +115,7 @@ export default function InitiateDelegatorRemovalStep() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
       <div className="space-y-4">
-        {!store.subnetIdL1 && <Alert variant="warning">No L1 subnet selected. Go back to the previous step.</Alert>}
+        {!store.subnetIdL1 && <Alert variant="warning">No L1 selected. Go back to the previous step.</Alert>}
 
         <div className="flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
           <div className="p-4 space-y-4">

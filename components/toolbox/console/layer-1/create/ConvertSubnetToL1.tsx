@@ -2,7 +2,8 @@
 
 import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { isAddress } from 'viem';
 import { type ConvertToL1Validator } from '@/components/toolbox/components/ValidatorListInput';
 import { ValidatorListInput } from '@/components/toolbox/components/ValidatorListInput';
 import InputChainId from '@/components/toolbox/components/InputChainId';
@@ -16,13 +17,17 @@ import {
 } from '@/components/toolbox/components/WithConsoleToolMetadata';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
-import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Step, Steps } from '@/components/toolbox/components/Steps';
 import Link from 'next/link';
 import { AlertTriangle } from 'lucide-react';
 import { CoreWalletTransactionButton } from '@/components/toolbox/components/CoreWalletTransactionButton';
 import { useSubmitPChainTx } from '@/components/toolbox/hooks/useSubmitPChainTx';
 import { Alert } from '@/components/toolbox/components/Alert';
-import { waitForPChainConfirmation } from '@/components/toolbox/utils/pchainConfirmation';
+import { Success } from '@/components/toolbox/components/Success';
+import { IssuedTxNote } from '@/components/toolbox/components/IssuedTxNote';
+import { isPChainTxDropped, waitForPChainConfirmation } from '@/components/toolbox/utils/pchainConfirmation';
+import { usePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
+import { C_CHAIN_IDS, conversionProblems, isCB58Id, readCChainManager, type CChainManager } from './conversionChecks';
 
 const metadata: ConsoleToolMetadata = {
   title: 'Convert Subnet to L1',
@@ -49,8 +54,8 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
     chainID: storeChainID,
     managerAddress: validatorManagerAddress,
     setManagerAddress: setValidatorManagerAddress,
-    convertToL1TxId: _convertToL1TxId,
     setConvertToL1TxId,
+    genesisData: storeGenesisData,
   } = useCreateChainStore()();
 
   const [selection, setSelection] = useState<SubnetSelection>({
@@ -67,9 +72,62 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
   const [isConverting, setIsConverting] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const [convertError, setConvertError] = useState<string | null>(null);
+  // This mount's ConvertSubnetToL1Tx. It is confirmed once the P-Chain commits it.
+  const [convertTx, setConvertTx] = useState<{ subnetId: string; txId: string; confirmed: boolean } | null>(null);
+  // The tx rows show only for the selected subnet. Another subnet must not look converted.
+  const txForSelection = convertTx && convertTx.subnetId === selection.subnetId ? convertTx : null;
+  const converted = !!txForSelection?.confirmed;
 
   const { notify } = useConsoleNotifications();
   const { submitPChainTx } = useSubmitPChainTx();
+
+  // What the manager address holds on the C-Chain decides which chain the
+  // conversion may name, so read it before anything is signed.
+  const cChainId = isTestnet ? C_CHAIN_IDS.testnet : C_CHAIN_IDS.mainnet;
+  const cChainClient = usePublicClientForChain(cChainId);
+  const [cChainManager, setCChainManager] = useState<CChainManager | null>(null);
+  const [cChainReadError, setCChainReadError] = useState<string | null>(null);
+  const [cChainReadAttempt, setCChainReadAttempt] = useState(0);
+  const [chainTouched, setChainTouched] = useState(false);
+
+  useEffect(() => {
+    setCChainManager(null);
+    setCChainReadError(null);
+    const subnetId = selection.subnetId;
+    if (!cChainClient || !isAddress(validatorManagerAddress) || !isCB58Id(subnetId)) return;
+    let cancelled = false;
+    readCChainManager(cChainClient, validatorManagerAddress as `0x${string}`, subnetId)
+      .then((manager) => {
+        if (!cancelled) setCChainManager(manager);
+      })
+      .catch((err) => {
+        if (!cancelled) setCChainReadError((err as Error).message);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [cChainClient, validatorManagerAddress, selection.subnetId, cChainReadAttempt]);
+
+  // A manager on the C-Chain names the C-Chain, whatever chain the create
+  // flow made last. The store default used to pair the C-Chain proxy with
+  // the new L1's chain, which no contract can ever manage.
+  const managerOnCChain = cChainManager?.kind === 'bound' || cChainManager?.kind === 'unset';
+  useEffect(() => {
+    if (managerOnCChain && !chainTouched) setValidatorManagerChainID(cChainId);
+  }, [managerOnCChain, chainTouched, cChainId]);
+
+  const problems = conversionProblems({
+    managerChainId: validatorManagerChainID,
+    managerAddress: validatorManagerAddress,
+    validators,
+    cChainId,
+    subnetChainIds: selection.subnet ? selection.subnet.blockchains.map((b) => b.blockchainId) : null,
+    cChainManager,
+    managerChainGenesis: validatorManagerChainID === storeChainID ? storeGenesisData : null,
+  });
+  const checkingCChain =
+    !cChainManager && !cChainReadError && isAddress(validatorManagerAddress) && isCB58Id(selection.subnetId);
+  const blocked = !selection.subnet || checkingCChain || !!cChainReadError || problems.length > 0;
 
   function buildConvertCliCommand() {
     const parts = [
@@ -99,9 +157,11 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
   }
 
   async function handleConvertToL1() {
-    if (!coreWalletClient) return;
+    if (!coreWalletClient || blocked) return;
 
+    const subnetId = selection.subnetId;
     setConvertToL1TxId('');
+    setConvertTx(null);
     setConvertError(null);
     setIsConverting(true);
 
@@ -128,11 +188,16 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
       await waitForPChainConfirmation(txID, isTestnet);
 
       setConvertToL1TxId(txID);
+      setConvertTx({ subnetId, txId: txID, confirmed: true });
       onSuccess?.();
     } catch (err) {
       // Keep an issued-but-unconfirmed txID visible so the user can track
-      // it and paste it into the initialize step once it commits.
-      if (txID) setConvertToL1TxId(txID);
+      // it and paste it into the initialize step once it commits. A dropped
+      // tx cannot commit, so its ID is not kept.
+      if (txID && !isPChainTxDropped(err)) {
+        setConvertToL1TxId(txID);
+        setConvertTx({ subnetId, txId: txID, confirmed: false });
+      }
       setConvertError((err as Error).message);
     } finally {
       setIsConfirming(false);
@@ -159,10 +224,12 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
           <p className="text-sm text-muted-foreground mb-4">
             The validator manager contract controls your L1's validator set. If you used{' '}
             <strong>Console defaults</strong> for your L1 genesis, a proxy is pre-deployed at{' '}
-            <code className="text-xs bg-muted px-1 py-0.5 rounded">0xfacade...</code>
+            <code className="border border-zinc-200 bg-zinc-50 px-1 py-0.5 font-mono text-[12px] text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">
+              0xfacade...
+            </code>
           </p>
 
-          <p className="text-xs text-muted-foreground mb-4 flex items-center gap-1.5">
+          <p className="mb-4 flex items-center gap-1.5 text-[12px] text-zinc-500 dark:text-zinc-400">
             <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
             <span>
               These values are <strong>permanent</strong> and cannot be changed after conversion.
@@ -172,10 +239,17 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
           <div className="space-y-4">
             <InputChainId
               value={validatorManagerChainID}
-              onChange={setValidatorManagerChainID}
+              onChange={(value) => {
+                setChainTouched(true);
+                setValidatorManagerChainID(value);
+              }}
               error={null}
               label="Manager Chain ID"
-              helperText="Chain where the manager contract is deployed"
+              helperText={
+                managerOnCChain && validatorManagerChainID === cChainId
+                  ? 'A Validator Manager exists at this address on the C-Chain, so the C-Chain is selected.'
+                  : 'Chain where the manager contract is deployed'
+              }
             />
             <EVMAddressInput
               value={validatorManagerAddress}
@@ -218,20 +292,60 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
               on the P-Chain.
             </p>
           </div>
+          {checkingCChain && <Alert variant="info">Checking the manager address on the C-Chain...</Alert>}
+          {cChainReadError && (
+            <Alert variant="error">
+              Could not read the manager address on the C-Chain: {cChainReadError}{' '}
+              <button type="button" className="underline" onClick={() => setCChainReadAttempt((n) => n + 1)}>
+                Try again
+              </button>
+            </Alert>
+          )}
+          {selection.subnetId && problems.length > 0 && (
+            <Alert variant="warning">
+              <ul className="list-disc space-y-1 pl-4">
+                {problems.map((problem) => (
+                  <li key={problem}>{problem}</li>
+                ))}
+              </ul>
+            </Alert>
+          )}
           <CoreWalletTransactionButton
             variant="primary"
             onClick={handleConvertToL1}
-            disabled={
-              !selection.subnetId || !validatorManagerAddress || validators.length === 0 || selection.subnet?.isL1
-            }
+            // The subnet is an L1 now: it cannot convert again
+            disabled={!selection.subnetId || validators.length === 0 || selection.subnet?.isL1 || blocked || converted}
             loading={isConverting}
             loadingText={isConfirming ? 'Waiting for P-Chain confirmation...' : 'Converting...'}
             className="w-full"
             cliCommand={buildConvertCliCommand()}
           >
-            {selection.subnet?.isL1 ? 'Already Converted' : 'Convert to L1'}
+            {converted ? 'Converted to L1' : selection.subnet?.isL1 ? 'Already Converted' : 'Convert to L1'}
           </CoreWalletTransactionButton>
-          {convertError && <Alert variant="error">{convertError}</Alert>}
+          {txForSelection?.confirmed && (
+            <Success
+              label="ConvertSubnetToL1Tx ID"
+              value={txForSelection.txId}
+              isTestnet={Boolean(isTestnet)}
+              confirmed
+            />
+          )}
+          {txForSelection && !txForSelection.confirmed && (
+            <Success
+              label="ConvertSubnetToL1Tx ID (not confirmed)"
+              value={txForSelection.txId}
+              isTestnet={Boolean(isTestnet)}
+              confirmed={false}
+            />
+          )}
+          {convertError && (
+            <Alert variant="error">
+              {convertError}
+              {txForSelection && !txForSelection.confirmed && (
+                <IssuedTxNote txId={txForSelection.txId} isTestnet={Boolean(isTestnet)} className="mt-2" />
+              )}
+            </Alert>
+          )}
         </Step>
       </Steps>
     </div>

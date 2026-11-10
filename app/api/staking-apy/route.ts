@@ -1,5 +1,11 @@
 import { NextResponse } from 'next/server';
-import { heliconActive, minConsumptionRateAt, minStakingDaysAt } from '@/constants/helicon';
+import {
+  HELICON_ACTIVATION,
+  MIN_STAKING_DAYS_PRE,
+  heliconActive,
+  minConsumptionRateAt,
+  minStakingDaysAt,
+} from '@/constants/helicon';
 import { EXPLORER_API_BASE } from '@/lib/pchain-explorer';
 
 export const dynamic = 'force-dynamic';
@@ -30,7 +36,9 @@ interface APYDataPoint {
   timestamp: number;
   supply: number; // Supply used for APY calculation
   maxAPY: number; // APY for 1-year staking (max rate)
-  minAPY: number; // APY for 2-week staking (min rate)
+  minAPY: number; // APY for the minimum duration in effect (2 weeks, 2 days after Helicon)
+  twoWeekAPY: number; // APY for 2-week staking
+  twoDayAPY: number | null; // APY for 2-day staking, null before Helicon allowed it
 }
 
 interface CurrentData {
@@ -38,7 +46,11 @@ interface CurrentData {
   totalBurned: number;
   maxAPY: number;
   minAPY: number;
+  twoWeekAPY: number;
+  twoDayAPY: number | null;
 }
+
+type TermRates = Pick<APYDataPoint, 'maxAPY' | 'minAPY' | 'twoWeekAPY' | 'twoDayAPY'>;
 
 interface EmissionsRow {
   date: string;
@@ -84,6 +96,32 @@ function calculateAPY(supply: number, stakingDays: number, at: number): number {
   const apy = (remainingToMint / supply) * effectiveRate * 100;
   
   return Math.max(0, Number(apy.toFixed(2)));
+}
+
+function termRates(supply: number, at: number): TermRates {
+  return {
+    maxAPY: calculateAPY(supply, CONFIG.network.maxStakingDays, at),
+    minAPY: calculateAPY(supply, minStakingDaysAt(at), at),
+    twoWeekAPY: calculateAPY(supply, MIN_STAKING_DAYS_PRE, at),
+    twoDayAPY: heliconActive(at) ? calculateAPY(supply, 2, at) : null,
+  };
+}
+
+/** The rates at the Helicon activation instant, the supply interpolated between the days around it. */
+function heliconPoint(history: APYDataPoint[]): APYDataPoint | null {
+  const at = HELICON_ACTIVATION.mainnet;
+  const i = history.findIndex((p) => p.timestamp * 1000 > at);
+  if (i <= 0) return null;
+  const a = history[i - 1];
+  const b = history[i];
+  const t = (at / 1000 - a.timestamp) / (b.timestamp - a.timestamp);
+  const supply = a.supply + (b.supply - a.supply) * t;
+  return {
+    date: new Date(at).toISOString().split('T')[0],
+    timestamp: Math.floor(at / 1000),
+    supply,
+    ...termRates(supply, at),
+  };
 }
 
 async function fetchPChainSupply(): Promise<number | null> {
@@ -153,8 +191,7 @@ export async function GET() {
       // Not currently served by our own data; 0 until we surface it (display-only,
       // not used in the APY calculation).
       totalBurned: 0,
-      maxAPY: calculateAPY(currentSupply, CONFIG.network.maxStakingDays, nowMs),
-      minAPY: calculateAPY(currentSupply, minStakingDaysAt(nowMs), nowMs),
+      ...termRates(currentSupply, nowMs),
     };
 
     let apyHistory: APYDataPoint[] = [];
@@ -171,8 +208,7 @@ export async function GET() {
           date: row.date,
           timestamp: Math.floor(at / 1000),
           supply,
-          maxAPY: calculateAPY(supply, CONFIG.network.maxStakingDays, at),
-          minAPY: calculateAPY(supply, minStakingDaysAt(at), at),
+          ...termRates(supply, at),
         };
       });
 
@@ -180,16 +216,13 @@ export async function GET() {
       const lastPoint = apyHistory[apyHistory.length - 1];
 
       if (lastPoint.date === today) {
-        lastPoint.supply = currentSupply;
-        lastPoint.maxAPY = current.maxAPY;
-        lastPoint.minAPY = current.minAPY;
+        Object.assign(lastPoint, termRates(currentSupply, nowMs), { supply: currentSupply });
       } else {
         apyHistory.push({
           date: today,
           timestamp: Math.floor(Date.now() / 1000),
           supply: currentSupply,
-          maxAPY: current.maxAPY,
-          minAPY: current.minAPY,
+          ...termRates(currentSupply, nowMs),
         });
       }
     }
@@ -197,6 +230,8 @@ export async function GET() {
     const response = {
       data: apyHistory,
       current,
+      // A sample at the upgrade instant itself (not in `data`), where the 2-day term begins.
+      helicon: heliconPoint(apyHistory),
       constants: {
         genesisSupply: CONFIG.network.genesisSupply,
         maxSupply: CONFIG.network.maxSupply,

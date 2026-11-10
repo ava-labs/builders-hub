@@ -4,27 +4,38 @@ import { ArrowRight } from "lucide-react";
 import { L1Chain } from "@/types/stats";
 import { Board, BoardHeader } from "@/components/explorer-v2/ui";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
+import { isPrivateChain } from "@/components/explorer-v2/network/private";
 import { findAliasClaimants, resolveCatalogChain, wantsTestnet } from "@/lib/explorer-catalog";
 import { fetchChainCoverage, fetchIndexedChainIds, formatCoverageDate, isServedByStatsApi, toStatsChainId } from "@/lib/stats-coverage";
 import { ChainExplorerLayoutClient } from "./layout.client";
 
-/* The whole page body for a chain we don't index. */
-function ChainNotIndexed({ network, chainName }: { network: string; chainName: string }) {
+/* The whole page body for a chain we don't index. A private chain's
+   blocks are not public, so no one indexes them: the page says so. */
+function ChainNotIndexed({ network, chainName, isPrivate }: { network: string; chainName: string; isPrivate: boolean }) {
   const pchain = `/explorer/${wantsTestnet(network) ? "fuji" : "mainnet"}/p-chain`;
   return (
     <EvmShell network={network} search={false} subnav={false}>
       <Board divide={false}>
-        <BoardHeader label="Not indexed" display />
+        <BoardHeader label={isPrivate ? "Private" : "Not indexed"} display />
         <div className="space-y-3 px-5 py-8 md:px-6 md:py-10">
-          <p className="max-w-prose text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-400">
-            No data indexed yet for{" "}
-            <span className="text-zinc-900 dark:text-zinc-100">{chainName}</span>. Blocks,
-            transactions, accounts and gas history are all unavailable — this
-            chain is not in our indexing set.
-          </p>
+          {isPrivate ? (
+            <p className="max-w-prose text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-400">
+              <span className="text-zinc-900 dark:text-zinc-100">{chainName}</span> is a private,
+              permissioned L1. Its blocks, transactions and accounts are not public, so this
+              explorer cannot show them.
+            </p>
+          ) : (
+            <p className="max-w-prose text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-400">
+              No data indexed yet for{" "}
+              <span className="text-zinc-900 dark:text-zinc-100">{chainName}</span>. Blocks,
+              transactions, accounts and gas history are all unavailable: this
+              chain is not in our indexing set.
+            </p>
+          )}
           <p className="max-w-prose text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-500">
-            Its on-chain registration is still visible from the P-Chain, which is
-            where subnet and validator records live.
+            {isPrivate
+              ? "Its registration and its validators are public: the P-Chain records them."
+              : "Its on-chain registration is still visible from the P-Chain, which is where subnet and validator records live."}
           </p>
           <Link
             href={pchain}
@@ -153,9 +164,10 @@ export default async function ChainExplorerLayout({
         rpcUrl={chain.rpcUrl}
         blockchainId={chain.blockchainId}
         sourcifySupport={(chain as L1Chain & { sourcifySupport?: boolean }).sourcifySupport}
+        priced={!!chain.coingeckoId}
       >
         {unindexed ? (
-          <ChainNotIndexed network={network} chainName={chain.chainName} />
+          <ChainNotIndexed network={network} chainName={chain.chainName} isPrivate={isPrivateChain(chain)} />
         ) : (
           <>
             {stoppedAt !== undefined && (

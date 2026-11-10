@@ -1,9 +1,11 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Blocks, Fuel, Users, Wallet } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Board, LiveDot } from '@/components/explorer-v2/ui';
+import { cn } from '@/lib/utils';
+import { BONE } from './chrome';
 import type { L1HealthState } from '@/hooks/useL1Health';
 import type { L1ValidatorCountState } from '@/hooks/useL1ValidatorCount';
 import type { CombinedL1 } from '@/lib/console/my-l1/types';
@@ -12,7 +14,7 @@ import { formatDurationCompact, formatGasPrice, formatRelativeFromNow } from '@/
 // Inline shimmer for stat values during the very first load. Sized to roughly
 // the final text so the cell's height doesn't jump when data lands.
 function StatSkeleton({ width = 'w-16' }: { width?: string }) {
-  return <Skeleton className={`inline-block h-5 ${width} align-middle`} />;
+  return <span className={cn(BONE, 'inline-block h-5 align-middle', width)} />;
 }
 
 export function StatsGrid({
@@ -60,26 +62,25 @@ export function StatsGrid({
     ) : (
       blockValueText
     );
+  const blockAgeSec = useLiveAge(health.blockAgeSec, health.lastSampledAt);
   const blockAge =
-    health.blockAgeSec !== null
-      ? `${formatDurationCompact(health.blockAgeSec)} ago`
+    blockAgeSec !== null
+      ? `${formatDurationCompact(blockAgeSec)} ago`
       : health.status === 'offline'
         ? 'RPC unreachable'
         : 'Pinging...';
 
-  const blockTimeValue =
-    health.blockTimeSec !== null ? formatDurationCompact(health.blockTimeSec) : '—';
-  const blockSub =
-    blockTimeValue === '—'
-      ? blockAge
-      : `${blockAge} · ${blockTimeValue} interval`;
+  const blockTimeValue = health.blockTimeSec !== null ? formatDurationCompact(health.blockTimeSec) : '—';
+  const blockSub = blockTimeValue === '—' ? blockAge : `${blockAge} · ${blockTimeValue} interval`;
 
   const gasValue: React.ReactNode =
-    health.gasPriceEth !== null
-      ? formatGasPrice(health.gasPriceEth)
-      : health.isLoading
-        ? <StatSkeleton width="w-14" />
-        : '—';
+    health.gasPriceEth !== null ? (
+      formatGasPrice(health.gasPriceEth)
+    ) : health.isLoading ? (
+      <StatSkeleton width="w-14" />
+    ) : (
+      '—'
+    );
 
   // Validator count from Glacier when available, fall back to managed-node
   // count for managed L1s (still useful when Glacier hasn't indexed the
@@ -119,7 +120,7 @@ export function StatsGrid({
         <StatCell
           icon={Users}
           label="Active validators"
-          value={<span className="text-muted-foreground">—</span>}
+          value={<span className="text-zinc-300 dark:text-zinc-700">—</span>}
           subValue="Glacier unavailable"
           valueTitle={validators.error}
         />
@@ -133,9 +134,7 @@ export function StatsGrid({
           label="Managed nodes"
           value={String(l1.nodes.length)}
           subValue={
-            l1.expiresAt
-              ? `${active} active · expires ${formatRelativeFromNow(l1.expiresAt)}`
-              : `${active} active`
+            l1.expiresAt ? `${active} active · expires ${formatRelativeFromNow(l1.expiresAt)}` : `${active} active`
           }
         />
       );
@@ -151,61 +150,70 @@ export function StatsGrid({
   })();
 
   return (
-    <Card className="overflow-hidden py-0 shadow-none">
-      <CardContent className="p-0">
-        <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border">
-          <StatCell
-            icon={Blocks}
-            label="Block"
-            value={blockValue}
-            valueTitle={blockValueText}
-            subValue={blockSub}
-          />
-          <StatCell icon={Fuel} label="Gas price" value={gasValue} subValue="From eth_gasPrice" />
-          {fourthCard}
-        </div>
-      </CardContent>
-    </Card>
+    <Board divide={false} className="border-x border-t">
+      <div className="grid grid-cols-1 divide-y divide-zinc-200 md:grid-cols-3 md:divide-x md:divide-y-0 dark:divide-zinc-800">
+        <StatCell
+          icon={Blocks}
+          label="Block"
+          live={health.status !== 'offline' && health.blockNumber !== null}
+          value={blockValue}
+          valueTitle={blockValueText}
+          subValue={blockSub}
+        />
+        <StatCell icon={Fuel} label="Gas price" value={gasValue} subValue="From eth_gasPrice" />
+        {fourthCard}
+      </div>
+    </Board>
   );
 }
 
-// Clean neutral cell rendered inside the shared StatsGrid card. Drops the
-// per-card border + hover-lift in favor of a single unified surface — feels
-// more curated than 4 boxes floating side by side.
+/** The block's age, counting up each second between RPC samples. */
+function useLiveAge(ageSec: number | null, sampledAt: number | null): number | null {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (ageSec === null) return;
+    const id = setInterval(() => setNow(Date.now()), 1_000);
+    return () => clearInterval(id);
+  }, [ageSec]);
+  if (ageSec === null || sampledAt === null) return ageSec;
+  return ageSec + Math.max(0, Math.floor((now - sampledAt) / 1000));
+}
+
+/* One figure in the strip, in the explorer's stat voice: mono label, the figure, a quiet qualifier. */
 function StatCell({
   icon: Icon,
   label,
   value,
   subValue,
   valueTitle,
+  live = false,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: React.ReactNode;
   subValue?: string;
-  /** Optional `title` attribute used when `value` is a ReactNode and we still
-   *  want a hover tooltip with the full string. */
+  /** A `title` for when `value` is a node but should still show the full string on hover. */
   valueTitle?: string;
+  live?: boolean;
 }) {
   return (
-    <div className="px-3.5 py-3 transition-colors hover:bg-accent/30">
-      <div className="flex items-center gap-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted shrink-0">
-          <Icon className="w-4 h-4 text-muted-foreground" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
-          {/* div, not p — Skeleton renders as a div and div-in-p is invalid
-              HTML; the wrapping element here is just for typography styling. */}
-          <div
-            className="text-base font-semibold text-foreground truncate tabular-nums"
-            title={valueTitle ?? (typeof value === 'string' ? value : undefined)}
-          >
-            {value}
-          </div>
-          {subValue && <p className="text-xs text-muted-foreground truncate">{subValue}</p>}
-        </div>
+    <div className="flex flex-col gap-1.5 px-5 py-5 md:px-6">
+      <span className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+        {live ? <LiveDot /> : <Icon className="h-3 w-3" />}
+        {label}
+      </span>
+      {/* A div, not a p: the skeleton renders a div, and a div inside a p is invalid. */}
+      <div
+        className="truncate font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl dark:text-zinc-50"
+        title={valueTitle ?? (typeof value === 'string' ? value : undefined)}
+      >
+        {value}
       </div>
+      {subValue && (
+        <span className="truncate font-mono text-[10px] leading-4 tracking-[0.04em] text-zinc-400 dark:text-zinc-500">
+          {subValue}
+        </span>
+      )}
     </div>
   );
 }

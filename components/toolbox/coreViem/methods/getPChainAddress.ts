@@ -1,13 +1,14 @@
 import { networkIDs } from '@avalabs/avalanchejs';
+import { MAINNET_NETWORK_ID, TESTNET_NETWORK_ID } from '@avalanche-sdk/client/methods';
 import type { AvalancheWalletClient } from '@avalanche-sdk/client';
-import { utils, secp256k1 } from '@avalabs/avalanchejs';
+import { utils, secp256k1 } from '@avalanche-sdk/client/utils';
 import { Buffer as BufferPolyfill } from 'buffer';
 import { isTestnet } from './isTestnet';
 import { secp256k1 as nobleSecp256k1 } from '@noble/curves/secp256k1.js';
 import type { CoreWalletRpcSchema } from '../rpcSchema';
 
 export async function getPChainAddress(client: AvalancheWalletClient) {
-  const networkID = (await isTestnet(client)) ? networkIDs.FujiID : networkIDs.MainnetID;
+  const networkID = (await isTestnet(client)) ? TESTNET_NETWORK_ID : MAINNET_NETWORK_ID;
 
   const pubkeys = await client.request<Extract<CoreWalletRpcSchema[number], { Method: 'avalanche_getAccountPubKey' }>>({
     method: 'avalanche_getAccountPubKey',

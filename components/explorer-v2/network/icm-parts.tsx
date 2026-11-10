@@ -36,7 +36,6 @@ export interface BlockDay {
 
 /* the liquid's strengths: translucent pours, a focused layer fills in */
 const POUR = 0.55;
-const SIDE_POUR = 0.8;
 const FOCUSED = 0.9;
 const RECEDED = 0.12;
 const CHART_PX = 176;
@@ -164,7 +163,7 @@ export function LayerBlock({
   const overlayMax = overlayVals ? Math.max(1e-9, ...overlayVals) * 1.12 : 1;
   const overlayLine = overlayVals ? monotonePath(overlayVals.map((v, i) => [x(i), CHART_PX - (v / overlayMax) * CHART_PX] as const)) : "";
 
-  const strength = (key: string, side = false) => (focus === null ? (side ? SIDE_POUR : POUR) : focus === key ? FOCUSED : RECEDED);
+  const strength = (key: string) => (focus === null ? POUR : focus === key ? FOCUSED : RECEDED);
 
   const onMove = (e: React.MouseEvent) => {
     const r = plot.current?.getBoundingClientRect();
@@ -179,23 +178,9 @@ export function LayerBlock({
   const move = headline === "last" && first > 0 ? (lastTotal / first - 1) * 100 : null;
   const span = days.length > 1 ? `${dayLabel(days[0].date)} to ${dayLabel(days[last].date)}` : "";
 
-  const side = (
-    <span className="absolute inset-x-0 bottom-0 flex flex-col-reverse" style={{ height: CHART_PX }}>
-      {layers.map((l, i) => (
-        <span
-          key={l.key}
-          className={cn("relative w-full shrink-0", i === layers.length - 1 && "border-t border-zinc-700/60 dark:border-zinc-300/60")}
-          style={{ height: days.length ? ((days[last].v[l.key] ?? 0) / max) * CHART_PX : 0 }}
-        >
-          <span className="absolute inset-0 transition-opacity" style={{ background: l.tone, opacity: strength(l.key, true) }} />
-        </span>
-      ))}
-    </span>
-  );
-
   return (
     <div className={cn("pr-2 pt-2 transition-opacity", stale && "opacity-60")}>
-      <ReadoutBlock href={href} side={side} className="flex-col">
+      <ReadoutBlock href={href} className="flex-col">
         <div className="relative z-10 flex flex-wrap items-start justify-between gap-x-8 gap-y-3 px-5 pt-3 md:px-6">
           <span className="flex min-w-0 flex-col gap-1.5">
             <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
@@ -529,23 +514,31 @@ export function CutChips({ chips, onDrop, onClear }: { chips: CutChip[]; onDrop:
 const SEG =
   "relative flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full px-2.5 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0061E2]/50";
 
-/** a pill that slides to the choice; scrolls sideways when it runs long */
-export function ViewSwitch<T extends string>({ id, value, onChange, options }: { id: string; value: T; onChange: (v: T) => void; options: { v: T; label: string }[] }) {
+/** a pill that slides to the choice; scrolls sideways when it runs long, or with `fill` spans its box in equal parts */
+export function ViewSwitch<T extends string>({ id, value, onChange, options, fill = false }: { id: string; value: T; onChange: (v: T) => void; options: { v: T; label: string; disabled?: boolean }[]; fill?: boolean }) {
   const reduced = useReduced();
   return (
     <div
       role="group"
-      className="flex max-w-full items-center gap-px overflow-x-auto rounded-full bg-zinc-100 p-0.5 ring-1 ring-inset ring-zinc-200/70 [scrollbar-width:none] dark:bg-zinc-900 dark:ring-zinc-800 [&::-webkit-scrollbar]:hidden"
+      className={cn(
+        "flex max-w-full items-center gap-px overflow-x-auto rounded-full bg-zinc-100 p-0.5 ring-1 ring-inset ring-zinc-200/70 [scrollbar-width:none] dark:bg-zinc-900 dark:ring-zinc-800 [&::-webkit-scrollbar]:hidden",
+        fill && "w-full",
+      )}
     >
-      {options.map(({ v, label }) => {
+      {options.map(({ v, label, disabled = false }) => {
         const on = value === v;
         return (
           <button
             key={v}
             type="button"
             aria-pressed={on}
+            disabled={disabled}
             onClick={() => onChange(v)}
-            className={cn(SEG, on ? "text-zinc-900 dark:text-zinc-50" : "text-zinc-500 hover:bg-white/60 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-100")}
+            className={cn(
+              SEG,
+              fill && "flex-1",
+              on ? "text-zinc-900 dark:text-zinc-50" : disabled ? "cursor-default text-zinc-300 dark:text-zinc-700" : "text-zinc-500 hover:bg-white/60 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-100",
+            )}
           >
             {on && <motion.span layoutId={`${id}-pill`} transition={reduced ? { duration: 0 } : MOTION} className="absolute inset-0 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.12)] dark:bg-zinc-700" />}
             <span className="relative whitespace-nowrap font-mono text-[10.5px] font-medium">{label}</span>

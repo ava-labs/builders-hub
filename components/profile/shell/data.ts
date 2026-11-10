@@ -19,18 +19,17 @@ export interface RoleSpec {
 }
 
 export const ROLES: ReadonlyArray<RoleSpec> = [
-  { id: "university", name: "University", description: "Student or affiliate", icon: "graduation" },
-  { id: "founder", name: "Founder", description: "Building a startup", icon: "rocket" },
-  { id: "developer", name: "Developer", description: "Ship code on-chain", icon: "code" },
-  { id: "employee", name: "Employee", description: "Working at web3 co.", icon: "briefcase" },
-  { id: "enthusiast", name: "Enthusiast", description: "Curious & exploring", icon: "sparkle" },
+  { id: "university", name: "University", description: "Student or staff at a university", icon: "graduation" },
+  { id: "founder", name: "Founder", description: "Builds a company", icon: "rocket" },
+  { id: "developer", name: "Developer", description: "Writes code for Avalanche", icon: "code" },
+  { id: "employee", name: "Employee", description: "Works at a blockchain company", icon: "briefcase" },
+  { id: "enthusiast", name: "Enthusiast", description: "Learns about Avalanche", icon: "sparkle" },
 ];
 
 export const SKILL_SUGGESTIONS: ReadonlyArray<{ name: string; category: SkillCategory }> = [
   { name: "Solidity", category: "lang" },
   { name: "Rust", category: "lang" },
   { name: "TypeScript", category: "lang" },
-  { name: "Subnets", category: "chain" },
   { name: "Avalanche L1", category: "chain" },
   { name: "Foundry", category: "tool" },
   { name: "Hardhat", category: "tool" },

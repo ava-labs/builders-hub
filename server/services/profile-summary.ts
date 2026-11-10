@@ -8,6 +8,9 @@ import {
 } from "@/server/services/referrals";
 import { getAllBadges } from "@/server/services/badge";
 import { getRewardBoard } from "@/server/services/rewardBoard";
+import { getCompletedCourseSlugs } from "@/server/services/userBadge";
+import { ACADEMY_COURSES } from "@/components/academy/learning-path-configs/academy.config";
+import { certificatesOf, courseOfCertificate } from "@/lib/academy/course-certificates";
 import type { Badge, UserBadge, Requirement } from "@/types/badge";
 import type { ReferralTargetPreset } from "@/lib/referrals/targets";
 import { MINI_GRANT_KEY } from "@/lib/grants/programs";
@@ -85,6 +88,8 @@ export async function getUserProjects(
   });
 }
 
+export type ProfileBadgeGroup = "academy" | "hackathon";
+
 export interface ProfileBadgeSummary {
   id: string;
   badgeId: string;
@@ -92,40 +97,87 @@ export interface ProfileBadgeSummary {
   description: string;
   imagePath: string;
   category: string;
-  group: "console" | "developer" | "blockchain" | "avalanche-l1" | "entrepreneur" | "hackathon" | "unknown";
-  tier: string | null;
+  group: ProfileBadgeGroup;
   isUnlocked: boolean;
-  isSecret: boolean;
   awardedAt: string | null;
   requirements: Requirement[];
+}
+
+export interface AcademyProgress {
+  /** the courses whose certificate the user has */
+  completed: number;
+  /** the courses of the Academy programme */
+  total: number;
+}
+
+// The tiers of the Academy grid: course badges in reading order, then the track
+// Graduates, then badges that name no course of the programme.
+const COURSE_BADGE = 0;
+const GRADUATE_BADGE = 1;
+const OUTSIDE_BADGE = 2;
+
+/** The tier of an Academy badge and its first course in reading order. */
+function academyRank(requirements: Requirement[]): { tier: number; index: number } {
+  const courses = new Set<number>();
+  for (const requirement of requirements) {
+    const course = courseOfCertificate(requirement.course_id);
+    if (course) courses.add(ACADEMY_COURSES.indexOf(course));
+  }
+  if (courses.size === 0) return { tier: OUTSIDE_BADGE, index: 0 };
+  return { tier: courses.size === 1 ? COURSE_BADGE : GRADUATE_BADGE, index: Math.min(...courses) };
+}
+
+/** The profile shows Academy and hackathon badges only; any other category stays off it. */
+function badgeGroup(category: string): ProfileBadgeGroup | null {
+  const normalized = category.trim().toLowerCase();
+  return normalized === "academy" || normalized === "hackathon" ? normalized : null;
 }
 
 export async function getUserBadgesForProfile(
   userId: string,
 ): Promise<ProfileBadgeSummary[]> {
   if (!userId) return [];
+  // getAllBadges and getRewardBoard skip the stored console rows (NOT_CONSOLE_BADGE).
   const [badges, userBadges] = await Promise.all([
     getAllBadges(),
     getRewardBoard(userId),
   ]);
 
-  // Return every badge that exists in the DB. The board groups them by
-  // whatever signal we can extract (id prefix or category), and anything we
-  // can't recognize ends up in the "Other Badges" section instead of being
-  // hidden — so a misnamed seed never disappears from the UI again.
-  return badges
-    .map((badge) => resolveProfileBadge(badge, userBadges))
-    .sort((a, b) => {
-      const groupDelta = groupOrder(a.group) - groupOrder(b.group);
-      if (groupDelta !== 0) return groupDelta;
-      const tierDelta = Number(a.tier ?? 0) - Number(b.tier ?? 0);
-      if (tierDelta !== 0) return tierDelta;
-      return badgeCourseOrder(a.badgeId) - badgeCourseOrder(b.badgeId);
-    });
+  const academy: Array<{ summary: ProfileBadgeSummary; tier: number; index: number }> = [];
+  const hackathon: ProfileBadgeSummary[] = [];
+  for (const badge of badges) {
+    const group = badgeGroup(badge.category);
+    if (!group) continue;
+    const summary = resolveProfileBadge(badge, group, userBadges);
+    if (group === "hackathon") {
+      // A hackathon badge is a prize: only its winners see it.
+      if (summary.isUnlocked) hackathon.push(summary);
+      continue;
+    }
+    const { tier, index } = academyRank(summary.requirements);
+    // A badge that names no course of the programme (a removed course: FDE-154 NFT
+    // Deployment, FDE-153 the Entrepreneur Academy) shows only to the users who earned it.
+    if (tier === OUTSIDE_BADGE && !summary.isUnlocked) continue;
+    academy.push({ summary, tier, index });
+  }
+
+  academy.sort((a, b) => a.tier - b.tier || a.index - b.index || a.summary.badgeId.localeCompare(b.summary.badgeId));
+  hackathon.sort((a, b) => (b.awardedAt ?? "").localeCompare(a.awardedAt ?? "") || a.name.localeCompare(b.name));
+  return [...academy.map((entry) => entry.summary), ...hackathon];
+}
+
+/** The Academy courses the user has a certificate for, of the programme's 13. */
+export async function getAcademyProgress(userId: string): Promise<AcademyProgress> {
+  const total = ACADEMY_COURSES.length;
+  if (!userId) return { completed: 0, total };
+  const done = new Set(await getCompletedCourseSlugs(userId));
+  const completed = ACADEMY_COURSES.filter((course) => certificatesOf(course).every((slug) => done.has(slug))).length;
+  return { completed, total };
 }
 
 function resolveProfileBadge(
   badge: Badge,
+  group: ProfileBadgeGroup,
   userBadges: UserBadge[],
 ): ProfileBadgeSummary {
   const userBadge = userBadges.find((ub) => ub.badge_id === badge.id);
@@ -142,65 +194,11 @@ function resolveProfileBadge(
     description: badge.description,
     imagePath: badge.image_path,
     category: badge.category,
-    group: getBadgeGroup(badge),
-    tier: getConsoleTier(badge),
+    group,
     isUnlocked: userBadge ? hasNoRequirements || allRequirementsCompleted : false,
-    isSecret: getConsoleTier(badge) === "4",
     awardedAt: userBadge?.awarded_at?.toISOString() ?? null,
     requirements,
   };
-}
-
-function getBadgeGroup(badge: Badge): ProfileBadgeSummary["group"] {
-  const id = badge.id.toLowerCase();
-  const category = badge.category?.toLowerCase() ?? "";
-  // Console badges may be seeded with auto-generated UUIDs (no "console" in
-  // the id), so check the category column too.
-  if (id.includes("console") || category === "console") return "console";
-  if (id.includes("hackathon")) return "hackathon";
-  // The unified Avalanche Developer Academy uses ids like `1devAcademy-*`.
-  if (id.includes("devacademy")) return "developer";
-  if (id.includes("blockchainacademy")) return "blockchain";
-  if (id.includes("avalanchel1academy")) return "avalanche-l1";
-  // Entrepreneur Academy ids: prod has `entrepreneurAcademy`, the preview DB
-  // has the bare `entrepreneur-*` prefix — match both.
-  if (id.includes("entrepreneur")) return "entrepreneur";
-  return "unknown";
-}
-
-function getConsoleTier(badge: Badge): string | null {
-  if (getBadgeGroup(badge) !== "console") return null;
-  const idMatch = badge.id.toLowerCase().match(/(\d+)tier/);
-  if (idMatch) return idMatch[1];
-  // UUID-id console badges encode the tier in the image filename, e.g.
-  // ".../Tier1_FirstKill.png". Pull it from there so the tier sections render.
-  const pathMatch = badge.image_path?.match(/Tier(\d+)/i);
-  if (pathMatch) return pathMatch[1];
-  return "0";
-}
-
-function badgeCourseOrder(id: string): number {
-  const match = id.match(/-(\d+)/);
-  return match ? Number(match[1]) : 999;
-}
-
-function groupOrder(group: ProfileBadgeSummary["group"]): number {
-  switch (group) {
-    case "console":
-      return 0;
-    case "developer":
-      return 1;
-    case "blockchain":
-      return 2;
-    case "avalanche-l1":
-      return 3;
-    case "entrepreneur":
-      return 4;
-    case "hackathon":
-      return 5;
-    case "unknown":
-      return 6;
-  }
 }
 
 export interface ProfileEngagementFlags {
@@ -220,7 +218,9 @@ export async function getProfileEngagement(
     };
   }
 
-  const [projectMemberships, hackathonMemberships, consoleBadgeCount] =
+  // A user has used the console once it holds a console log entry, a faucet
+  // claim or a node registration for them.
+  const [projectMemberships, hackathonMemberships, consoleLog, faucetClaim, nodeRegistration] =
     await Promise.all([
       prisma.member.count({
         where: { user_id: userId, status: MemberStatus.CONFIRMED },
@@ -232,19 +232,15 @@ export async function getProfileEngagement(
           project: { hackaton_id: { not: null } },
         },
       }),
-      prisma.userBadge.count({
-        where: {
-          user_id: userId,
-          status: 1,
-          badge: { category: "console" },
-        },
-      }),
+      prisma.consoleLog.findFirst({ where: { user_id: userId }, select: { id: true } }),
+      prisma.faucetClaim.findFirst({ where: { user_id: userId }, select: { id: true } }),
+      prisma.nodeRegistration.findFirst({ where: { user_id: userId }, select: { id: true } }),
     ]);
 
   return {
     hasProject: projectMemberships > 0,
     hasHackathonParticipation: hackathonMemberships > 0,
-    hasUsedConsole: consoleBadgeCount > 0,
+    hasUsedConsole: Boolean(consoleLog || faucetClaim || nodeRegistration),
   };
 }
 

@@ -4,7 +4,9 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url       = env("DATABASE_URL")
+  // Direct (non-pooler) Neon URL. Prisma Migrate needs a session; the pooler cannot hold one.
+  directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 model Hackathon {
@@ -91,6 +93,7 @@ model User {
   github_access_token        String?
   chatConversations          ChatConversation[]
   queryBoards                QueryBoard[]
+  studioProjects             StudioProject[]
   consoleLog                 ConsoleLog[]
   evaluations                Evaluation[]              @relation("Evaluations")
   faucetClaims               FaucetClaim[]
@@ -575,7 +578,9 @@ model ResearchProposalApplication {
 
 model ValidatorAlert {
   id                     String              @id @default(dbgenerated("gen_random_uuid()"))
-  user_id                String
+  // Null for a subscriber imported from Avalanche Notify who has no Builder
+  // Hub account yet. Sign-in attaches the row (server/services/legacy-validator-alerts.ts).
+  user_id                String?
   node_id                String
   label                  String?
   uptime_alert           Boolean             @default(true)
@@ -594,12 +599,15 @@ model ValidatorAlert {
   security_alert         Boolean             @default(false)
   last_known_ip          String?
   last_security_check_at DateTime?           @db.Timestamptz(3)
-  user                   User                @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  // Where the row came from: null for a row made in Builder Hub, "avalanche-notify" for an import.
+  source                 String?
+  user                   User?               @relation(fields: [user_id], references: [id], onDelete: Cascade)
   alert_logs             ValidatorAlertLog[]
 
   @@unique([user_id, node_id, subnet_id])
   @@index([user_id])
   @@index([node_id])
+  @@index([email])
   @@index([subnet_id])
   @@index([active])
   @@index([security_alert])
@@ -810,6 +818,16 @@ model AuditRequest {
   // contact details could be shared with the whitelisted audit firms. Null on
   // every row submitted before the checkbox existed.
   contact_consent_at   DateTime? @db.Timestamptz(3)
+  // Stamped server-side at submission when the project ticked the Telegram
+  // share and the row holds a handle: until a quote is accepted, every firm
+  // the request reached sees that handle, and nothing else of the contact.
+  // Null otherwise; each submit stamps or clears it.
+  contact_handle_shared_at DateTime? @db.Timestamptz(3)
+  // Stamped server-side at submission when the project ticked the calendar
+  // share and the row holds a link that passed the submit gate: until a quote
+  // is accepted, every firm the request reached sees that link. Null
+  // otherwise; each submit stamps or clears it.
+  contact_calendar_shared_at DateTime? @db.Timestamptz(3)
   // Stored: draft | pending_review | rejected | collecting | engaged |
   // withdrawn. "deciding" and "expired" are derived at read time from
   // quote_deadline + quote count. Plain text on purpose: the vocabulary lives
@@ -843,6 +861,10 @@ model Auditor {
   // ALWAYS stored lowercase (no citext in this database); every write path
   // and the session resolver normalize with trim().toLowerCase().
   quote_email    String    @unique
+  // The quote-email person's own GitHub username, set or cleared only by that
+  // person from the portal firm page, so projects can add them to a private
+  // repo. Not unique, stored as typed (GitHub names are case-insensitive).
+  github_username String?
   // Offered services, tagged by the firm from the portal (admins may edit).
   // Shown on the whitelist, on quote headers and on the public firms page.
   // Never filters fan-out on the server; the wizard's quick-pick alone reads
@@ -883,6 +905,9 @@ model AuditorMember {
   id             String    @id @default(uuid())
   auditor_id     String
   email          String    @unique
+  // This teammate's own GitHub username, like Auditor.github_username; it
+  // goes with the row when the teammate is removed.
+  github_username String?
   added_by       String?
   invited_at     DateTime  @default(now()) @db.Timestamptz(3)
   first_login_at DateTime? @db.Timestamptz(3) // null = invited, never signed in
@@ -900,7 +925,11 @@ model AuditQuote {
   request_id       String
   auditor_id       String
   price_usd        Int
-  duration_weeks   Int
+  // The number as the firm typed it, in duration_unit (Joey, 2026-09-30:
+  // days as well as weeks). The column keeps its original name, so adding
+  // days took one new column and no rewrite of the quotes already on file.
+  duration         Int      @map("duration_weeks")
+  duration_unit    String   @default("weeks") // weeks | days (lib/audits/status.ts)
   earliest_start   DateTime @db.Timestamptz(3)
   message          String
   // Optional link to the firm's own proposal or scoping doc.
@@ -1058,4 +1087,210 @@ model QueryBoard {
 
   @@id([user_id, id])
   @@index([user_id, scope])
+}
+
+/// A Studio workspace for one app: files, chats with the build agent, builds,
+/// audits and deployments. Work happens on testnet; production exists only
+/// through a StudioPromotion, whose gates the server checks.
+/// Statuses are plain text; the vocabularies live in lib/studio/status.ts.
+model StudioProject {
+  id            String    @id @default(uuid())
+  user_id       String
+  name          String
+  description   String    @default("")
+  /// Blueprints the project started from, in order.
+  blueprint_ids String[]  @default([])
+  /// Role to network key from blueprints/_shared/networks.json, e.g. {"main": "fuji-c-chain"}.
+  networks      Json      @default("{}")
+  /// Builder parameters for the blueprint steps.
+  params        Json      @default("{}")
+  /// Values bound at run time, such as the builder's own L1: {"l1": {"evmChainId": ..., "rpcUrl": ...}}.
+  runtime       Json      @default("{}")
+  /// testnet | production (after a promotion completes)
+  stage         String    @default("testnet")
+  archived_at   DateTime? @db.Timestamptz(3)
+  created_at    DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at    DateTime  @updatedAt @db.Timestamptz(3)
+
+  user        User                @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  chats       StudioChat[]
+  files       StudioFile[]
+  builds      StudioBuild[]
+  audits      StudioAuditReport[]
+  deployments StudioDeployment[]
+  promotions  StudioPromotion[]
+  site        StudioSite?
+
+  @@index([user_id, updated_at])
+}
+
+/// A project's published frontend, served at /builder/{owner_slug}/{slug} inside a sandboxed frame.
+/// A snapshot: republishing replaces it, so edits in Studio don't reach visitors until then.
+model StudioSite {
+  id           String   @id @default(uuid())
+  project_id   String   @unique
+  user_id      String
+  owner_slug   String
+  slug         String
+  title        String
+  /// [{path, content}] under frontend/
+  files        Json
+  /// The contracts and chains window.studio exposes, as at publish time.
+  contracts    Json
+  chains       Json
+  design_css   String
+  published_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at   DateTime @updatedAt @db.Timestamptz(3)
+
+  project StudioProject @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  @@unique([owner_slug, slug])
+  @@index([user_id])
+}
+
+model StudioChat {
+  id         String   @id @default(uuid())
+  project_id String
+  title      String   @default("New chat")
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at DateTime @updatedAt @db.Timestamptz(3)
+
+  project  StudioProject   @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  messages StudioMessage[]
+
+  @@index([project_id, updated_at])
+}
+
+/// One AI SDK UIMessage. id is the message id the SDK generated, unique within its chat.
+model StudioMessage {
+  id         String
+  chat_id    String
+  /// user | assistant
+  role       String
+  parts      Json
+  /// Token usage for assistant messages, for per-user quotas.
+  usage      Json?
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+
+  chat StudioChat @relation(fields: [chat_id], references: [id], onDelete: Cascade)
+
+  @@id([chat_id, id])
+  @@index([chat_id, created_at])
+}
+
+model StudioFile {
+  id         String   @id @default(uuid())
+  project_id String
+  /// Relative path, e.g. contracts/Guestbook.sol or test/Guestbook.t.sol.
+  path       String
+  content    String
+  sha256     String
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at DateTime @updatedAt @db.Timestamptz(3)
+
+  project StudioProject @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  @@unique([project_id, path])
+}
+
+/// A compile of the project's contracts. Deployments and audits point at the
+/// build they used, so promotion can prove testnet and production run the same bytecode.
+model StudioBuild {
+  id          String   @id @default(uuid())
+  project_id  String
+  /// sha256 over the sorted (path, sha256) pairs of the compiled files.
+  files_hash  String
+  compiler    String
+  ok          Boolean
+  diagnostics Json     @default("[]")
+  /// [{file, name, abi, bytecode, bytecodeHash}]
+  contracts   Json     @default("[]")
+  created_at  DateTime @default(now()) @db.Timestamptz(3)
+
+  project     StudioProject       @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  audits      StudioAuditReport[]
+  deployments StudioDeployment[]
+  promotions  StudioPromotion[]
+
+  @@index([project_id, created_at])
+}
+
+model StudioAuditReport {
+  id           String   @id @default(uuid())
+  project_id   String
+  build_id     String
+  passed       Boolean
+  counts       Json
+  findings     Json     @default("[]")
+  /// [{fingerprint, reason, at}]
+  acknowledged Json     @default("[]")
+  tool_version String
+  /// review.md results the agent recorded: [{id, status, evidence}]
+  review       Json     @default("[]")
+  created_at   DateTime @default(now()) @db.Timestamptz(3)
+
+  project StudioProject @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  build   StudioBuild   @relation(fields: [build_id], references: [id], onDelete: Cascade)
+
+  @@index([project_id, created_at])
+  @@index([build_id])
+}
+
+/// A plan of blueprint steps and its progress. The builder's wallet signs;
+/// every step's receipt is re-read from the chain before it is recorded.
+model StudioDeployment {
+  id           String    @id @default(uuid())
+  project_id   String
+  build_id     String
+  /// testnet | production
+  stage        String
+  blueprint_id String?
+  /// Role to network key, frozen when the deployment was proposed.
+  networks     Json
+  params       Json      @default("{}")
+  /// The steps to run, with contract, function and argument references.
+  plan         Json
+  /// proposed | running | succeeded | failed | cancelled
+  status       String    @default("proposed")
+  /// Per step id: {status, chainId, txHash, address, blockNumber, outputs, error}
+  steps        Json      @default("{}")
+  /// [{description, after, passed, actual, error, at}]
+  checks       Json      @default("[]")
+  signer       String?
+  promotion_id String?
+  created_at   DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at   DateTime  @updatedAt @db.Timestamptz(3)
+  completed_at DateTime? @db.Timestamptz(3)
+
+  project      StudioProject     @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  build        StudioBuild       @relation(fields: [build_id], references: [id], onDelete: Cascade)
+  promotion    StudioPromotion?  @relation("StudioPromotionDeployments", fields: [promotion_id], references: [id], onDelete: SetNull)
+  promotedFrom StudioPromotion[] @relation("StudioPromotionSource")
+
+  @@index([project_id, created_at])
+  @@index([promotion_id])
+}
+
+/// A request to run a proven testnet deployment's build on production networks.
+model StudioPromotion {
+  id                   String    @id @default(uuid())
+  project_id           String
+  source_deployment_id String
+  build_id             String
+  /// Testnet network key to production network key, e.g. {"fuji-c-chain": "mainnet-c-chain"}.
+  network_map          Json
+  /// Gate results when the promotion was requested: [{id, passed, detail}]
+  gates                Json      @default("[]")
+  tests_confirmed_at   DateTime? @db.Timestamptz(3)
+  /// ready | deploying | completed | failed | cancelled
+  status               String    @default("ready")
+  created_at           DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at           DateTime  @updatedAt @db.Timestamptz(3)
+
+  project          StudioProject      @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  build            StudioBuild        @relation(fields: [build_id], references: [id], onDelete: Cascade)
+  sourceDeployment StudioDeployment   @relation("StudioPromotionSource", fields: [source_deployment_id], references: [id], onDelete: Cascade)
+  deployments      StudioDeployment[] @relation("StudioPromotionDeployments")
+
+  @@index([project_id, created_at])
 }

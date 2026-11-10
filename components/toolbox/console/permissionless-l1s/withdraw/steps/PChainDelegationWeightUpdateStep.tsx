@@ -22,7 +22,9 @@ export default function PChainDelegationWeightUpdateStep() {
             <SubmitPChainTxWeightUpdate
               subnetIdL1={store.subnetIdL1}
               initialEvmTxHash={store.evmTxHash}
-              signingSubnetId={vmcCtx.signingSubnetId || store.subnetIdL1}
+              signingSubnetId={vmcCtx.signingSubnetId}
+              signingSubnetLoading={vmcCtx.isLoading}
+              signingSubnetError={vmcCtx.error}
               txHashLabel="Initiate Removal Transaction Hash"
               txHashPlaceholder="0x..."
               onSuccess={(txId) => {

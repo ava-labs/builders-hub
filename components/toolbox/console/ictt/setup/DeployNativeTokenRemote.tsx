@@ -11,7 +11,8 @@ import { Success } from '@/components/toolbox/components/Success';
 import { Input, Suggestion } from '@/components/toolbox/components/Input';
 import { EVMAddressInput } from '@/components/toolbox/components/EVMAddressInput';
 import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
-import { Note } from '@/components/toolbox/components/Note';
+import { Alert } from '@/components/toolbox/components/Alert';
+import { BODY } from '../bridge/ui';
 import ERC20TokenHomeABI from '@/contracts/icm-contracts/compiled/ERC20TokenHome.json';
 import { CB58ToHex } from '@avalanche-sdk/client/utils';
 import ExampleERC20 from '@/contracts/icm-contracts/compiled/ExampleERC20.json';
@@ -177,7 +178,7 @@ function DeployNativeTokenRemote() {
 
   async function handleDeploy() {
     if (!walletClient) {
-      setCriticalError(new Error('Core wallet not found'));
+      setCriticalError(new Error('Connect a wallet first.'));
       return;
     }
 
@@ -245,18 +246,19 @@ function DeployNativeTokenRemote() {
       docsLinkText="Learn how to activate the Native Minter precompile"
     >
       <ContractDeployViewer contracts={CONTRACT_SOURCES}>
-        <div className="space-y-4">
-          <div>
-            <p className="mt-2">
-              This deploys a `NativeTokenRemote` contract to the current network ({selectedL1?.name}). This contract
-              acts as the bridge endpoint for your native token from the source chain. To mint native tokens, please use
-              the{' '}
-              <a href="#precompiles/nativeMinter" className="text-blue-500 hover:text-blue-600 underline">
-                Native Minter Precompile
-              </a>
-              .
-            </p>
-          </div>
+        <div className="not-prose flex flex-col gap-4">
+          <p className={BODY}>
+            Deploys a <code className="font-mono text-[12px] text-zinc-900 dark:text-zinc-100">NativeTokenRemote</code>{' '}
+            contract on the current network ({selectedL1?.name}). It is the bridge end for your native token from the
+            source chain. Minting native tokens uses the{' '}
+            <a
+              href="#precompiles/nativeMinter"
+              className="font-medium text-zinc-900 underline decoration-zinc-300 underline-offset-4 transition-colors hover:decoration-zinc-900 dark:text-zinc-100 dark:decoration-zinc-600 dark:hover:decoration-zinc-100"
+            >
+              Native Minter precompile
+            </a>
+            .
+          </p>
 
           <AcknowledgementCallout
             title="Have You Switched to the Destination Chain?"
@@ -285,8 +287,8 @@ function DeployNativeTokenRemote() {
               </li>
               <li>
                 Verified that{' '}
-                <code className="bg-blue-100 dark:bg-blue-900/30 px-1 py-0.5 rounded">{selectedL1?.name}</code> is your
-                intended destination chain
+                <code className="font-mono text-[12px] text-zinc-900 dark:text-zinc-100">{selectedL1?.name}</code> is
+                your intended destination chain
               </li>
               <li>
                 Confirmed the <strong>Native Minter precompile</strong> is enabled on this chain
@@ -305,15 +307,15 @@ function DeployNativeTokenRemote() {
             />
 
             {!teleporterRegistryAddress && (
-              <Note variant="warning">
-                <p>
-                  Please{' '}
-                  <a href="#teleporterRegistry" className="text-blue-500">
-                    deploy the Teleporter Registry contract first
-                  </a>
-                  .
-                </p>
-              </Note>
+              <Alert variant="warning">
+                <a
+                  href="#teleporterRegistry"
+                  className="font-medium text-zinc-900 underline decoration-zinc-300 underline-offset-4 transition-colors hover:decoration-zinc-900 dark:text-zinc-100 dark:decoration-zinc-600 dark:hover:decoration-zinc-100"
+                >
+                  Deploy the Teleporter Registry contract first
+                </a>
+                .
+              </Alert>
             )}
 
             <SelectBlockchainId
@@ -342,7 +344,7 @@ function DeployNativeTokenRemote() {
               <Input label="Token Home Blockchain ID (hex)" value={tokenHomeBlockchainIDHex} disabled />
             )}
 
-            {localError && <div className="text-red-500 mt-2 p-2 border border-red-300 rounded">{localError}</div>}
+            {localError && <Alert variant="error">{localError}</Alert>}
 
             {tokenHomeAddress && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

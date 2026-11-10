@@ -77,8 +77,7 @@ export function walletItemToCombined(w: L1ListItem): CombinedL1 {
 // undefined so Setup Progress treats them as missing. Undefined entries
 // are then OMITTED from the returned object — when this is spread into a
 // managed CombinedL1, undefined-valued keys would otherwise clobber valid
-// server-side data (notably the firn explorer URL set by
-// `lib/console/my-l1s.ts:122`).
+// server-side data.
 export function metadataFromWalletItem(w: L1ListItem): Partial<{
   validatorManagerAddress: string;
   validatorManagerBlockchainId: string;

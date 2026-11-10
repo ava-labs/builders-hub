@@ -166,8 +166,10 @@ These are internal API endpoints called by frontend components (not external API
 
 | Component | Internal API | Purpose |
 |-----------|-------------|---------|
-| `L1ExplorerPage.tsx` | `/api/explorer/${chainId}` | Fetch chain explorer data (initial + incremental) |
-| `AllChainsExplorerPage.tsx` | `/api/explorer/${chainId}` | Fetch data for all supported chains |
+| `ExplorerContext.tsx` | `/api/explorer/${chainId}` | Fetch chain explorer data for every explorer page |
+| `IcmMessagesPage.tsx` | `/api/explorer/${chainId}/icm` | Fetch a chain's ICM messages |
+| `GasMarketPage.tsx` | `/api/explorer/${evmChainId}?priceOnly=true` | Fetch the native token's price |
+| `LiveBlockBurns.tsx` | `/api/explorer/${CHAIN_ID}` | Fetch recent blocks for the live burn feed |
 
 ---
 

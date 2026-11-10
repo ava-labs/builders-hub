@@ -12,7 +12,12 @@ import {
 import type { OwnerQuote } from "@/server/services/audits/visibility";
 import { StatusBadge } from "@/components/audits/shared/StatusBadge";
 import { MONO_LABEL_SM } from "@/components/audits/shared/classes";
-import { formatIsoDate, formatUsd, isOutsideWindow } from "@/components/audits/shared/format";
+import {
+  durationLabel,
+  formatIsoDate,
+  formatUsd,
+  isOutsideWindow,
+} from "@/components/audits/shared/format";
 import { QuoteDocLink } from "@/components/audits/quotes/QuoteDocLink";
 
 interface QuoteTableProps {
@@ -38,7 +43,7 @@ export function QuoteTable({ quotes, neededBy = null, onAccept }: QuoteTableProp
             <TableHead className={cn(MONO_LABEL_SM, "px-4")}>Auditor</TableHead>
             <TableHead className={MONO_LABEL_SM}>Price ↑</TableHead>
             <TableHead className={cn(MONO_LABEL_SM, "min-w-32")}>Vs highest</TableHead>
-            <TableHead className={MONO_LABEL_SM}>Weeks</TableHead>
+            <TableHead className={MONO_LABEL_SM}>Duration</TableHead>
             <TableHead className={MONO_LABEL_SM}>Can start</TableHead>
             <TableHead className={MONO_LABEL_SM}>Proposal</TableHead>
             {onAccept ? <TableHead aria-label="Accept" /> : null}
@@ -87,7 +92,9 @@ export function QuoteTable({ quotes, neededBy = null, onAccept }: QuoteTableProp
                     />
                   </div>
                 </TableCell>
-                <TableCell className="font-mono text-sm">{quote.duration_weeks}</TableCell>
+                <TableCell className="font-mono text-sm">
+                  {durationLabel(quote.duration, quote.duration_unit)}
+                </TableCell>
                 <TableCell
                   className={cn(
                     "font-mono text-sm",

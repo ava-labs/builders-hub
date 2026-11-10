@@ -39,7 +39,8 @@ const badgeUpdates: { id: string; image_path: string; description: string }[] = 
   },
 ];
 
-// New full-completion badge — awarded when ALL 5 blockchain courses completed
+// New full-completion badge: awarded when ALL 4 blockchain courses completed
+// (NFT Deployment was removed; migration 20260929000000_drop_nft_deployment_from_blockchain_graduate)
 const graduateBadge = {
   id: "2blockchainAcademy-6academy-full-completion",
   name: "Blockchain Academy Graduate",
@@ -49,7 +50,6 @@ const graduateBadge = {
   requirements: [
     { id: "blockchain-fundamentals-complete", type: "course", unlocked: false, course_id: "blockchain-fundamentals", description: "Complete the Blockchain Fundamentals course" },
     { id: "solidity-foundry-complete", type: "course", unlocked: false, course_id: "solidity-foundry", description: "Complete the Intro to Solidity course" },
-    { id: "nft-deployment-complete", type: "course", unlocked: false, course_id: "nft-deployment", description: "Complete the NFT Deployment course" },
     { id: "x402-payment-infrastructure-complete", type: "course", unlocked: false, course_id: "x402-payment-infrastructure", description: "Complete the x402 Payment Infrastructure course" },
     { id: "encrypted-erc-complete", type: "course", unlocked: false, course_id: "encrypted-erc", description: "Complete the Encrypted ERC course" },
   ],

@@ -25,27 +25,47 @@ function getCanonicalSlug(slug: string): string | null {
 export const dynamic = 'force-dynamic';
 export const revalidate = 300; // Cache for 5 minutes
 
+// The /protocols list is about 12 MB, over the 2 MB the Next.js data cache takes,
+// so the route holds its Avalanche protocols here for 5 minutes instead
+const PROTOCOLS_MS = 300_000;
+let protocolsHeld: { list: DefiLlamaProtocol[]; at: number } | null = null;
+let protocolsLoading: Promise<DefiLlamaProtocol[] | null> | null = null;
+
 async function fetchAllProtocols(): Promise<DefiLlamaProtocol[]> {
-  try {
-    const res = await fetch(`${DEFILLAMA_API}/protocols`, {
-      next: { revalidate: 300 },
+  const res = await fetch(`${DEFILLAMA_API}/protocols`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to fetch protocols');
+  return await res.json();
+}
+
+// One request at a time; null when it fails
+function refreshAvalancheProtocols(): Promise<DefiLlamaProtocol[] | null> {
+  protocolsLoading ??= fetchAllProtocols()
+    .then((allProtocols) => {
+      const list = allProtocols.filter(
+        (p) =>
+          p.chains?.includes('Avalanche') &&
+          p.chainTvls?.Avalanche &&
+          p.chainTvls.Avalanche > 0
+      );
+      protocolsHeld = { list, at: Date.now() };
+      return list;
+    })
+    .catch((error) => {
+      console.error('Error fetching protocols:', error);
+      return null;
+    })
+    .finally(() => {
+      protocolsLoading = null;
     });
-    if (!res.ok) throw new Error('Failed to fetch protocols');
-    return await res.json();
-  } catch (error) {
-    console.error('Error fetching protocols:', error);
-    return [];
-  }
+  return protocolsLoading;
 }
 
 async function fetchAvalancheProtocols(): Promise<DefiLlamaProtocol[]> {
-  const allProtocols = await fetchAllProtocols();
-  return allProtocols.filter(
-    (p) =>
-      p.chains?.includes('Avalanche') &&
-      p.chainTvls?.Avalanche &&
-      p.chainTvls.Avalanche > 0
-  );
+  const held = protocolsHeld;
+  if (held && Date.now() - held.at < PROTOCOLS_MS) return held.list;
+  // An older list answers while the refresh runs, and stays if the refresh fails
+  const next = refreshAvalancheProtocols();
+  return held ? held.list : (await next) ?? [];
 }
 
 async function fetchAvalancheTVL(): Promise<{ tvl: number; protocols: number } | null> {

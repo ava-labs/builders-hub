@@ -52,3 +52,10 @@ describe("isFirmOwner", () => {
     expect(isFirmOwner(firm, "alice@nordlicht.example")).toBe(false);
   });
 });
+
+describe("GitHub usernames have one writer (D2.3)", () => {
+  it("neither the firm's details update nor the admin update accepts github_username", () => {
+    expect(auditorSelfUpdateSchema.safeParse({ github_username: "octocat" }).success).toBe(false);
+    expect(auditorUpdateSchema.safeParse({ github_username: "octocat" }).success).toBe(false);
+  });
+});

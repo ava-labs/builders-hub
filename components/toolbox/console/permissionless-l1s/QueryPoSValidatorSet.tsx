@@ -6,7 +6,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Clock, Users, Coins, Info, Copy, Check, Search, Timer, Percent, AlertCircle, Shield } from 'lucide-react';
 import { Container } from '@/components/toolbox/components/Container';
 import { Button } from '@/components/toolbox/components/Button';
-import { networkIDs } from '@avalabs/avalanchejs';
+import { MAINNET_NETWORK_ID, TESTNET_NETWORK_ID } from '@avalanche-sdk/client/methods';
 import { formatEther } from 'viem';
 
 import { GlobalParamNetwork } from '@avalabs/avacloud-sdk/models/components';
@@ -137,8 +137,8 @@ export default function QueryPoSValidatorSet() {
 
   // Network names for display
   const networkNames: Record<number, GlobalParamNetwork> = {
-    [networkIDs.MainnetID]: 'mainnet',
-    [networkIDs.FujiID]: 'fuji',
+    [MAINNET_NETWORK_ID]: 'mainnet',
+    [TESTNET_NETWORK_ID]: 'fuji',
   };
 
   // Format time remaining

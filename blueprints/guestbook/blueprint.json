@@ -1,0 +1,130 @@
+{
+  "id": "guestbook",
+  "version": 1,
+  "title": "Guestbook",
+  "summary": "Permanent onchain guestbook",
+  "description": "An append-only guestbook anyone can sign. The smallest end-to-end blueprint: one contract, one write function, and paged reads for the UI.",
+  "category": "data",
+  "level": "starter",
+  "tags": ["c-chain", "hello-world", "events", "l1"],
+  "prompts": [
+    "Build an onchain guestbook where visitors leave a message",
+    "Make a simple dApp so I can try deploying to Avalanche",
+    "A wall where people post short messages that stay forever"
+  ],
+  "networks": {
+    "main": {
+      "description": "Chain the guestbook lives on",
+      "default": "fuji-c-chain",
+      "allowed": ["fuji-c-chain", "echo-fuji", "dispatch-fuji", "l1", "mainnet-c-chain"]
+    }
+  },
+  "params": [
+    {
+      "name": "firstMessage",
+      "type": "string",
+      "description": "Message for the optional smoke-test entry",
+      "default": "Hello from Avalanche"
+    }
+  ],
+  "prerequisites": ["Native gas on the target chain for the signer (Fuji AVAX from the Builder Hub faucet)"],
+  "contracts": [
+    {
+      "name": "Guestbook",
+      "source": "contracts/Guestbook.sol",
+      "description": "Append-only list of signed messages with paged reads"
+    }
+  ],
+  "steps": [
+    {
+      "id": "deploy-guestbook",
+      "title": "Deploy Guestbook",
+      "kind": "deploy",
+      "network": "main",
+      "signer": "deployer",
+      "contract": "Guestbook",
+      "args": []
+    },
+    {
+      "id": "first-entry",
+      "title": "Sign the guestbook once",
+      "kind": "call",
+      "network": "main",
+      "signer": "builder",
+      "contract": "Guestbook",
+      "target": "$out.deploy-guestbook.address",
+      "function": "sign",
+      "args": ["$param.firstMessage"],
+      "outputs": {
+        "entryId": "event:Guestbook.Signed.id"
+      },
+      "optional": true
+    }
+  ],
+  "checks": [
+    {
+      "description": "The guestbook starts empty",
+      "after": "deploy-guestbook",
+      "network": "main",
+      "contract": "Guestbook",
+      "target": "$out.deploy-guestbook.address",
+      "function": "count",
+      "expect": {
+        "equals": 0
+      }
+    },
+    {
+      "description": "The smoke-test entry is recorded",
+      "after": "first-entry",
+      "network": "main",
+      "contract": "Guestbook",
+      "target": "$out.deploy-guestbook.address",
+      "function": "count",
+      "expect": {
+        "equals": 1
+      }
+    }
+  ],
+  "panel": [
+    {
+      "step": "deploy-guestbook",
+      "read": ["count", "getEntry", "latest", "MAX_MESSAGE_BYTES"],
+      "write": ["sign"]
+    }
+  ],
+  "review": [
+    "Messages stay capped at MAX_MESSAGE_BYTES, so a single entry cannot make page reads expensive.",
+    "The frontend renders messages as plain text, never HTML: entries are user-controlled and permanent."
+  ],
+  "frontend": {
+    "summary": "Leave a message on the wall and read what others wrote, live.",
+    "audience": ["Visitors leaving a short public message", "Anyone reading the wall"],
+    "journeys": [
+      "Read the wall without a wallet: newest messages first, author shortened, time ago, and 'Load older' at the bottom.",
+      "Write a message with a live 'characters left' count (the limit is in bytes, so count bytes) and 'Sign the guestbook'.",
+      "See your message appear at once, marked pending until it confirms.",
+      "New messages from others appear at the top without a refresh."
+    ],
+    "flows": [
+      "Load the newest page with latest(0, 20) and fetch older pages by increasing the offset; a page holds at most 50 entries.",
+      "Sign with sign(message) and show the new entry optimistically until the Signed event arrives.",
+      "Validate length in bytes, not characters: an emoji is 4 bytes of the 280-byte limit.",
+      "Watch the Signed event for live updates instead of polling count()."
+    ]
+  },
+  "docs": [
+    {
+      "title": "Contract verification",
+      "url": "/docs/tooling/contract-verification"
+    },
+    {
+      "title": "Deploy a smart contract on an L1",
+      "url": "/docs/avalanche-l1s/add-utility/deploy-smart-contract"
+    },
+    {
+      "title": "Testnet faucet",
+      "url": "/console/primary-network/faucet"
+    }
+  ],
+  "related": ["erc20-token", "creator-tips"]
+}

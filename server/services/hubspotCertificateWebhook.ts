@@ -3,12 +3,6 @@ import { getCourseNameMapping } from '@/content/courses';
 // Each course has its own HubSpot webhook trigger for its specific email notification.
 // All webhook URLs are configured via environment variables.
 const courseWebhookTriggers: Record<string, () => string | undefined> = {
-  // ============ ENTREPRENEUR ACADEMY ============
-  'foundations-web3-venture': () => process.env.ENTREPRENEUR_ACADEMY_HUBSPOT_WEBHOOK || process.env.CODEBASE_CERTIFICATE_HUBSPOT_WEBHOOK,
-  'go-to-market': () => process.env.ENTREPRENEUR_ACADEMY_HUBSPOT_WEBHOOK || process.env.CODEBASE_CERTIFICATE_HUBSPOT_WEBHOOK,
-  'web3-community-architect': () => process.env.ENTREPRENEUR_ACADEMY_HUBSPOT_WEBHOOK || process.env.CODEBASE_CERTIFICATE_HUBSPOT_WEBHOOK,
-  'fundraising-finance': () => process.env.ENTREPRENEUR_ACADEMY_HUBSPOT_WEBHOOK || process.env.CODEBASE_CERTIFICATE_HUBSPOT_WEBHOOK,
-
   // ============ AVALANCHE L1 ACADEMY ============
   'avalanche-fundamentals': () => process.env.HUBSPOT_WEBHOOK_AVALANCHE_FUNDAMENTALS,
   'permissioned-l1s': () => process.env.HUBSPOT_WEBHOOK_PERMISSIONED_L1S,
@@ -24,7 +18,6 @@ const courseWebhookTriggers: Record<string, () => string | undefined> = {
   // ============ BLOCKCHAIN ACADEMY ============
   'blockchain-fundamentals': () => process.env.HUBSPOT_WEBHOOK_BLOCKCHAIN_FUNDAMENTALS,
   'solidity-foundry': () => process.env.HUBSPOT_WEBHOOK_SOLIDITY_FOUNDRY,
-  'nft-deployment': () => process.env.HUBSPOT_WEBHOOK_NFT_DEPLOYMENT,
   'encrypted-erc': () => process.env.HUBSPOT_WEBHOOK_ENCRYPTED_ERC,
   'x402-payment-infrastructure': () => process.env.HUBSPOT_WEBHOOK_X402_PAYMENT_INFRASTRUCTURE,
 };
@@ -41,7 +34,6 @@ const academyCompletionWebhookEnvVars: Record<Academy, string> = {
 const courseToAcademy: Record<string, Academy> = {
   'blockchain-fundamentals': 'blockchain',
   'solidity-foundry': 'blockchain',
-  'nft-deployment': 'blockchain',
   'encrypted-erc': 'blockchain',
   'x402-payment-infrastructure': 'blockchain',
 
@@ -62,7 +54,6 @@ const academyRequiredCourses: Record<Academy, string[]> = {
   'blockchain': [
     'blockchain-fundamentals',
     'solidity-foundry',
-    'nft-deployment',
     'encrypted-erc',
     'x402-payment-infrastructure',
   ],

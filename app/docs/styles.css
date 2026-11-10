@@ -168,6 +168,11 @@ header + * {
     padding-right: 1rem !important;
   }
   
+  /* Anchor jumps stop below the fixed toc nav, not under it (fumadocs headings use scroll-m-28) */
+  body[data-layout="docs"] #nd-tocnav ~ article :is(h1, h2, h3, h4, h5, h6)[id] {
+    scroll-margin-top: calc(var(--fd-banner-height, 0px) + 9.5rem) !important; /* Banner + navbar (3.5rem) + subnavbar (3rem) + tocnav (~3rem) */
+  }
+
   /* Center subnavbar content on mobile */
   #docs-subnav > div {
     justify-content: center !important;
@@ -302,7 +307,7 @@ header + * {
 /* XL screens: TOC sidebar (286px) is visible.
    Let fumadocs handle #nd-page width via max-w-(--fd-page-width) and
    pe-(--fd-toc-width). The TOC is position:fixed and calculates its
-   insetInlineEnd based on --fd-page-width being centered — overriding
+   insetInlineEnd based on --fd-page-width being centered. Overriding
    max-width to 100% breaks that coordination and causes overlap. */
 @media (min-width: 1280px) {
   body[data-layout="docs"] #nd-page,
@@ -410,7 +415,7 @@ body[data-layout="docs"] #nd-sidebar nav {
 }
 
 /* Mobile: Constrain article width but allow overflow for step numbers */
-/* Individual elements (tables, pre) handle their own horizontal scrolling */
+/* Code blocks (pre) scroll by themselves. A table scrolls inside the div that fumadocs puts around it. */
 @media (max-width: 1023px) {
   body[data-layout="docs"] article,
   body[data-layout="docs"] #nd-page {
@@ -423,18 +428,20 @@ body[data-layout="docs"] #nd-sidebar nav {
 /* Constrain wide elements within article to prevent TOC overlap */
 /* Tables, pre, and other wide content get overflow-x: auto */
 /* But NOT containers that hold .fd-steps (those need overflow: visible for step numbers) */
-body[data-layout="docs"] article > *:not(.fd-steps):not(:has(.fd-steps)):not(.vf-explainer):not(:has(.vf-explainer)),
-body[data-layout="docs"] .prose > *:not(.fd-steps):not(:has(.fd-steps)):not(.vf-explainer):not(:has(.vf-explainer)) {
+/* Nor headings: their text wraps, and a scroll container shows a scrollbar on hover in macOS. */
+body[data-layout="docs"] article > *:not(.fd-steps):not(:has(.fd-steps)):not(.vf-explainer):not(:has(.vf-explainer)):not(h1, h2, h3, h4, h5, h6),
+body[data-layout="docs"] .prose > *:not(.fd-steps):not(:has(.fd-steps)):not(.vf-explainer):not(:has(.vf-explainer)):not(h1, h2, h3, h4, h5, h6) {
   max-width: 100% !important;
   overflow-x: auto !important;
 }
 
-/* Specifically handle tables which are the main culprit for overflow */
+/* Tables fill the column. A wide table scrolls inside the overflow-auto div that fumadocs puts around it. Do not
+   make a table a block on any docs page, full-width and API pages too. A block table keeps the full-width frame,
+   but its rows form an inner table only as wide as their content. tests/unit/docs/table-css.test.ts and
+   tests/e2e/docs/tables.e2e.ts check this. */
 body[data-layout="docs"] article table,
 body[data-layout="docs"] .prose table {
-  display: block !important;
-  overflow-x: auto !important;
-  max-width: 100% !important;
+  width: 100%;
 }
 
 /* Handle code blocks that might overflow */
@@ -573,7 +580,7 @@ aside[aria-label*="On this page" i] > div:first-child,
     word-wrap: break-word !important;
   }
 
-  /* Mobile: Constrain wide content (images, tables, code) to viewport */
+  /* Mobile: Constrain wide content (images, code) to viewport. Tables follow the table rule above. */
   body[data-layout="docs"] [class*="-api-playground"] img,
   body[data-layout="docs"] article[data-full="true"] img {
     max-width: 100% !important;
@@ -582,13 +589,6 @@ aside[aria-label*="On this page" i] > div:first-child,
 
   body[data-layout="docs"] [class*="-api-playground"] pre,
   body[data-layout="docs"] article[data-full="true"] pre {
-    max-width: 100% !important;
-    overflow-x: auto !important;
-  }
-
-  body[data-layout="docs"] [class*="-api-playground"] table,
-  body[data-layout="docs"] article[data-full="true"] table {
-    display: block !important;
     max-width: 100% !important;
     overflow-x: auto !important;
   }
@@ -678,14 +678,6 @@ aside[aria-label*="On this page" i] > div:first-child,
   body[data-layout="docs"] [class*="-api-playground"] > *,
   body[data-layout="docs"] article[data-full="true"] > * {
     max-width: 100% !important;
-  }
-
-  /* Ensure tables within API playground have proper overflow handling */
-  body[data-layout="docs"] [class*="-api-playground"] table,
-  body[data-layout="docs"] article[data-full="true"] table {
-    display: block !important;
-    max-width: 100% !important;
-    overflow-x: auto !important;
   }
 }
 

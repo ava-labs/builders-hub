@@ -49,6 +49,7 @@ import { bytesToHex } from '@noble/hashes/utils';
 import { base58 } from '@scure/base';
 import { canonicalChainSlug, hasChainRef, shortChainRef } from '../lib/chain-alias';
 import { deriveIsIndexed, fetchIndexedChainIds } from '../lib/chain-indexing';
+import { isPublicRpcUrl } from '../lib/explorer-rpc';
 
 // CB58 utilities (same as components/tools/common/utils/cb58.ts)
 const CHECKSUM_LENGTH = 4;
@@ -591,8 +592,9 @@ function enrichChain(existingChain: L1Chain, glacierChain: GlacierChain): L1Chai
     updated.description = glacierChain.description;
   }
 
-  // RPC URL - only if not already set
-  if (!updated.rpcUrl && glacierChain.rpcUrl) {
+  // RPC URL - only if not already set, and only a public one: the explorer calls
+  // catalog RPCs from the browser, and an internal address makes it ask for local-network access
+  if (!updated.rpcUrl && isPublicRpcUrl(glacierChain.rpcUrl)) {
     updated.rpcUrl = glacierChain.rpcUrl;
   }
 
@@ -854,7 +856,7 @@ async function main() {
         chainId: glacierChain.chainId,
       }),
       description: glacierChain.description || undefined,
-      rpcUrl: glacierChain.rpcUrl || undefined,
+      rpcUrl: isPublicRpcUrl(glacierChain.rpcUrl) ? glacierChain.rpcUrl : undefined,
       networkToken: glacierChain.networkToken ? {
         name: glacierChain.networkToken.name,
         symbol: glacierChain.networkToken.symbol,

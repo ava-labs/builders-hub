@@ -1,6 +1,6 @@
 {
   "title": "Metrics API",
-  "description": "Popsicle Metrics API for Avalanche network metrics",
+  "description": "Deprecated: Popsicle Metrics API for Avalanche network metrics",
   "icon": "ChartLine",
   "root": true,
   "pages": [

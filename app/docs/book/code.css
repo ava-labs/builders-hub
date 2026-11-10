@@ -1,0 +1,108 @@
+/*
+ * Docs book skin: code blocks. Every selector starts with [data-route-layout="docs"], so Academy and
+ * Blog code blocks keep their own look. The markup is fumadocs-ui's CodeBlock (components/codeblock.js):
+ * a figure.shiki, an optional title row (an icon, a figcaption and the copy button), then the scroll
+ * region div[role="region"] that holds the pre. The token colours stay catppuccin; only the frame,
+ * the title and the shell prompt change.
+ */
+
+/* ---------- Frame ---------- */
+
+/* A hairline frame with near-square corners, as on a notebook cell. No shadow. */
+[data-route-layout="docs"] figure.shiki {
+  border: 1px solid var(--bk-rule);
+  border-radius: 4px;
+  background: var(--bk-panel);
+  box-shadow: none;
+}
+
+/* The copy button sits on the code, so it gets the panel ground instead of a blur, and a square.
+   The second selector is the button of a titled block, which sits in the title row in the markup
+   but on the code on screen (see "Titled block" below). */
+[data-route-layout="docs"] figure.shiki > div:has(> button),
+[data-route-layout="docs"] figure.shiki > div:has(> figcaption) > div:has(> button) {
+  border-radius: 2px;
+  background: var(--bk-panel);
+  backdrop-filter: none;
+  color: var(--bk-steel);
+}
+
+[data-route-layout="docs"] figure.shiki > div:has(> button) > button,
+[data-route-layout="docs"] figure.shiki > div:has(> figcaption) > div > button {
+  border-radius: 2px;
+}
+
+[data-route-layout="docs"] figure.shiki > div:has(> button) > button:hover,
+[data-route-layout="docs"] figure.shiki > div:has(> button) > button[data-checked],
+[data-route-layout="docs"] figure.shiki > div:has(> figcaption) > div > button:hover,
+[data-route-layout="docs"] figure.shiki > div:has(> figcaption) > div > button[data-checked] {
+  color: var(--bk-ink);
+}
+
+/* A code block that is the only content of a Tab panel: the panel draws the frame, so a second
+   border and its corners would show inside it. */
+[data-route-layout="docs"] [role="tabpanel"] > figure.shiki:only-child {
+  border: 0;
+  border-radius: 0;
+}
+
+/* ---------- Titled block: the file name above the frame ---------- */
+
+/* The figure becomes a plain box. The frame moves to the scroll region, so the file name sits
+   above it, outside, like the notebook name over an sitp cell. The figure stays the containing
+   block of the copy button (fumadocs gives it position: relative). */
+[data-route-layout="docs"] figure.shiki:has(> div > figcaption) {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+[data-route-layout="docs"] figure.shiki > div:has(> figcaption) {
+  height: auto;
+  padding: 0 0 6px;
+  border: 0;
+}
+
+/* The language icon repeats what the file name says. */
+[data-route-layout="docs"] figure.shiki > div:has(> figcaption) > div:has(> svg) {
+  display: none;
+}
+
+[data-route-layout="docs"] figure.shiki > div > figcaption {
+  font-family: var(--bk-mono);
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--bk-steel);
+}
+
+/* The copy button leaves the title row and goes back into the frame, at its top right corner:
+   16px of title row plus 6px of gap, then the 8px inset that an untitled block has. */
+[data-route-layout="docs"] figure.shiki > div:has(> figcaption) > div:has(> button) {
+  position: absolute;
+  top: 30px;
+  right: 8px;
+  z-index: 2;
+  margin: 0;
+}
+
+[data-route-layout="docs"] figure.shiki:has(> div > figcaption) > div[role="region"] {
+  border: 1px solid var(--bk-rule);
+  border-radius: 4px;
+  background: var(--bk-panel);
+  /* The code must not run under the copy button, as in an untitled block. */
+  --padding-right: calc(var(--spacing) * 8);
+}
+
+/* ---------- Shell prompt ---------- */
+
+/* lib/docs-book/shell-prompt.ts marks each command line of a shell fence. The "$ " is generated
+   content: a selection and the copy button (which reads textContent) never take it, and the empty
+   alt text keeps screen readers from reading it. The first declaration is for browsers without
+   alt text. A diff line keeps its own +/- marker. */
+[data-route-layout="docs"] figure.shiki .line.shell-command:not(.diff)::before {
+  content: '$ ';
+  content: '$ ' / '';
+  color: var(--bk-steel);
+  user-select: none;
+  -webkit-user-select: none;
+}

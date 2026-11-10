@@ -25,14 +25,14 @@ export function InspectorShell({ children, footer, banner, className, id }: Insp
     <article
       id={id}
       className={cn(
-        'rounded-2xl border border-zinc-200/80 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900',
+        'border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950',
         className,
       )}
     >
-      {banner && <div className="border-b border-zinc-100 px-5 py-3 dark:border-zinc-800/80">{banner}</div>}
+      {banner && <div className="border-b border-zinc-200 px-5 py-3 dark:border-zinc-800">{banner}</div>}
       <div className="px-5 py-4">{children}</div>
       {footer && (
-        <footer className="flex flex-wrap items-center justify-end gap-2 border-t border-zinc-100 px-5 py-3 dark:border-zinc-800/80">
+        <footer className="flex flex-wrap items-center justify-end gap-2 border-t border-zinc-200 bg-zinc-50/60 px-5 py-3 dark:border-zinc-800 dark:bg-zinc-900/40">
           {footer}
         </footer>
       )}

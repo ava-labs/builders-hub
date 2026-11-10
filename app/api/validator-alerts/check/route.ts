@@ -8,6 +8,9 @@ import {
   checkL1Alert,
 } from '@/server/services/validator-alert-check';
 import type { L1ValidatorData } from '@/types/validator-alerts';
+import { getAutoRenewPeriods, stakeEndFor, type AutoRenewPeriods } from '@/server/services/validator-auto-renew';
+import { sendPendingLegacyNotices } from '@/server/services/legacy-notice';
+import { LEGACY_NOTIFY_SOURCE } from '@/server/services/legacy-validator-alerts';
 
 export const maxDuration = 60;
 
@@ -32,7 +35,7 @@ async function logCheckFailed(
   return alerts.length;
 }
 
-export async function POST(req: NextRequest) {
+async function run(req: NextRequest) {
   // Authenticate: accept Vercel CRON_SECRET or custom API key
   const authHeader = req.headers.get('authorization');
   const apiKey = req.headers.get('x-api-key');
@@ -50,10 +53,13 @@ export async function POST(req: NextRequest) {
   try {
     const dataErrors: string[] = [];
 
-    // Fetch data sources independently so one failure doesn't block the other
-    const [validatorResult, releaseResult] = await Promise.allSettled([
+    // Fetch data sources independently so one failure doesn't block the other.
+    // The P-Chain read is one request per run: the public RPC bans bursts.
+    const [validatorResult, releaseResult, autoRenewResult] = await Promise.allSettled([
       fetchValidators(),
       fetchLatestRelease(),
+      // A fresh read (it refreshes the API's cache), with one retry like fetchValidators.
+      getAutoRenewPeriods({ maxAgeMs: 0, attempts: 2 }),
     ]);
 
     const validators = validatorResult.status === 'fulfilled'
@@ -64,6 +70,11 @@ export async function POST(req: NextRequest) {
       ? releaseResult.value
       : (() => { dataErrors.push(`GitHub API error: ${releaseResult.reason}`); return null; })();
 
+    // null: the auto-renew state is unknown, so this run sends only the 1-hour expiry alert.
+    const autoRenewPeriods: AutoRenewPeriods | null = autoRenewResult.status === 'fulfilled'
+      ? autoRenewResult.value
+      : (() => { dataErrors.push(`P-Chain RPC error (only 1-hour expiry alerts sent): ${autoRenewResult.reason}`); return null; })();
+
     // If both sources failed, log to all active alerts (with 1-hour cooldown) and bail
     if (validators.length === 0 && !latestRelease) {
       const activeAlerts = await prisma.validatorAlert.findMany({ where: { active: true } });
@@ -73,9 +84,26 @@ export async function POST(req: NextRequest) {
 
     const validatorMap = new Map(validators.map(v => [v.node_id, v]));
 
-    const activeAlerts = await prisma.validatorAlert.findMany({
-      where: { active: true },
-    });
+    // Imported Avalanche Notify alerts get their one-time notice first. Alerts whose
+    // notice is not sent yet are skipped this run. If the notice step fails, skip every
+    // imported alert, so nobody gets an alert before the notice.
+    let noticesSent = 0;
+    let isWithoutNotice: (alert: { id: string; source: string | null }) => boolean;
+    try {
+      const notices = await sendPendingLegacyNotices();
+      noticesSent = notices.sent;
+      if (notices.failed > 0) dataErrors.push(`Legacy notice: ${notices.failed} send(s) failed`);
+      isWithoutNotice = (alert) => notices.withoutNotice.has(alert.id);
+    } catch (err) {
+      dataErrors.push(`Legacy notice error: ${err}`);
+      isWithoutNotice = (alert) => alert.source === LEGACY_NOTIFY_SOURCE;
+    }
+
+    const activeAlerts = (
+      await prisma.validatorAlert.findMany({
+        where: { active: true },
+      })
+    ).filter((alert) => !isWithoutNotice(alert));
 
     // Partition alerts into primary vs L1
     const primaryAlerts = activeAlerts.filter((a) => a.subnet_id === 'primary');
@@ -106,7 +134,12 @@ export async function POST(req: NextRequest) {
           skipped++;
           continue;
         }
-        const result = await checkSingleAlert(alert, validator, latestRelease);
+        const result = await checkSingleAlert(
+          alert,
+          validator,
+          latestRelease,
+          stakeEndFor(alert.node_id, autoRenewPeriods, validator.p50_uptime),
+        );
         sent += result.sent;
         errors.push(...result.errors);
       }
@@ -143,6 +176,7 @@ export async function POST(req: NextRequest) {
       checked,
       sent,
       skipped,
+      noticesSent,
       primaryCheckSkipped: primaryUpstreamFailed,
       release: latestRelease ? {
         tag: latestRelease.tag,
@@ -158,4 +192,12 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+export async function GET(req: NextRequest) {
+  return run(req);
+}
+
+export async function POST(req: NextRequest) {
+  return run(req);
 }

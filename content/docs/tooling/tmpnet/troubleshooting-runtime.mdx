@@ -146,6 +146,13 @@ tail -f ~/.tmpnet/networks/latest/$NODE_ID/logs/main.log
 
 ## Kubernetes Runtime Issues
 
+tmpnet creates one StatefulSet for each node, in the namespace that `--kube-namespace` sets (default `tmpnet`). In the commands below, `<statefulset>` is `<network-uuid>-<first 8 characters of the node ID after NodeID-, in lower case>`:
+
+- Pod: `<statefulset>-0`
+- Service and Ingress (when tmpnet runs outside the cluster): `s-<statefulset>`
+- PersistentVolumeClaim: `data-<statefulset>-0`
+- Pod labels: `app=<statefulset>`, and `network_uuid=<network-uuid>` on all pods of a network
+
 ### Pod Stuck in Pending
 
 **Symptom:** Node pods remain in "Pending" state and never start.
@@ -160,7 +167,7 @@ tail -f ~/.tmpnet/networks/latest/$NODE_ID/logs/main.log
 
 ```bash
 # Check pod status details
-kubectl describe pod avalanchego-node-0 -n tmpnet
+kubectl describe pod <statefulset>-0 -n tmpnet
 
 # Look for events section
 kubectl get events -n tmpnet --sort-by='.lastTimestamp'
@@ -172,8 +179,8 @@ kubectl top nodes
 **Solutions:**
 
 ```bash
-# If resource limits are too high, adjust them
-kubectl edit statefulset avalanchego -n tmpnet
+# tmpnet sets no CPU or memory requests or limits. Inspect the StatefulSet of the node
+kubectl describe statefulset <statefulset> -n tmpnet
 
 # Verify your cluster has available nodes
 kubectl get nodes
@@ -192,10 +199,10 @@ kubectl describe nodes | grep -i taint
 
 ```bash
 # Check image pull status
-kubectl describe pod avalanchego-node-0 -n tmpnet | grep -A 5 "Events:"
+kubectl describe pod <statefulset>-0 -n tmpnet | grep -A 5 "Events:"
 
 # Verify image name
-kubectl get pod avalanchego-node-0 -n tmpnet -o jsonpath='{.spec.containers[0].image}'
+kubectl get pod <statefulset>-0 -n tmpnet -o jsonpath='{.spec.containers[0].image}'
 ```
 
 **Solutions:**
@@ -219,7 +226,7 @@ kubectl create secret docker-registry regcred \
 
 ```bash
 # Load image into kind cluster
-kind load docker-image avaplatform/avalanchego:latest --name tmpnet-cluster
+kind load docker-image avaplatform/avalanchego:latest --name kind
 ```
 
 ### Ingress Not Working
@@ -231,25 +238,25 @@ kind load docker-image avaplatform/avalanchego:latest --name tmpnet-cluster
 **Diagnosis:**
 
 ```bash
-# Check if ingress controller is running
-kubectl get pods -n ingress-nginx
+# Check if the Traefik ingress controller is running
+kubectl get pods -n traefik
 
 # Verify ingress resource exists
 kubectl get ingress -n tmpnet
 
 # Check ingress details
-kubectl describe ingress avalanchego-ingress -n tmpnet
+kubectl describe ingress s-<statefulset> -n tmpnet
 
 # Test service directly (bypassing ingress)
-kubectl port-forward svc/avalanchego-node-0 9650:9650 -n tmpnet
+kubectl port-forward svc/s-<statefulset> 9650:9650 -n tmpnet
 curl http://localhost:9650/ext/health
 ```
 
 **Solutions:**
 
 ```bash
-# Install ingress controller if missing
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+# Install Traefik and its IngressClass if missing (start-kind-cluster does this for kind)
+tmpnetctl start-kind-cluster
 
 # Verify ingress host configuration
 kubectl get ingress -n tmpnet -o yaml | grep host:
@@ -259,33 +266,27 @@ kubectl get endpoints -n tmpnet
 ```
 
 <Callout type="warning">
-For kind clusters, ensure you created the cluster with `extraPortMappings` to expose ports 80/443. See the [kind ingress documentation](https://kind.sigs.k8s.io/docs/user/ingress/).
+For kind clusters, create the cluster with `tmpnetctl start-kind-cluster`. It maps NodePort 30791 to the host and installs Traefik. Node APIs are then at `http://localhost:30791/networks/<network-uuid>/<node-id>`.
 </Callout>
 
 ### StatefulSet Not Updating
 
 **Symptom:** After updating the StatefulSet (e.g., changing image version), pods still run the old image.
 
-**Cause:** StatefulSet update strategy is set to `OnDelete` by default, requiring manual pod deletion.
+**Cause:** tmpnet does not set an update strategy, so the StatefulSet uses the Kubernetes default, `RollingUpdate`. When tmpnet restarts a node, it patches the image and the environment of the node's StatefulSet.
 
 **Solution:**
 
 ```bash
 # Check update strategy
-kubectl get statefulset avalanchego -n tmpnet -o jsonpath='{.spec.updateStrategy}'
+kubectl get statefulset <statefulset> -n tmpnet -o jsonpath='{.spec.updateStrategy}'
 
 # Manually delete pods to trigger update
-kubectl delete pod avalanchego-node-0 -n tmpnet
+kubectl delete pod <statefulset>-0 -n tmpnet
 # StatefulSet will recreate with new image
 
 # Or delete all pods
-kubectl delete pods -l app=avalanchego -n tmpnet
-```
-
-**Change to rolling updates:**
-
-```bash
-kubectl patch statefulset avalanchego -n tmpnet -p '{"spec":{"updateStrategy":{"type":"RollingUpdate"}}}'
+kubectl delete pods -l network_uuid=<network-uuid> -n tmpnet
 ```
 
 ### Persistent Volume Issues
@@ -302,7 +303,7 @@ kubectl get pvc -n tmpnet
 
 # Should show "Bound" status
 # If "Pending", check details
-kubectl describe pvc data-avalanchego-node-0 -n tmpnet
+kubectl describe pvc data-<statefulset>-0 -n tmpnet
 
 # Verify storage class exists
 kubectl get storageclass
@@ -318,7 +319,7 @@ kubectl get storageclass
 # For custom clusters, install a storage provisioner
 
 # Delete stuck PVCs if needed (will delete data!)
-kubectl delete pvc data-avalanchego-node-0 -n tmpnet
+kubectl delete pvc data-<statefulset>-0 -n tmpnet
 ```
 
 ## General Runtime Issues
@@ -329,19 +330,20 @@ kubectl delete pvc data-avalanchego-node-0 -n tmpnet
 
 **Cause:** Node may still be bootstrapping, or there's a configuration issue.
 
-**Health check endpoint:** `GET /ext/health/liveness` on the HTTP port.
+**Health check:** `IsHealthy()` calls `health.health` (POST `/ext/health`) on the node API. The kube runtime readiness probe uses `GET /ext/health/liveness`.
 
 **Diagnosis:**
 
 ```bash
-# Check health endpoint directly
-curl http://localhost:9650/ext/health/liveness
+# Check health endpoint directly (process runtime: read the URI from process.json)
+NODE_URI=$(jq -r '.uri' ~/.tmpnet/networks/latest/NodeID-*/process.json | head -1)
+curl "$NODE_URI/ext/health"
 
 # Expected healthy response:
 # {"checks":{"network":{"message":{"..."},"timestamp":"...","duration":123,"contiguousFailures":0,"timeOfFirstFailure":null}},"healthy":true}
 
 # Check if node is still bootstrapping
-curl http://localhost:9650/ext/info | jq '.result.isBootstrapped'
+curl -s -X POST -H 'content-type:application/json' --data '{"jsonrpc":"2.0","id":1,"method":"info.isBootstrapped","params":{"chain":"X"}}' "$NODE_URI/ext/info" | jq '.result.isBootstrapped'
 ```
 
 **Solutions:**
@@ -370,7 +372,7 @@ tail -f ~/.tmpnet/networks/latest/NodeID-*/logs/main.log | grep -i "error"
 ```
 
 <Callout type="info">
-The first node in a network typically takes longer to start because it must wait for staking to be enabled. Subsequent nodes bootstrap from the first node.
+If `network.Subnets` is empty, tmpnet starts all nodes at the same time. Otherwise, tmpnet starts the first node alone with sybil protection disabled. It creates each entry of `network.Subnets` and its chains, restarts that node, and then starts the other nodes. That first phase makes the network slower to start.
 </Callout>
 
 ### Monitoring Not Working
@@ -480,9 +482,16 @@ Limit database size:
 
 ```go
 network.DefaultFlags = tmpnet.FlagsMap{
-    "db-type":                    "memdb",  // Use in-memory DB for tests
-    "pruning-enabled":            "true",
-    "state-sync-enabled":         "false",  // Disable if not needed
+    "db-type": "memdb", // Use in-memory DB for tests
+}
+
+// pruning-enabled and state-sync-enabled are chain config keys, not node flags.
+// Set them for the C-Chain in the network's primary chain configs:
+network.PrimaryChainConfigs = map[string]tmpnet.ConfigMap{
+    "C": {
+        "pruning-enabled":    true,
+        "state-sync-enabled": false,
+    },
 }
 ```
 

@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { Button } from './Button';
+import { Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { nipify } from './HostInput';
+import { HoverArrow, PRIMARY_BTN } from './NodeSetupUI';
 
 interface HealthCheckResult {
   success: boolean;
@@ -94,47 +96,31 @@ export const HealthCheckButton = ({ chainId, domain, onResult }: HealthCheckButt
     setIsChecking(false);
   };
 
-  const getButtonClassName = () => {
-    let baseClasses = 'w-auto transition-colors duration-200';
-
-    if (isChecking) {
-      return `${baseClasses} opacity-50`;
-    }
-
-    if (healthCheckResult) {
-      if (healthCheckResult.success) {
-        return `${baseClasses} bg-green-600 hover:bg-green-700 text-white border-green-600`;
-      } else {
-        return `${baseClasses} bg-red-600 hover:bg-red-700 text-white border-red-600`;
-      }
-    }
-
-    return baseClasses;
-  };
-
-  const getSuccessMessage = () => {
-    return `✅ RPC endpoint is healthy and responding!`;
-  };
-
-  const getErrorMessage = () => {
-    return `❌ RPC endpoint not responding (node may still be bootstrapping)`;
-  };
-
   return (
-    <div className="mt-6">
-      <div className="flex gap-4 items-center">
-        <Button onClick={performHealthCheck} disabled={isChecking} className={getButtonClassName()}>
-          {isChecking ? 'Checking...' : 'Check Node Health'}
-        </Button>
+    <div className="flex flex-wrap items-center gap-4">
+      <button type="button" onClick={performHealthCheck} disabled={isChecking} className={PRIMARY_BTN}>
+        {isChecking && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+        {isChecking ? 'Checking...' : 'Check Node Health'}
+        <HoverArrow />
+      </button>
 
-        {healthCheckResult && (
-          <div
-            className={`text-sm font-medium ${healthCheckResult.success ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}
-          >
-            {healthCheckResult.success ? <span>{getSuccessMessage()}</span> : <span>{getErrorMessage()}</span>}
-          </div>
-        )}
-      </div>
+      {healthCheckResult && (
+        <span
+          role="status"
+          className={cn(
+            'inline-flex items-center gap-2 text-[12.5px] font-medium',
+            healthCheckResult.success ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400',
+          )}
+        >
+          <span
+            aria-hidden
+            className={cn('h-1.5 w-1.5 rounded-full', healthCheckResult.success ? 'bg-emerald-500' : 'bg-red-500')}
+          />
+          {healthCheckResult.success
+            ? 'RPC endpoint is healthy and responding'
+            : 'RPC endpoint not responding (node may still be bootstrapping)'}
+        </span>
+      )}
     </div>
   );
 };

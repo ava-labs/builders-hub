@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState, useMemo, useEffect } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { integrationCategoryCount, listedIntegrations } from '@/lib/integrations/listed';
 
 interface IntegrationsClientProps {
     list: any[];
@@ -18,32 +19,10 @@ export default function IntegrationsClient({ list }: IntegrationsClientProps) {
     }, []);
     
     // Filter out integrations with undefined essential properties
-    const validIntegrations = useMemo(() => list.filter((integration) => {
-        // Check if integration exists and has required data
-        if (!integration || !integration.data) {
-            return false;
-        }
-        
-        const { title, category, logo, description } = integration.data;
-        
-        // Skip README entries
-        if (title === 'README') {
-            return false;
-        }
-        
-        // Check if essential properties are defined
-        return title !== undefined && 
-               category !== undefined && 
-               logo !== undefined && 
-               description !== undefined &&
-               integration.url !== undefined;
-    }), [list]);
-    
+    const validIntegrations = useMemo(() => listedIntegrations(list), [list]);
+
     // Distinct categories across the valid entries, for the header line
-    const categoryCount = useMemo(
-        () => new Set(validIntegrations.map((integration) => integration.data.category)).size,
-        [validIntegrations]
-    );
+    const categoryCount = useMemo(() => integrationCategoryCount(validIntegrations), [validIntegrations]);
     
     // Filter integrations based on search query
     const filteredIntegrations = useMemo(() => {
@@ -51,7 +30,7 @@ export default function IntegrationsClient({ list }: IntegrationsClientProps) {
             return validIntegrations;
         }
         
-        const query = searchQuery.toLowerCase();
+        const query = searchQuery.trim().toLowerCase();
         return validIntegrations.filter((integration) => {
             const title = typeof integration.data.title === 'string' ? integration.data.title.toLowerCase() : '';
             const description = typeof integration.data.description === 'string' ? integration.data.description.toLowerCase() : '';
@@ -172,7 +151,7 @@ export default function IntegrationsClient({ list }: IntegrationsClientProps) {
                                 
                                 {/* Add Integration Button */}
                                 <Link 
-                                    href="https://github.com/ava-labs/builders-hub/blob/master/content/integrations" 
+                                    href="https://github.com/ava-labs/builders-hub/issues/new?template=integration_listing.yml"
                                     target='_blank'
                                     className="group relative overflow-hidden flex items-center justify-center gap-2 px-6 py-4 text-sm font-semibold rounded-none bg-brand text-white hover:bg-brand-deep transition-colors duration-200 lg:w-auto whitespace-nowrap"
                                 >

@@ -1,3 +1,5 @@
+import { avalancheProvider } from '@/components/toolbox/coreViem/provider';
+
 export type Eip1193Provider = {
   request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
   on?: (event: string, listener: (...args: unknown[]) => void) => void;
@@ -36,7 +38,8 @@ export function getWindowWalletProviders(): {
   }
 
   return {
-    avalanche: normalizeProvider((window as any).avalanche),
+    // A Console wallet stands in for Core while it's connected.
+    avalanche: normalizeProvider(avalancheProvider() ?? (window as any).avalanche),
     ethereum: normalizeProvider((window as any).ethereum),
   };
 }

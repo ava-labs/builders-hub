@@ -8,9 +8,7 @@ import ClaimDelegationFees from '@/components/toolbox/console/permissionless-l1s
 import { StepCodeViewer } from '@/components/console/step-code-viewer';
 import { ManagerTypeBadge } from '@/components/toolbox/console/add-validator/ManagerTypeBadge';
 import { buildStepConfig, type ManagerCodeFlavor } from '../codeConfig';
-import versions from '@/scripts/versions.json';
-
-const ICM_COMMIT = versions['ava-labs/icm-services'];
+import { ActionPanel, EYEBROW, FRAME, LEAD, StepLayout } from '@/components/toolbox/console/shared/validator-flow-ui';
 
 function flavorFor(
   ownerType: ReturnType<typeof useValidatorManagerContext>['ownerType'],
@@ -43,51 +41,46 @@ export default function ClaimDelegationFeesStep() {
 
   if (!isStaking) {
     return (
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold">Claim Delegation Fees</h2>
-        <Alert variant="info">
-          Delegation fees only exist on PoS L1s (validators on PoS managers earn a commission on delegated stake). This
-          L1 is permissioned (PoA), so there's nothing to claim — you can skip to the next step.
-        </Alert>
-      </div>
+      <StepLayout>
+        <div className={`${FRAME} flex flex-col gap-2 px-5 py-6 md:px-6`}>
+          <div className="flex items-center justify-between gap-4">
+            <p className={EYEBROW}>Nothing to claim</p>
+            <ManagerTypeBadge
+              ownerType={vmcCtx.ownerType}
+              stakingType={vmcCtx.staking.stakingType}
+              isDetecting={false}
+            />
+          </div>
+          <p className={LEAD}>
+            Delegation fees only exist on PoS L1s, where validators earn a commission on delegated stake. This L1 is
+            permissioned (PoA), so skip to the next step.
+          </p>
+        </div>
+      </StepLayout>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <h2 className="text-lg font-semibold">Claim Delegation Fees</h2>
+    <StepLayout aside={<StepCodeViewer activeStep={4} steps={stepConfig} />}>
+      {!store.validationId && <Alert variant="warning">No validation ID found. Go back to the previous step.</Alert>}
+      <ActionPanel
+        label="Delegation fees"
+        action={
           <ManagerTypeBadge ownerType={vmcCtx.ownerType} stakingType={vmcCtx.staking.stakingType} isDetecting={false} />
-        </div>
-        {!store.validationId && <Alert variant="warning">No validation ID found. Go back to the previous step.</Alert>}
-        <div className="flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
-          <div className="p-4">
-            <ClaimDelegationFees
-              validationID={store.validationId}
-              stakingManagerAddress={stakingManagerAddress}
-              tokenType={tokenType}
-              onSuccess={(data) => {
-                store.setGlobalSuccess(data.message);
-                store.setGlobalError(null);
-              }}
-              onError={(message) => store.setGlobalError(message)}
-            />
-          </div>
-          <div className="shrink-0 px-4 py-2.5 border-t border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-between mt-auto">
-            <span className="text-xs text-zinc-500">claimDelegationFees()</span>
-            <a
-              href={`https://github.com/ava-labs/icm-services/tree/${ICM_COMMIT}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[11px] text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 font-mono transition-colors"
-            >
-              @{ICM_COMMIT.slice(0, 7)}
-            </a>
-          </div>
-        </div>
-      </div>
-      <StepCodeViewer activeStep={4} steps={stepConfig} className="lg:sticky lg:top-4 lg:self-start" />
-    </div>
+        }
+        call="Calls claimDelegationFees()"
+      >
+        <ClaimDelegationFees
+          validationID={store.validationId}
+          stakingManagerAddress={stakingManagerAddress}
+          tokenType={tokenType}
+          onSuccess={(data) => {
+            store.setGlobalSuccess(data.message);
+            store.setGlobalError(null);
+          }}
+          onError={(message) => store.setGlobalError(message)}
+        />
+      </ActionPanel>
+    </StepLayout>
   );
 }

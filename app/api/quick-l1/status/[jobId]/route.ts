@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getMockJob } from '@/lib/quick-l1/mock-orchestrator';
 import type { DeploymentJob } from '@/lib/quick-l1/types';
 import { getUserId } from '@/app/api/managed-testnet-nodes/utils';
+import { withQuickL1WafToken } from '@/lib/quick-l1/waf';
 
 /**
  * GET /api/quick-l1/status/:jobId
@@ -35,7 +36,7 @@ export async function GET(
         { status: 503 },
       );
     }
-    const res = await fetch(`${upstream.replace(/\/$/, '')}/status/${encodeURIComponent(jobId)}`, {
+    const res = await fetch(withQuickL1WafToken(`${upstream.replace(/\/$/, '')}/status/${encodeURIComponent(jobId)}`), {
       // Don't cache — status changes every 2s.
       cache: 'no-store',
       headers: {

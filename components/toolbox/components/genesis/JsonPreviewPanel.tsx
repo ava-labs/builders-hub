@@ -315,7 +315,7 @@ export function JsonPreviewPanel({
       : percent >= 75
         ? 'Consider optimizing'
         : 'Within safe limits';
-  const barClass = percent >= 90 ? 'bg-red-500' : percent >= 75 ? 'bg-yellow-500' : 'bg-green-500';
+  const barClass = percent >= 90 ? 'bg-red-500' : percent >= 75 ? 'bg-amber-500' : 'bg-emerald-500';
 
   return (
     <div className="flex flex-col max-h-[calc(100vh-8rem)] border-l border-zinc-200 dark:border-zinc-800">
@@ -323,8 +323,10 @@ export function JsonPreviewPanel({
       <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950">
         <div className="flex items-start justify-between">
           <div>
-            <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{title}</h3>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+            <h3 className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+              {title}
+            </h3>
+            <p className="mt-1 font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
               {isValidJson
                 ? maxSizeKiB
                   ? `${jsonSizeKiB.toFixed(2)} KiB / ${maxSizeKiB} KiB • ${statusText}`
@@ -336,29 +338,26 @@ export function JsonPreviewPanel({
             <Button variant="outline" size="sm" onClick={handleCopy} disabled={!isValidJson} className="h-8">
               {copied ? (
                 <>
-                  <Check className="h-4 w-4 mr-1 text-green-500" />
+                  <Check className="mr-1 h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                   Copied
                 </>
               ) : (
                 <>
-                  <Copy className="h-4 w-4 mr-1" />
+                  <Copy className="mr-1 h-3.5 w-3.5" />
                   Copy
                 </>
               )}
             </Button>
             <Button variant="outline" size="sm" onClick={handleDownload} disabled={!isValidJson} className="h-8">
-              <Download className="h-4 w-4 mr-1" />
+              <Download className="mr-1 h-3.5 w-3.5" />
               Download
             </Button>
           </div>
         </div>
         {isValidJson && maxSizeKiB != null && (
           <div className="mt-2">
-            <div className="w-full h-1.5 rounded-full bg-zinc-200 dark:bg-zinc-800">
-              <div
-                className={`h-1.5 rounded-full transition-all duration-300 ${barClass}`}
-                style={{ width: `${percent}%` }}
-              />
+            <div className="h-1 w-full bg-zinc-200 dark:bg-zinc-800">
+              <div className={`h-1 transition-all duration-300 ${barClass}`} style={{ width: `${percent}%` }} />
             </div>
           </div>
         )}
@@ -366,7 +365,7 @@ export function JsonPreviewPanel({
 
       {/* JSON Content */}
       <div className="overflow-auto p-3 bg-zinc-50 dark:bg-zinc-950 text-xs json-preview-scroll">
-        <div className="rounded-lg overflow-hidden">
+        <div className="overflow-hidden">
           {isValidJson ? (
             <div className="text-[11px] leading-5">
               {jsonLines.length > 0 && highlightedLine ? (
@@ -380,8 +379,10 @@ export function JsonPreviewPanel({
           ) : (
             <div className="flex items-center justify-center h-64 text-zinc-500 dark:text-zinc-400">
               <div className="text-center">
-                <p className="text-sm">Configure your chain to see the genesis JSON</p>
-                {jsonData.startsWith('Error:') && <p className="text-xs mt-2 text-red-400">{jsonData}</p>}
+                <p className="text-[13px]">Configure your chain to see the genesis JSON</p>
+                {jsonData.startsWith('Error:') && (
+                  <p className="mt-2 text-[12px] text-red-600 dark:text-red-400">{jsonData}</p>
+                )}
               </div>
             </div>
           )}

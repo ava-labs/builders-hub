@@ -3,21 +3,21 @@ import { getAuthSession } from '@/lib/auth/authSession';
 import { ServiceErrorSchema } from './types';
 
 export async function getUserId(): Promise<{ userId: string | null; error?: NextResponse }> {
-  const isDevelopment = process.env.NODE_ENV === 'development';
-  if (isDevelopment) {
+  const session = await getAuthSession();
+  // Signed in locally, you see the relayers Studio and Quick L1 made for your account; signed out, a shared dev account.
+  if (!session?.user?.id && process.env.NODE_ENV === 'development') {
     return { userId: 'dev-user-id' };
   }
-  const session = await getAuthSession();
   if (!session?.user?.id) {
     return {
       userId: null,
       error: NextResponse.json(
-        { 
+        {
           error: 'Authentication required',
-          message: 'Please sign in to access managed testnet relayers'
+          message: 'Please sign in to access managed testnet relayers',
         },
-        { status: 401 }
-      )
+        { status: 401 },
+      ),
     };
   }
   return { userId: session.user.id };
@@ -56,4 +56,3 @@ export async function extractServiceErrorMessage(response: Response): Promise<st
   }
   return null;
 }
-

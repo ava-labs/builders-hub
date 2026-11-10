@@ -1,11 +1,13 @@
 /* Critical CSS for Academy - Scoped to academy layout only */
 [data-route-layout="academy"] {
   --fd-sidebar-width: 16rem;
+  /* The part sub-nav (components/academy/course/academy-subnav.tsx): h-12 and its 1 px rule. */
+  --ac-subnav-height: 49px;
 }
 
 /* Desktop: Apply sidebar positioning immediately */
 @media (min-width: 1024px) {
-  /* Academy sidebar positioning - no subnav, just navbar */
+  /* Academy sidebar positioning - under the navbar and the part sub-nav */
   [data-route-layout="academy"] #nd-sidebar,
   [data-route-layout="academy"] [data-sidebar="sidebar"] {
     position: fixed !important;
@@ -13,8 +15,8 @@
     right: auto !important;
     inset-inline-start: 3rem !important;
     inset-inline-end: auto !important;
-    top: 4.5rem !important;
-    height: calc(100vh - 3.5rem) !important;
+    top: calc(var(--fd-banner-height, 0px) + 3.5rem + var(--ac-subnav-height)) !important;
+    height: calc(100vh - var(--fd-banner-height, 0px) - 3.5rem - var(--ac-subnav-height)) !important;
     width: var(--fd-sidebar-width) !important;
     padding-left: 0.5rem !important;
     padding-right: 2rem !important;
@@ -41,6 +43,16 @@
   /* Notebook layout padding */
   [data-route-layout="academy"] .nd-layout-notebook {
     padding-right: 2rem !important;
+  }
+
+  /* The part sub-nav's labels start where the docs bar's do (app/docs/critical.css:21-24) */
+  [data-route-layout="academy"] #academy-subnav > div {
+    padding-left: 3rem !important;
+  }
+
+  /* The right column starts under the sub-nav; fumadocs writes its top inline. It keeps fumadocs' --fd-nav-height (64px), so it sits 8 px below the bar at the spec's 113; the full-width TOC bar below uses 3.5rem instead, like the sidebar */
+  [data-route-layout="academy"] #nd-toc {
+    top: calc(var(--fd-banner-height, 0px) + var(--fd-nav-height, 0px) + var(--ac-subnav-height)) !important;
   }
 }
 
@@ -86,6 +98,13 @@
     padding-left: 0 !important;
     padding-right: 1rem !important;
   }
+
+  /* The five part labels overflow a phone: they start at 1rem and scroll, not centred, which would cut the first */
+  [data-route-layout="academy"] #academy-subnav > div {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+    justify-content: flex-start !important;
+  }
 }
 
 /* Article styling - remove background/borders */
@@ -97,10 +116,22 @@
   border: none !important;
 }
 
-/* Layout padding */
+/* Layout padding: the page starts under the part sub-nav */
 [data-route-layout="academy"] #nd-docs-layout {
-  padding-top: 0px !important;
+  padding-top: var(--ac-subnav-height) !important;
   background: hsl(var(--background)) !important;
+}
+
+/* The table of contents bar (below 1280 px) sits right under the sub-nav: 3.5rem is the navbar; fumadocs' --fd-nav-height is 64px from 768 px up and would leave an 8 px strip. fumadocs writes its top inline */
+[data-route-layout="academy"] #nd-tocnav {
+  top: calc(var(--fd-banner-height, 0px) + 3.5rem + var(--ac-subnav-height)) !important;
+}
+
+/* The sidebar header starts flush before hydration too (the twin of styles.css:63-67), so the first row does not jump */
+[data-route-layout="academy"] #nd-sidebar > div:first-child,
+[data-route-layout="academy"] [data-sidebar="sidebar"] > div:first-child {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
 }
 
 /* Sidebar icon sizing - apply immediately to prevent resize */

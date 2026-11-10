@@ -104,6 +104,13 @@ function restoreOnce() {
   }
 }
 
+/* the clock outside React, for a read ahead of its page (the link warmer):
+   this visit's pick, restored first if no page has asked for it yet */
+export function currentExplorerRange(): ExplorerRange {
+  restoreOnce();
+  return range;
+}
+
 /* Read the clock AND register as one of its consumers: any component
    calling this makes the subnav's range control appear on its page. */
 export function useExplorerTimeRange(): ExplorerRange {
@@ -140,7 +147,7 @@ export function ExplorerRangeControl({ className }: { className?: string }) {
         <select
           value={current}
           onChange={(e) => setExplorerRange(e.target.value as ExplorerRange)}
-          className="appearance-none border border-zinc-200 bg-transparent py-1.5 pl-2.5 pr-7 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-900 outline-none dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
+          className="appearance-none border border-zinc-200 bg-transparent py-1 pl-2.5 pr-7 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-900 outline-none dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
         >
           {/* label only: the closed control renders the selected option's
               full text, so anything longer would re-widen the rail */}

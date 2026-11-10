@@ -16,7 +16,7 @@ Make sure you've completed the [installation](/docs/tooling/tmpnet/installation)
 
 ### Basic Start Command
 
-Start a 2-node network (default is 5):
+Start a 2-node network (2 is the default):
 
 ```bash
 cd /path/to/avalanchego
@@ -114,12 +114,12 @@ NodeID-BTtC98RhLA5mbctKczZQC2Rt6N9DziM4c/    # Node 2 directory
 
 ### Find Node API Endpoints
 
-Each node exposes API endpoints on dynamically allocated ports. When tmpnet starts a node with `--http-port=0`, the OS assigns an available port. AvalancheGo then writes the actual allocated port to `process.json` via the `--process-context-file` flag.
+Each node exposes API endpoints on dynamically allocated ports. When tmpnet starts a node with `--http-port=0`, the OS assigns an available port. AvalancheGo then writes the actual allocated port to `process.json` in its data directory (the default path of `--process-context-file`).
 
-<Callout type="info" title="How process.json is created">
-The `process.json` file is created by **avalanchego itself**, not by tmpnetctl. When tmpnet starts a node, it passes:
+<Callout type="info" title="Who writes process.json?">
+The `process.json` file is created by **avalanchego itself**, not by tmpnetctl. tmpnet starts each node with `--config-file=[node-dir]/flags.json`. That file sets:
 - `--http-port=0` and `--staking-port=0` for dynamic port allocation
-- `--process-context-file=[node-dir]/process.json` to specify where avalanchego should write runtime info
+- `--data-dir=[node-dir]`, so avalanchego writes runtime info to its default path, `[node-dir]/process.json`
 
 AvalancheGo then writes its PID, URI (with the actual allocated port), and staking address to this file once it starts.
 </Callout>
@@ -229,7 +229,7 @@ cat ~/.tmpnet/networks/latest/config.json | jq '.preFundedKeys'
 **Example output:**
 ```json
 [
-  "PrivateKey-ewoqjP7PxY4yr3iLTpLisriqt94hdyDFNgchSxGGztUrTXtNN",
+  "PrivateKey-<random key 1>",
   "PrivateKey-2VbLJLjPJn4XA8UqQ4BjmF5LmkZj4EZ2dXLKmKPmXTbKHvvQh6",
   "PrivateKey-R6e8f5QSa89DjpvL9asNdhdJ4u8VqzMJStPV8VVdDmLgPd8x4",
   ...
@@ -242,7 +242,7 @@ cat ~/.tmpnet/networks/latest/config.json | jq '.preFundedKeys'
 # Store the first pre-funded key
 TEST_KEY=$(cat ~/.tmpnet/networks/latest/config.json | jq -r '.preFundedKeys[0]')
 echo $TEST_KEY
-# Output: PrivateKey-ewoqjP7PxY4yr3iLTpLisriqt94hdyDFNgchSxGGztUrTXtNN
+# Output: PrivateKey-... (a random key that tmpnet generated for this network)
 ```
 
 ### What Are These Keys Funded With?
@@ -276,14 +276,14 @@ Every tmpnet network includes the well-known EWOQ test key, pre-funded with AVAX
 |----------|-------|
 | Private Key (hex) | `56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027` |
 | Address | `0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC` |
-| C-Chain Balance | 50,000,000 AVAX |
+| C-Chain Balance | 1,000,000,000,000 AVAX (10^30 wei) |
 
 ```bash
 export PRIVATE_KEY="56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027"
 ```
 
-<Callout type="warning" title="Test Key Only">
-The EWOQ key is publicly known. Never use it on Fuji or Mainnet—only for local development.
+<Callout type="warning" title="Use the EWOQ key only on a local network">
+The EWOQ key is publicly known. Never use it on Fuji or Mainnet. Use it only for local development.
 </Callout>
 
 ### Common Cast Commands
@@ -331,7 +331,7 @@ local = "http://127.0.0.1:56395/ext/bc/C/rpc"
 # No explorer for local networks
 ```
 
-<Callout type="info" title="Dynamic Ports">
+<Callout type="info" title="The RPC port can change when you restart">
 Remember that tmpnet uses dynamic ports. If you restart your network, the port may change. Always re-export `RPC_URL` after restarting.
 </Callout>
 
@@ -382,7 +382,7 @@ Stopped network configured at: /Users/you/.tmpnet/networks/latest
 tmpnetctl restart-network
 ```
 
-This preserves all network data and configuration, restarting with the same genesis and keys.
+This restarts each node that is running and keeps all network data, genesis and keys. It skips nodes that are stopped, so it does not start a network after `tmpnetctl stop-network`.
 
 ### Start a New Network
 
@@ -471,7 +471,7 @@ cat ~/.tmpnet/networks/latest/NodeID-*/process.json | jq '{
 
 ### Network Won't Start
 
-**Error: `avalanchego binary not found`**
+**Error: `--avalanchego-path (...) not found`, `--avalanchego-path (...) is a relative path but its absolute path (...) is not found`, or `--avalanchego-path or AVALANCHEGO_PATH are required`**
 
 Solution:
 ```bash
@@ -515,12 +515,12 @@ curl http://127.0.0.1:<actual-port>/ext/health
 
 **Issue:** `process.json` files don't exist in node directories, or ports in `flags.json` are all `0`
 
-This happens when running avalanchego manually without the `--process-context-file` flag.
+avalanchego writes `process.json` to `[data-dir]/process.json` by default when it starts, and deletes the file when it stops. A missing file usually means that the node is not running, or that it uses a different data directory.
 
 **Understanding the issue:**
 - `flags.json` showing `"http-port": "0"` is correct - this tells the OS to allocate a dynamic port
-- `process.json` is created by **avalanchego itself** when started with the `--process-context-file` flag
-- tmpnetctl automatically passes this flag, but manual setups need to include it
+- `process.json` is created by **avalanchego itself** at the `--process-context-file` path, which defaults to `[data-dir]/process.json`
+- tmpnet sets `--data-dir` to the node directory, so the file is in the node directory while the node runs
 
 **Solution for manual avalanchego setups:**
 ```bash

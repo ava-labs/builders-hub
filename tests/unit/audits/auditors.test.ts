@@ -56,6 +56,7 @@ import {
   createAuditor,
   findAuditorByEmail,
   resolveAuditorByEmail,
+  setOwnGithubUsername,
   updateAuditor,
 } from "@/server/services/audits/auditors";
 
@@ -222,6 +223,61 @@ describe("updateAuditor", () => {
     expect("active" in data).toBe(false);
     expect("firm_name" in data).toBe(false);
     expect(data).toMatchObject({ services: ["OpSec"] });
+  });
+});
+
+describe("setOwnGithubUsername", () => {
+  const QUOTE_EMAIL = "quotes@nordlicht.example";
+  const TEAMMATE = "alice@nordlicht.example";
+
+  it("puts the quote-email person's username on the firm row, pinned to that address", async () => {
+    const result = await setOwnGithubUsername(FIRM, QUOTE_EMAIL, "nordlicht-sec");
+
+    expect(auditorUpdateManyMock).toHaveBeenCalledWith({
+      where: { id: "aud-1", quote_email: QUOTE_EMAIL },
+      data: { github_username: "nordlicht-sec" },
+    });
+    expect(memberUpdateManyMock).not.toHaveBeenCalled();
+    expect(result).toEqual({ success: true, github_username: "nordlicht-sec" });
+  });
+
+  it("puts a teammate's username on that teammate's own row only", async () => {
+    const result = await setOwnGithubUsername(FIRM, TEAMMATE, "alice-audits");
+
+    expect(memberUpdateManyMock).toHaveBeenCalledWith({
+      where: { auditor_id: "aud-1", email: TEAMMATE },
+      data: { github_username: "alice-audits" },
+    });
+    expect(auditorUpdateManyMock).not.toHaveBeenCalled();
+    expect(result).toEqual({ success: true, github_username: "alice-audits" });
+  });
+
+  it("logs the change as the firm, with the field and the person's address", async () => {
+    await setOwnGithubUsername(FIRM, TEAMMATE, "alice-audits");
+
+    expect(eventCreateMock).toHaveBeenCalledTimes(1);
+    expect(eventCreateMock.mock.calls[0][0].data).toMatchObject({
+      actor_type: "auditor",
+      actor_id: "aud-1",
+      action: "auditor_updated",
+      meta: { firm_name: "Nordlicht Security", fields: ["github_username"], actor_email: TEAMMATE },
+    });
+  });
+
+  it("clears the username with null", async () => {
+    const result = await setOwnGithubUsername(FIRM, QUOTE_EMAIL, null);
+
+    expect(auditorUpdateManyMock.mock.calls[0][0].data).toEqual({ github_username: null });
+    expect(result).toEqual({ success: true, github_username: null });
+  });
+
+  it("writes and logs nothing for an address no longer on the firm", async () => {
+    memberUpdateManyMock.mockResolvedValue({ count: 0 });
+
+    const result = await setOwnGithubUsername(FIRM, TEAMMATE, "alice-audits");
+
+    expect(result).toEqual({ success: false, code: "not_found" });
+    expect(eventCreateMock).not.toHaveBeenCalled();
   });
 });
 

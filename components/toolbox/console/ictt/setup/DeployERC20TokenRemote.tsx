@@ -11,7 +11,8 @@ import { Success } from '@/components/toolbox/components/Success';
 import { Input, Suggestion } from '@/components/toolbox/components/Input';
 import { EVMAddressInput } from '@/components/toolbox/components/EVMAddressInput';
 import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
-import { Note } from '@/components/toolbox/components/Note';
+import { Alert } from '@/components/toolbox/components/Alert';
+import { BODY } from '../bridge/ui';
 import ERC20TokenHomeABI from '@/contracts/icm-contracts/compiled/ERC20TokenHome.json';
 import { CB58ToHex } from '@avalanche-sdk/client/utils';
 import ExampleERC20 from '@/contracts/icm-contracts/compiled/ExampleERC20.json';
@@ -178,7 +179,7 @@ function DeployERC20TokenRemote() {
 
   async function handleDeploy() {
     if (!walletClient) {
-      setCriticalError(new Error('Core wallet not found'));
+      setCriticalError(new Error('Connect a wallet first.'));
       return;
     }
 
@@ -233,13 +234,12 @@ function DeployERC20TokenRemote() {
 
   return (
     <ContractDeployViewer contracts={CONTRACT_SOURCES}>
-      <div className="space-y-4">
-        <div>
-          <p className="mt-2">
-            This deploys an `ERC20TokenRemote` contract to the current network ({selectedL1?.name}). This contract acts
-            as the bridge endpoint for your ERC20 token from the source chain.
-          </p>
-        </div>
+      <div className="not-prose flex flex-col gap-4">
+        <p className={BODY}>
+          Deploys an <code className="font-mono text-[12px] text-zinc-900 dark:text-zinc-100">ERC20TokenRemote</code>{' '}
+          contract on the current network ({selectedL1?.name}). It is the bridge end for your ERC-20 from the source
+          chain.
+        </p>
 
         <AcknowledgementCallout
           title="Have You Switched to the Destination Chain?"
@@ -268,7 +268,7 @@ function DeployERC20TokenRemote() {
             </li>
             <li>
               Verified that{' '}
-              <code className="bg-blue-100 dark:bg-blue-900/30 px-1 py-0.5 rounded">{selectedL1?.name}</code> is your
+              <code className="font-mono text-[12px] text-zinc-900 dark:text-zinc-100">{selectedL1?.name}</code> is your
               intended destination chain
             </li>
           </ul>
@@ -285,15 +285,15 @@ function DeployERC20TokenRemote() {
           />
 
           {!teleporterRegistryAddress && (
-            <Note variant="warning">
-              <p>
-                Please{' '}
-                <a href="#teleporterRegistry" className="text-blue-500">
-                  deploy the Teleporter Registry contract first
-                </a>
-                .
-              </p>
-            </Note>
+            <Alert variant="warning">
+              <a
+                href="#teleporterRegistry"
+                className="font-medium text-zinc-900 underline decoration-zinc-300 underline-offset-4 transition-colors hover:decoration-zinc-900 dark:text-zinc-100 dark:decoration-zinc-600 dark:hover:decoration-zinc-100"
+              >
+                Deploy the Teleporter Registry contract first
+              </a>
+              .
+            </Alert>
           )}
 
           <SelectBlockchainId
@@ -321,7 +321,7 @@ function DeployERC20TokenRemote() {
             <Input label="Token Home Blockchain ID (hex)" value={tokenHomeBlockchainIDHex} disabled />
           )}
 
-          {localError && <div className="text-red-500 mt-2 p-2 border border-red-300 rounded">{localError}</div>}
+          {localError && <Alert variant="error">{localError}</Alert>}
 
           {tokenHomeAddress && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

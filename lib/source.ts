@@ -8,7 +8,7 @@ import { createElement } from 'react';
 import { icons } from 'lucide-react';
 import { meta, docs, blog as blogs, course, courseMeta, integrations } from '@/.source';
 import { openapiPlugin } from 'fumadocs-openapi/server';
-import { filterTreeByPrefix } from './page-tree-filter';
+import { filterTreeWithOwnId } from './page-tree-filter';
 
 export const documentation = loader({
   baseUrl: '/docs',
@@ -100,7 +100,7 @@ export const academy = loader({
 export function getAcademyTree(prefix: string) {
   const fullTree = academy.pageTree;
   if (!prefix) return fullTree;
-  return filterTreeByPrefix(fullTree, prefix);
+  return filterTreeWithOwnId(fullTree, prefix);
 }
 
 export const blog = loader({

@@ -16,7 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import type { OwnerQuote } from "@/server/services/audits/visibility";
 import { AUDITS_DIALOG, MONO_LABEL_SM } from "@/components/audits/shared/classes";
-import { formatIsoDate, formatUsd, weeksLabel } from "@/components/audits/shared/format";
+import { durationLabel, formatIsoDate, formatUsd } from "@/components/audits/shared/format";
 
 interface AcceptQuoteDialogProps {
   requestId: string;
@@ -26,7 +26,7 @@ interface AcceptQuoteDialogProps {
 }
 
 /**
- * The decisive moment (design 1j): the facts in a bordered plate, the four
+ * The decisive moment (design 1j): the facts in a bordered plate, the three
  * consequences with explicit dots, and the red solid appears only here
  * (deliberately without the sweep hover: irreversible, not playful).
  * Below 640px it docks as a bottom sheet.
@@ -64,7 +64,6 @@ export function AcceptQuoteDialog({ requestId, quote, otherCount, onClose }: Acc
         otherCount > 0
           ? `This request closes; the ${otherCount} other firm${otherCount === 1 ? " is" : "s are"} notified they weren't selected.`
           : "This request closes.",
-        "Program admins see your pick and process any subsidy from here.",
         "The engagement itself continues off-platform under standardized terms.",
       ]
     : [];
@@ -72,7 +71,7 @@ export function AcceptQuoteDialog({ requestId, quote, otherCount, onClose }: Acc
   const facts = quote
     ? [
         { label: "Price", value: formatUsd(quote.price_usd), strong: true },
-        { label: "Duration", value: weeksLabel(quote.duration_weeks) },
+        { label: "Duration", value: durationLabel(quote.duration, quote.duration_unit) },
         { label: "Earliest start", value: formatIsoDate(quote.earliest_start) },
       ]
     : [];

@@ -89,16 +89,7 @@ const router = useRouter();
       
       // Redirect after success
       setTimeout(() => {
-        // Redirect to the appropriate academy page
-        if (
-          courseId.startsWith('codebase-entrepreneur-') ||
-          courseId.startsWith('avalanche-entrepreneur-') ||
-          courseId.startsWith('entrepreneur-')
-        ) {
-          router.push('/academy/entrepreneur');
-        } else {
-          router.push('/academy');
-        }
+        router.push('/academy');
       }, 3000);
     } catch (error: any) {
       console.error('Error generating certificate:', error);

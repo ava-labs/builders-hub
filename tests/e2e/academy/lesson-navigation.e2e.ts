@@ -1,0 +1,73 @@
+import { test } from '@e2e-dev/web';
+import { expect } from 'e2e';
+import { desktopOnly, phoneOnly } from '../lib/skip';
+import { waitForHydration } from '../lib/hydration';
+
+const COURSE = '/academy/avalanche-l1/avalanche-fundamentals';
+const LESSON = `${COURSE}/02-avalanche-consensus-intro/02-consensus-mechanisms`;
+const NEXT_LESSON = `${COURSE}/02-avalanche-consensus-intro/03-snowman-consensus`;
+// A lesson link waits for the server to render the next lesson. On a busy dev server that can take
+// longer than the assertion budget, so the URL check gets the budget of app.open.
+const NAVIGATION = { timeout: 120_000 };
+
+test('desktop sidebar shows the course outline', async ({ app, screen, browser }) => {
+  await app.open(LESSON);
+  await desktopOnly(browser);
+
+  // The sub-nav above the page links the five parts of the Academy. This course is in Fundamentals.
+  const parts = screen.getByRole('navigation', 'Academy parts');
+  for (const part of ['Fundamentals', 'L1 Development', 'Interoperability', 'VM Customization', 'Applications']) {
+    await expect(parts.getByRole('link', part)).toBeVisible();
+  }
+  await expect(parts.getByRole('link', 'Fundamentals')).toHaveAttribute('aria-current', 'true');
+
+  // The sidebar starts with the course's welcome page, then lists its modules, each with its number, and their lessons.
+  const outline = screen.getByRole('complementary');
+  await expect(outline.getByRole('link', 'Welcome to the Course')).toHaveAttribute('href', COURSE);
+  await expect(outline.getByText(/^01\s*Primer on Avalanche Consensus$/)).toBeVisible();
+  await expect(outline.getByRole('link', 'Consensus Mechanisms')).toBeVisible();
+  await expect(outline.getByRole('link', 'Snowman Consensus')).toBeVisible();
+  await expect(outline.getByRole('link', 'Course Completion Certificate')).toBeVisible();
+});
+
+test('phone menu opens the course outline and a lesson from it', async ({ app, screen, browser }) => {
+  await app.open(LESSON);
+  await phoneOnly(browser);
+
+  // The phone layout hides the outline until the user opens it from the top bar.
+  await expect(screen.getByRole('complementary')).toBeHidden();
+  await screen.getByRole('button', 'Toggle academy sidebar').tap();
+
+  // The drawer names the course in a menu button that lists the other courses of its part.
+  const outline = screen.getByRole('complementary');
+  await expect(outline.getByRole('button', /^Course Avalanche Fundamentals \d+ lessons/)).toBeVisible();
+  await expect(outline.getByText(/^01\s*Primer on Avalanche Consensus$/)).toBeVisible();
+  await outline.getByRole('link', 'Snowman Consensus').tap();
+
+  await expect(browser).toHaveURL(NEXT_LESSON, NAVIGATION);
+  await expect(screen.getByRole('heading', 'Snowman Consensus', { level: 1 })).toBeVisible();
+});
+
+test('next lesson link opens the next lesson', async ({ app, screen, browser }) => {
+  await app.open(LESSON);
+  await expect(browser).toHaveTitle(/^Consensus Mechanisms/);
+  await expect(screen.getByRole('heading', 'Consensus Mechanisms', { level: 1 })).toBeVisible();
+  await expect(screen.getByText('Lesson 2 of 4')).toBeVisible();
+
+  // A fresh visit shows the privacy banner. On a phone it covers the footer links at the end of the page.
+  // Decline closes it and reloads the page. Wait for the new page, so the next tap does not race the reload.
+  await screen.getByRole('button', 'Decline').tap();
+  await expect
+    .poll(() =>
+      browser.evaluate(() => (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming).type),
+    )
+    .toBe('reload');
+  // A tap while React hydrates the reloaded page can be lost (CI saw this as a flaky retry), so wait for it.
+  await waitForHydration(browser, 'article');
+  // The footer under the article links the previous and the next lesson by title.
+  await screen.getByRole('article').getByRole('link', /^Snowman Consensus/).tap();
+
+  await expect(browser).toHaveURL(NEXT_LESSON, NAVIGATION);
+  await expect(screen.getByRole('heading', 'Snowman Consensus', { level: 1 })).toBeVisible();
+  await expect(screen.getByText('Lesson 3 of 4')).toBeVisible();
+});

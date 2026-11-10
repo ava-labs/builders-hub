@@ -7,8 +7,8 @@ The following steps walk through downloading the AvalancheGo source code and loc
 
 ## Install Dependencies
 
-- Install [gcc](https://gcc.gnu.org/)
-- Install [go](https://go.dev/doc/install)
+- Install [Go](https://go.dev/doc/install) version 1.26.8 or later
+- Install [gcc](https://gcc.gnu.org/) and g++
 
 ## Build the Node Binary
 
@@ -71,9 +71,9 @@ To kill the node, press `Ctrl + C`.
 A new node needs to catch up to the latest network state before it can participate in consensus and serve API calls. This process (called bootstrapping) currently takes several days for a new node connected to Mainnet, and a day or so for a new node connected to Fuji Testnet. When a given chain is done bootstrapping, it will print logs like this:
 
 ```bash
-[09-09|17:01:45.295] INFO <C Chain> snowman/transitive.go:392 consensus starting {"lastAcceptedBlock": "2qaFwDJtmCCbMKP4jRpJwH8EFws82Q2yC1HhWgAiy3tGrpGFeb"}
-[09-09|17:01:46.199] INFO <P Chain> snowman/transitive.go:392 consensus starting {"lastAcceptedBlock": "2ofmPJuWZbdroCPEMv6aHGvZ45oa8SBp2reEm9gNxvFjnfSGFP"}
-[09-09|17:01:51.628] INFO <X Chain> snowman/transitive.go:334 consensus starting {"lenFrontier": 1}
+[10-03|17:01:45.295] INFO <P Chain> snowman/engine.go:513 starting consensus {"lastAcceptedID": "<blockID>", "lastAcceptedHeight": <height>}
+[10-03|17:01:51.628] INFO <X Chain> snowman/engine.go:513 starting consensus {"lastAcceptedID": "<blockID>", "lastAcceptedHeight": <height>}
+[10-03|17:09:12.104] INFO <C Chain> snowman/engine.go:513 starting consensus {"lastAcceptedID": "<blockID>", "lastAcceptedHeight": <height>}
 ```
 
 ### Check Bootstrapping Progress

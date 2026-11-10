@@ -286,6 +286,9 @@ platform-cli subnet convert-to-l1 --subnet-id <id> --chain-id <id>
 | `--validator-bls-pops` | Manual mode: comma-separated BLS PoPs | |
 | `--validator-balance` | Balance per validator in AVAX | `1.0` |
 | `--mock-validator` | Use mock validator for testing | `false` |
+| `--validator-remaining-balance-owner` | P-Chain addresses that receive each validator's remaining balance. 1 address for all validators, or 1 per validator | Your address |
+| `--validator-deactivation-owner` | P-Chain addresses that can disable each validator. 1 address for all validators, or 1 per validator | Your address |
+| `--allow-empty-owners` | Do not default unset owners to your address. An empty owner lets any P-Chain key disable the validator and spend its balance (unsafe) | `false` |
 
 ### subnet add-validator
 

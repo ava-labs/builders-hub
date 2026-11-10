@@ -1,16 +1,20 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback, useRef } from "react";
+import { useMemo } from "react";
+import { preload } from "react-dom";
+import { usePolledJson } from "@/components/explorer-v2/page-data";
 import { NetworkShell } from "@/components/explorer-v2/network/NetworkShell";
 import { Board, HashChip, SectionHeader, SpecLine, SpecSheet } from "@/components/explorer-v2/ui";
 import { Readout, ReadoutRow } from "@/components/explorer-v2/Readout";
 import { RANGE_DAYS, RANGE_LABEL, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
+import { formatNumber } from "@/components/explorer-v2/format";
 import { parseDateString } from "@/components/stats/chart-axis-utils";
-import { BurnHistory, TOKEN_CAP, avax, usdOf, usePriceHistory } from "./token-parts";
+import { BurnHistory, type FeeBucket, TOKEN_CAP, avax, usdOf, usePriceHistory } from "./token-parts";
 import { SupplyModel } from "./token-model";
 import { LiveBurnPanel, useLiveBurns } from "./token-live";
 import { levelWindow, useBurnHistory, useStakeHistory } from "./overview-series";
 import { HoldersSection } from "./token-holders";
+import { FEES_URL, ICM_FEES_URL, SUPPLY_URL, TODAY_FEES_URL } from "./network-reads";
 
 /* The network scope's AVAX tab: the token across the P-, C-, and X-Chains
    (formerly /stats/avax-token). Four figures lead; then the 720M cap as
@@ -61,14 +65,24 @@ interface ICMFeesResponse {
   lastUpdated: string;
 }
 
+interface TodayFeesResponse {
+  date: string;
+  feesPaid: number;
+  latestHour: number | null;
+}
+
 type Period = "D" | "W" | "M";
 
 export function NetworkToken() {
-  const [data, setData] = useState<AvaxSupplyData | null>(null);
-  const [cChainFees, setCChainFees] = useState<FeeDataPoint[]>([]);
-  const [icmFees, setICMFees] = useState<FeeDataPoint[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // each feed fills its part as it lands, and opens from memory (a visit before, a hovered link's read) while it
+  // is read again: the figures and the supply model never wait on the fee history
+  const supply = usePolledJson<AvaxSupplyData>(SUPPLY_URL);
+  const fees = usePolledJson<CChainFeesResponse>(FEES_URL);
+  // ICM data is non-critical: a failed read leaves its series out, and the page stands
+  const icm = usePolledJson<ICMFeesResponse>(ICM_FEES_URL);
+  // today's burn so far is non-critical too: without it the chart ends on the last whole day
+  const today = usePolledJson<TodayFeesResponse>(TODAY_FEES_URL, { refreshMs: 5 * 60_000 });
+  const { data, loading } = supply;
   // the page clock in the subnav windows the fee history; bucket width
   // follows it (daily bars up to a month, weekly for a quarter, monthly
   // for a year) so the chart stays readable at every window
@@ -80,87 +94,55 @@ export function NetworkToken() {
   // one live feed for the page: the embers on the solid and the burn panel
   const live = useLiveBurns();
 
-  const abortRef = useRef<AbortController | null>(null);
+  // the figures' feeds start with the page's HTML (the server render puts these hints in its head), not once its
+  // script has run; the reads above get the preloaded responses
+  preload(SUPPLY_URL, { as: "fetch", crossOrigin: "anonymous" });
+  preload(FEES_URL, { as: "fetch", crossOrigin: "anonymous" });
 
-  const fetchData = useCallback(async () => {
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
+  const feeRows = fees.data?.feesPaid?.data;
+  const cChainFees = useMemo<FeeDataPoint[]>(
+    () =>
+      (Array.isArray(feeRows) ? feeRows : [])
+        .map((item) => ({ date: item.date, timestamp: item.timestamp, value: typeof item.value === "string" ? parseFloat(item.value) : item.value }))
+        .reverse(),
+    [feeRows],
+  );
+  const icmRows = icm.data?.data;
+  // the C-Chain feed ends on the last whole UTC day, the ICM feed on today's partial one: the ICM series stops where
+  // the C-Chain one does, so the chart never ends on an empty bar dated a day past its last
+  const lastFeeDate = cChainFees.reduce((last, d) => (d.date > last ? d.date : last), "");
+  const icmFees = useMemo<FeeDataPoint[]>(
+    () =>
+      (Array.isArray(icmRows) ? icmRows : [])
+        .filter((item) => !lastFeeDate || item.date <= lastFeeDate)
+        .map((item) => ({ date: item.date, timestamp: item.timestamp, value: item.feesPaid / 1e18 }))
+        // oldest first, as the C-Chain series: the clock's window is the tail
+        .sort((a, b) => a.date.localeCompare(b.date)),
+    [icmRows, lastFeeDate],
+  );
+  // today's partial bucket, drawn apart from the whole days; it only follows a fee history that has loaded
+  const todayPoint = useMemo<FeeBucket | null>(() => {
+    const t = today.data;
+    if (!t || !lastFeeDate || !(t.date > lastFeeDate) || !Number.isFinite(t.feesPaid)) return null;
+    const icmToday = (Array.isArray(icmRows) ? icmRows : []).find((r) => r.date === t.date);
+    return { date: t.date, cChainFees: t.feesPaid, icmFees: icmToday ? icmToday.feesPaid / 1e18 : 0, todayFees: t.feesPaid, partial: true };
+  }, [today.data, lastFeeDate, icmRows]);
+  const feesError = fees.error ?? (fees.data && !Array.isArray(feeRows) ? "the response is missing its series" : null);
+  const error = supply.error
+    ? `Failed to fetch the AVAX supply: ${supply.error}`
+    : feesError
+      ? `Failed to fetch the C-Chain fees: ${feesError}`
+      : null;
+  const retry = () => [supply, fees, icm].forEach((f) => f.retry());
 
-    try {
-      setLoading(true);
-      setError(null);
-
-      const [supplyRes, cChainRes, icmRes] = await Promise.all([
-        fetch("/api/avax-supply", { signal: controller.signal }),
-        fetch("/api/chain-stats/43114?timeRange=1y", { signal: controller.signal }),
-        fetch("/api/icm-contract-fees?timeRange=1y", { signal: controller.signal }),
-      ]);
-
-      if (!supplyRes.ok || !cChainRes.ok) {
-        throw new Error(
-          `Failed to fetch required data (supply: HTTP ${supplyRes.status}, c-chain: HTTP ${cChainRes.status})`
-        );
-      }
-
-      const supplyData = await supplyRes.json();
-      const cChainData: CChainFeesResponse = await cChainRes.json();
-
-      setData(supplyData);
-
-      const cChainFeesRaw = cChainData?.feesPaid?.data;
-      if (!Array.isArray(cChainFeesRaw)) {
-        throw new Error("C-Chain fees response is missing expected shape");
-      }
-      const cChainFeesData: FeeDataPoint[] = cChainFeesRaw
-        .map((item) => ({
-          date: item.date,
-          timestamp: item.timestamp,
-          value: typeof item.value === "string" ? parseFloat(item.value) : item.value,
-        }))
-        .reverse();
-
-      setCChainFees(cChainFeesData);
-
-      if (icmRes.ok) {
-        const icmData: ICMFeesResponse = await icmRes.json();
-        if (icmData.data && Array.isArray(icmData.data)) {
-          const icmFeesData: FeeDataPoint[] = icmData.data
-            .map((item) => ({
-              date: item.date,
-              timestamp: item.timestamp,
-              value: item.feesPaid / 1e18,
-            }))
-            .reverse();
-          setICMFees(icmFeesData);
-        }
-      } else {
-        // ICM data is non-critical: log and continue without breaking the page.
-        console.warn(`ICM contract fees fetch failed: HTTP ${icmRes.status}`);
-      }
-    } catch (err: unknown) {
-      if (err instanceof DOMException && err.name === "AbortError") return;
-      setError(err instanceof Error ? err.message : "An error occurred");
-    } finally {
-      if (!controller.signal.aborted) {
-        setLoading(false);
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-    return () => abortRef.current?.abort();
-  }, [fetchData]);
-
-  const aggregatedFeeData = useMemo(() => {
+  const aggregatedFeeData = useMemo<FeeBucket[]>(() => {
     if (cChainFees.length === 0 && icmFees.length === 0) return [];
 
     const allDates = new Set([...cChainFees.map((d) => d.date), ...icmFees.map((d) => d.date)]);
     const cChainMap = new Map(cChainFees.map((d) => [d.date, d.value]));
     const icmMap = new Map(icmFees.map((d) => [d.date, d.value]));
 
-    let mergedData = Array.from(allDates)
+    const mergedData: FeeBucket[] = Array.from(allDates)
       .map((date) => ({
         date,
         cChainFees: cChainMap.get(date) || 0,
@@ -171,45 +153,33 @@ export function NetworkToken() {
       // floored at a week because one bar says nothing
       .slice(-Math.max(7, RANGE_DAYS[clock]));
 
-    if (period === "D") return mergedData;
+    if (period === "D") return todayPoint ? [...mergedData, todayPoint] : mergedData;
 
-    const grouped = new Map<
-      string,
-      { cChainSum: number; icmSum: number; date: string }
-    >();
+    const keyOf = (date: string) => {
+      const [year, month, day] = date.split("-").map(Number);
+      if (period === "M") return `${year}-${String(month).padStart(2, "0")}`;
+      const weekStart = new Date(year, month - 1, day);
+      weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+      const wy = weekStart.getFullYear();
+      const wm = String(weekStart.getMonth() + 1).padStart(2, "0");
+      const wd = String(weekStart.getDate()).padStart(2, "0");
+      return `${wy}-${wm}-${wd}`;
+    };
+    // the week or month that holds today is still running, whether or not today's burn has loaded
+    const runningKey = keyOf(todayPoint?.date ?? new Date().toISOString().slice(0, 10));
 
-    mergedData.forEach((point) => {
-      const [year, month, day] = point.date.split("-").map(Number);
-      let key: string;
-
-      if (period === "W") {
-        const weekStart = new Date(year, month - 1, day);
-        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-        const wy = weekStart.getFullYear();
-        const wm = String(weekStart.getMonth() + 1).padStart(2, "0");
-        const wd = String(weekStart.getDate()).padStart(2, "0");
-        key = `${wy}-${wm}-${wd}`;
-      } else {
-        key = `${year}-${String(month).padStart(2, "0")}`;
-      }
-
-      if (!grouped.has(key)) {
-        grouped.set(key, { cChainSum: 0, icmSum: 0, date: key });
-      }
-
-      const group = grouped.get(key)!;
-      group.cChainSum += point.cChainFees;
-      group.icmSum += point.icmFees;
+    const grouped = new Map<string, FeeBucket>();
+    [...mergedData, ...(todayPoint ? [todayPoint] : [])].forEach((point) => {
+      const key = keyOf(point.date);
+      const group = grouped.get(key) ?? { date: key, cChainFees: 0, icmFees: 0, todayFees: 0, partial: key === runningKey };
+      group.cChainFees += point.cChainFees;
+      group.icmFees += point.icmFees;
+      group.todayFees = (group.todayFees ?? 0) + (point.todayFees ?? 0);
+      grouped.set(key, group);
     });
 
-    return Array.from(grouped.values())
-      .map((group) => ({
-        date: group.date,
-        cChainFees: group.cChainSum,
-        icmFees: group.icmSum,
-      }))
-      .sort((a, b) => a.date.localeCompare(b.date));
-  }, [cChainFees, icmFees, period, clock]);
+    return Array.from(grouped.values()).sort((a, b) => a.date.localeCompare(b.date));
+  }, [cChainFees, icmFees, todayPoint, period, clock]);
 
   const formatTooltipDate = (value: string) => {
     const date = parseDateString(value);
@@ -263,11 +233,16 @@ export function NetworkToken() {
   };
   const price = data?.price ?? 0;
   const burned = data ? n(data.totalPBurned) + n(data.totalCBurned) + n(data.totalXBurned) : 0;
-  // the cap less every burn
-  const totalSupply = TOKEN_CAP - burned;
+  // the Data API's figure: genesis plus its staking rewards figure, minus burns
+  const totalSupply = n(data?.totalSupply);
+  // the cap minus burns: rewards mint from 720M minus the P-Chain's supply counter, and no burn lowers that counter,
+  // so the supply stays below this figure
+  const maxSupply = TOKEN_CAP - burned;
   const circulating = n(data?.circulatingSupply);
   const pctOf = (v: number, of: number) => (of > 0 ? `${((v / of) * 100).toFixed(1)}%` : undefined);
   const fig = (v: number) => (data ? avax(v) : loading ? null : "—");
+  // the record's supply rows in whole AVAX, so they add up as printed
+  const whole = (v: number) => formatNumber(Math.round(v));
   const windowNote = clock === "day" ? "7 days" : clock === "all" ? `${RANGE_LABEL.year}, longest window` : RANGE_LABEL[clock];
 
   return (
@@ -277,7 +252,7 @@ export function NetworkToken() {
         <div className="flex flex-col items-center gap-4 border border-zinc-200 bg-white/80 py-16 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80">
           <p className="max-w-md px-6 text-center font-mono text-[12px] text-[#E6212F]">{error}</p>
           <button
-            onClick={fetchData}
+            onClick={retry}
             className="border border-zinc-300 px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-600 transition-colors hover:border-zinc-900 hover:text-zinc-900 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-100 dark:hover:text-zinc-100"
           >
             Retry
@@ -293,7 +268,7 @@ export function NetworkToken() {
               sub={data && data.priceChange24h ? `${data.priceChange24h >= 0 ? "▲" : "▼"} ${Math.abs(data.priceChange24h).toFixed(2)}% · 24h` : undefined}
               spark={prices}
             />
-            <Readout label="Circulating" value={fig(circulating)} unit="AVAX" sub={data ? `${pctOf(circulating, TOKEN_CAP)} of cap · ${usdOf(circulating, price) ?? ""}` : undefined} />
+            <Readout label="Circulating" value={fig(circulating)} unit="AVAX" sub={data ? `net of burns · ${pctOf(circulating, TOKEN_CAP)} of cap · ${usdOf(circulating, price) ?? ""}` : undefined} />
             <Readout
               label="Staked"
               href="/explorer/mainnet/p-chain/staking"
@@ -341,6 +316,7 @@ export function NetworkToken() {
                   note={windowNote}
                   dateLabel={formatTooltipDate}
                   tickLabel={formatTick}
+                  running={period === "M" ? "month" : period === "W" ? "week" : "day"}
                   price={price}
                 />
               ) : (
@@ -363,20 +339,29 @@ export function NetworkToken() {
                 <SpecLine label="WAVAX">
                   <HashChip value={WAVAX} href={`/explorer/mainnet/c-chain/address/${WAVAX}`} len={12} />
                 </SpecLine>
-                <SpecLine label="Supply Cap">{TOKEN_CAP.toLocaleString("en-US")} AVAX</SpecLine>
+                <SpecLine label="Supply Cap">
+                  {TOKEN_CAP.toLocaleString("en-US")} AVAX <span className="text-zinc-400 dark:text-zinc-500">· fixed; minting never passes it</span>
+                </SpecLine>
                 {data && (
                   <>
+                    {/* the supply as a sum, top to bottom: minted, less burned, is the total; the cap less burned bounds it */}
+                    <SpecLine label="Genesis Unlock">
+                      {whole(n(data.genesisUnlock))} AVAX <span className="text-zinc-400 dark:text-zinc-500">· minted at launch, {pctOf(n(data.genesisUnlock), TOKEN_CAP)} of cap</span>
+                    </SpecLine>
+                    <SpecLine label="Staking Rewards">
+                      {whole(n(data.totalRewards))} AVAX <span className="text-zinc-400 dark:text-zinc-500">· minted since launch</span>
+                    </SpecLine>
+                    <SpecLine label="Burned">
+                      {whole(burned)} AVAX <span className="text-zinc-400 dark:text-zinc-500">· fees on the P-, C- and X-Chains; burned AVAX still counts against the cap, so it is never minted again</span>
+                    </SpecLine>
                     <SpecLine label="Total Supply">
-                      {avax(totalSupply)} AVAX <span className="text-zinc-400 dark:text-zinc-500">· {pctOf(totalSupply, TOKEN_CAP)} of cap, the cap less every burn</span>
+                      {whole(totalSupply)} AVAX <span className="text-zinc-400 dark:text-zinc-500">· minted minus burned: the AVAX that exists now, {pctOf(totalSupply, TOKEN_CAP)} of cap</span>
+                    </SpecLine>
+                    <SpecLine label="Max Supply">
+                      {whole(maxSupply)} AVAX <span className="text-zinc-400 dark:text-zinc-500">· the cap minus burned; the total supply stays below it</span>
                     </SpecLine>
                     <SpecLine label="Locked">
                       {avax(n(data.totalLocked))} AVAX <span className="text-zinc-400 dark:text-zinc-500">· {pctOf(n(data.totalLocked), circulating)} of circulating</span>
-                    </SpecLine>
-                    <SpecLine label="Staking Rewards">
-                      {avax(n(data.totalRewards))} AVAX <span className="text-zinc-400 dark:text-zinc-500">· issued, all time</span>
-                    </SpecLine>
-                    <SpecLine label="Genesis Unlock">
-                      {avax(n(data.genesisUnlock))} AVAX <span className="text-zinc-400 dark:text-zinc-500">· {pctOf(n(data.genesisUnlock), TOKEN_CAP)} of cap</span>
                     </SpecLine>
                     <SpecLine label="L1 Validator Fees">
                       {avax(n(data.l1ValidatorFees))} AVAX <span className="text-zinc-400 dark:text-zinc-500">· paid, all time</span>

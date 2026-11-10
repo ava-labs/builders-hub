@@ -1,7 +1,7 @@
 /* The suggested questions on the Query page. The warm job answers
    these ahead of time, so a first click only runs the SQL. */
 
-import { isCChain } from "./target";
+import { NETWORK_ID, NETWORK_SLUG, isCChain } from "./target";
 
 /** the shape of chart a suggestion's answer draws, previewed on its card */
 export type Glyph = "stack" | "hbar" | "area" | "limit" | "donut" | "line" | "scatter" | "bars";
@@ -71,7 +71,7 @@ export const PCHAIN_EXAMPLES: typeof EXAMPLES = [
     group: "Supply and transactions",
     hue: "#d97706",
     items: [
-      { q: "AVAX supply per day over the last 90 days", hint: "What staking mints", glyph: "line" },
+      { q: "AVAX supply per day over the last 90 days", hint: "P-Chain supply, before burns", glyph: "line" },
       { q: "P-Chain transactions by type this week", hint: "What the chain does", glyph: "stack" },
     ],
   },
@@ -84,7 +84,7 @@ export const L1_EXAMPLES: typeof EXAMPLES = [
     hue: "#E6212F",
     items: [
       { q: "Daily transactions over the last 30 days, with reverts", hint: "Throughput and failure, per day", glyph: "stack" },
-      { q: "Daily active addresses over the last 30 days", hint: "Distinct senders per day", glyph: "line" },
+      { q: "Daily active addresses over the last 30 days", hint: "Senders and recipients, per day", glyph: "line" },
     ],
   },
   {
@@ -113,10 +113,44 @@ export const L1_EXAMPLES: typeof EXAMPLES = [
   },
 ];
 
-/** every suggested question, in order */
-export const EXAMPLE_PROMPTS = EXAMPLES.flatMap((g) => g.items.map((i) => i.q));
+/** the network's suggestions: the C-Chain and every L1 at once */
+export const NETWORK_EXAMPLES: typeof EXAMPLES = [
+  {
+    group: "Activity",
+    hue: "#E6212F",
+    items: [
+      { q: "Chains ranked by transactions this week", hint: "Where the network's work happens", glyph: "hbar" },
+      { q: "Network transactions per day over the last 30 days", hint: "Every chain's, per day", glyph: "stack" },
+    ],
+  },
+  {
+    group: "Addresses",
+    hue: "#0061E2",
+    items: [
+      { q: "Network active addresses per day this week", hint: "Each address once, across the chains", glyph: "line" },
+      { q: "Chains ranked by active addresses this week", hint: "Who has the users", glyph: "hbar" },
+    ],
+  },
+  {
+    group: "Fees and gas",
+    hue: "#d97706",
+    items: [
+      { q: "Fees paid per chain today", hint: "Each in its own native token", glyph: "hbar" },
+      { q: "Gas charged per chain today", hint: "How much work each chain does", glyph: "hbar" },
+    ],
+  },
+  {
+    group: "Contracts and messages",
+    hue: "#0d9488",
+    items: [
+      { q: "ICM messages between chains in the last 7 days", hint: "Which chains talk to which", glyph: "hbar" },
+      { q: "Contracts created per chain this week", hint: "Where builders deploy", glyph: "hbar" },
+    ],
+  },
+];
 
-/** an EVM chain's suggestions: the C-Chain's own, or the generic set */
+/** an EVM chain's suggestions: the network's, the C-Chain's own, or the generic set */
 export function examplesFor(chainId: number | string): typeof EXAMPLES {
+  if (chainId === NETWORK_ID || chainId === NETWORK_SLUG) return NETWORK_EXAMPLES;
   return isCChain(chainId) ? EXAMPLES : L1_EXAMPLES;
 }

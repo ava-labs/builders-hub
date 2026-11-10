@@ -4,6 +4,10 @@ import { getProfile } from "@/server/services/profile";
 import { redirect } from "next/navigation";
 import { formatTeamLabel } from "@/lib/referrals/team-labels";
 
+/* The page holds no data of its own: every profile read is an API call
+   that checks the session (withAuth). So the client shell renders in every
+   case and asks the session itself: signed out, it shows a sign-in prompt
+   (the proxy also opens the login dialog for this protected path). */
 export default async function ProfileWrapper({
   searchParams,
 }: {
@@ -13,28 +17,21 @@ export default async function ProfileWrapper({
   const resolvedSearchParams = await searchParams;
   const ref = resolvedSearchParams?.ref;
 
-  if (!session?.user?.id) {
-    if (typeof ref === "string" && ref.trim()) {
-      redirect(`/?ref=${encodeURIComponent(ref.trim())}`);
-    }
-
-    return (
-      <main className='relative w-full px-4 sm:px-6 lg:px-8 py-2 lg:py-4'>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-white mx-auto"></div>
-            <p className="mt-4 text-muted-foreground">Loading...</p>
-          </div>
-        </div>
-      </main>
-    );
+  if (!session?.user?.id && typeof ref === "string" && ref.trim()) {
+    redirect(`/?ref=${encodeURIComponent(ref.trim())}`);
   }
 
-  const profileData = await getProfile(session.user.id);
-  const teamLabel = formatTeamLabel(profileData.team_id);
+  // The team label is the one server read. A user before Terms (a pending_
+  // id) has no row yet, so getProfile throws: no label then.
+  let teamLabel: string | null = null;
+  if (session?.user?.id) {
+    teamLabel = await getProfile(session.user.id)
+      .then((p) => formatTeamLabel(p.team_id))
+      .catch(() => null);
+  }
 
   return (
-    <main className='relative w-full px-4 sm:px-6 lg:px-8 py-2 lg:py-4'>
+    <main className="relative w-full">
       <ProfilePage teamLabel={teamLabel} />
     </main>
   );

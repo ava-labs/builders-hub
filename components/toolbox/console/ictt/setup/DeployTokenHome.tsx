@@ -12,10 +12,10 @@ import { Input, Suggestion } from '@/components/toolbox/components/Input';
 import { EVMAddressInput } from '@/components/toolbox/components/EVMAddressInput';
 import ExampleERC20 from '@/contracts/icm-contracts/compiled/ExampleERC20.json';
 import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
-import { Note } from '@/components/toolbox/components/Note';
+import { Alert } from '@/components/toolbox/components/Alert';
+import { OptionGrid, Option, EYEBROW, BODY } from '../bridge/ui';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import TeleporterRegistryAddressInput from '@/components/toolbox/components/TeleporterRegistryAddressInput';
-import { RadioGroup } from '@/components/toolbox/components/RadioGroup';
 import { useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
 import { ConsoleToolMetadata, withConsoleToolMetadata } from '@/components/toolbox/components/WithConsoleToolMetadata';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
@@ -200,16 +200,15 @@ function DeployTokenHome() {
 
   return (
     <ContractDeployViewer contracts={CONTRACT_SOURCES}>
-      <div className="space-y-4">
-        <div>
-          <p className="mt-2">
-            This will deploy a TokenHome contract to your connected network (Chain ID: <code>{walletChainId}</code>).
-            This contract serves as the home chain endpoint for cross-chain token transfers.
-          </p>
-        </div>
+      <div className="not-prose flex flex-col gap-4">
+        <p className={BODY}>
+          Deploys a TokenHome contract on the connected network (chain ID{' '}
+          <code className="font-mono text-zinc-900 dark:text-zinc-100">{walletChainId}</code>). It is the home end of
+          every cross-chain transfer for this token.
+        </p>
 
-        {localError && <div className="text-red-500">{localError}</div>}
-        {deployError && <div className="text-red-500 mt-2">{deployError}</div>}
+        {localError && <Alert variant="error">{localError}</Alert>}
+        {deployError && <Alert variant="error">{deployError}</Alert>}
 
         <TeleporterRegistryAddressInput
           value={teleporterRegistryAddress}
@@ -218,15 +217,15 @@ function DeployTokenHome() {
         />
 
         {!teleporterRegistryAddress && (
-          <Note variant="warning" className="px-2 py-1">
-            <p>
-              Please{' '}
-              <a href="#teleporterRegistry" className="text-blue-500 no-underline">
-                deploy the Teleporter Registry contract first
-              </a>
-              .
-            </p>
-          </Note>
+          <Alert variant="warning">
+            <a
+              href="#teleporterRegistry"
+              className="font-medium text-zinc-900 underline decoration-zinc-300 underline-offset-4 transition-colors hover:decoration-zinc-900 dark:text-zinc-100 dark:decoration-zinc-600 dark:hover:decoration-zinc-100"
+            >
+              Deploy the Teleporter Registry contract first
+            </a>
+            .
+          </Alert>
         )}
 
         <EVMAddressInput
@@ -244,17 +243,22 @@ function DeployTokenHome() {
           required
         />
 
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Transferrer Type</label>
-          <RadioGroup
-            items={[
-              { value: 'erc20', label: 'ERC20' },
-              { value: 'native', label: 'Native Token' },
-            ]}
-            value={tokenType}
-            onChange={(value) => setTokenType(value as 'erc20' | 'native')}
-            idPrefix="token-type-"
-          />
+        <div className="mb-6 flex flex-col gap-2">
+          <span className={EYEBROW}>Transferrer type</span>
+          <OptionGrid label="Transferrer type">
+            <Option
+              selected={tokenType === 'erc20'}
+              onSelect={() => setTokenType('erc20')}
+              title="ERC20"
+              description="Bridges an ERC-20 token."
+            />
+            <Option
+              selected={tokenType === 'native'}
+              onSelect={() => setTokenType('native')}
+              title="Native token"
+              description="Bridges the chain's native coin through its wrapped token."
+            />
+          </OptionGrid>
         </div>
 
         <EVMAddressInput

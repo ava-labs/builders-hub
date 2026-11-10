@@ -3,11 +3,11 @@
 import React, { useEffect, useRef } from "react";
 
 /* ------------------------------------------------------------------ */
-/* Sheet backdrop — triangular lattice, avalanche wave, cell blips     */
+/* Sheet backdrop: triangular lattice, avalanche wave, cell blips     */
 /* ------------------------------------------------------------------ */
 
-// Lattice geometry: rows H apart, triangle side S. Everything — lines,
-// wave terrain, and blip triangles — derives from these two numbers inside one
+// Lattice geometry: rows H apart, triangle side S. Everything (lines,
+// wave terrain, and blip triangles) derives from these two numbers inside one
 // SVG coordinate space, so alignment is exact by construction. (CSS gradient
 // phases are viewport-center-anchored and can never be phase-locked.)
 const TRI_H = 48;
@@ -52,26 +52,26 @@ function blipPoints(n: number, row: number, up: boolean): string {
   return `${ax},${ay} ${ax - TRI_S / 2},${ay - TRI_H} ${ax + TRI_S / 2},${ay - TRI_H}`;
 }
 
-/* The digitized avalanche — driven by YOUR scroll, and it GROWS. Over the
+/* The digitized avalanche: driven by YOUR scroll, and it GROWS. Over the
    hero there are only snowballs: sparse cells popping on a loop that
    cascades downward like falling snow, leaving no mark. As you descend,
-   the flurry gathers into a slide — more cells participate, the flow
-   widens from the page's center line — until it is full-bleed by the
+   the flurry gathers into a slide (more cells participate, the flow
+   widens from the page's center line) until it is full-bleed by the
    closing chapter. The front chases your scroll ELASTICALLY (spring lag,
    never 1:1 like a scrollbar thumb) and it TRACKS BOTH WAYS: descend and
    the slide falls with you; climb back up and it rewinds, so every
    section replays its moment on every pass. Palette: graphite/white mass
-   with sparse red sparks — snow and energy, nothing else. */
+   with sparse red sparks: snow and energy, nothing else. */
 
 // the front rides this fraction of a viewport below your scroll position,
 // easing toward it with ~this time constant
 const AVA_LEAD = 0.75;
 const AVA_TAU = 550;
-// STAGING — the story is aligned to the page's chapters. Above the release
+// STAGING: the story is aligned to the page's chapters. Above the release
 // line (measured from [data-chapter="offering"], where "One network. Two
 // ways to build." begins) there is only snowfall: sparse, soft, monochrome
 // cells popping on a downward-cascading loop, leaving no mark. At the
-// release line the avalanche begins FULL WIDTH — the middle chapters'
+// release line the avalanche begins FULL WIDTH: the middle chapters'
 // boards cover the center of the sheet, so only the margins show and a
 // narrow wedge would vanish there. It gathers density (not width) on the
 // way down, reaching total mass by the closing chapter.
@@ -94,12 +94,12 @@ type WaveTri = {
   ys: [number, number, number];
   cx: number;
   cy: number;
-  /** this cell's peak height, 0.5–1: the debris field's jagged relief */
+  /** this cell's peak height, 0.5 to 1: the debris field's jagged relief */
   hgt: number;
   /** tumble phase: cells churn on their own beat inside the flow */
   ph: number;
-  /** precomputed hit line: the frontY at which this cell is reached —
-      the center of the front leads its edges, jitter frays the line */
+  /** precomputed hit line: the frontY at which this cell is reached.
+      The center of the front leads its edges, jitter frays the line */
   hl: number;
   /** hit state: -1 waiting, -2 never (outside the path or not a
       participant), else the timestamp the front reached this cell */
@@ -124,9 +124,9 @@ function WaveCanvas({ snowOnly = false }: { snowOnly?: boolean }) {
     let dpr = 1;
     let tris: WaveTri[] = [];
     // slide state: just the front's position. The chute is the page's
-    // center line — the story grows in place, same for every visitor.
+    // center line: the story grows in place, same for every visitor.
     // All geometry lives in HOST space (the backdrop container, which owns
-    // the printed lattice) — the container starts below the navbar, so
+    // the printed lattice). The container starts below the navbar, so
     // document-space cells would sit visibly off the printed triangles.
     let frontY = -120;
     let originY = 0;
@@ -143,7 +143,7 @@ function WaveCanvas({ snowOnly = false }: { snowOnly?: boolean }) {
       w = window.innerWidth;
       h = window.innerHeight;
       // host space: the backdrop container owns the printed lattice, so
-      // cells anchor to it — same origin, exact registration
+      // cells anchor to it: same origin, exact registration
       const host = canvas.parentElement!;
       const hostRect = host.getBoundingClientRect();
       originY = hostRect.top + window.scrollY;
@@ -154,7 +154,7 @@ function WaveCanvas({ snowOnly = false }: { snowOnly?: boolean }) {
       // the story's anchors come from the real page, not guesses: the
       // avalanche releases at the offering chapter ("One network. Two ways
       // to build.") and reaches FULL BLEED at the finale ("Launch yours.")
-      // Pages without the story (solutions, pillars) opt into snowOnly —
+      // Pages without the story (solutions, pillars) opt into snowOnly:
       // the release never comes, the whole sheet stays a quiet flurry.
       if (snowOnly) {
         releaseY = docH + h;
@@ -233,11 +233,11 @@ function WaveCanvas({ snowOnly = false }: { snowOnly?: boolean }) {
       ctx.clearRect(0, 0, w, h);
       const viewY = window.scrollY - originY; // scroll position in host space
       // elastic pursuit, BOTH ways: the front eases toward a point below
-      // your position — descend and it falls with you, climb and it
+      // your position. Descend and it falls with you, climb and it
       // rewinds, so every section replays its moment on every pass.
       // Approaching the finale, the target blends CONTINUOUSLY down to the
       // page bottom (full coverage lands exactly as "Launch yours." snaps
-      // into place) — a binary trigger here lurches and yo-yos at the edge.
+      // into place); a binary trigger here lurches and yo-yos at the edge.
       // the commit target overshoots docH: edge cells' hit lines carry the
       // chevron delay (lat*0.3 + jitter), so reaching the page's bottom
       // corners needs the front a little past the bottom itself
@@ -264,7 +264,7 @@ function WaveCanvas({ snowOnly = false }: { snowOnly?: boolean }) {
             t.hit = frontY - t.hl > 300 ? now - 10_000 : now;
           }
         } else if (t.hl > frontY) {
-          t.hit = -1; // the front rewound above this cell — reset it
+          t.hit = -1; // the front rewound above this cell: reset it
         }
         if (t.hit < 0) continue; // still waiting for the front
         // cull to the visible window
@@ -272,13 +272,13 @@ function WaveCanvas({ snowOnly = false }: { snowOnly?: boolean }) {
         let g: number;
         let spark = false;
         if (t.cy < releaseY) {
-          // snowball: soft, slow, monochrome, and it leaves no mark — a
+          // snowball: soft, slow, monochrome, and it leaves no mark. A
           // loop whose phase advances with cy, so the flurry visibly falls
           const x = (now + t.ph * 2400 + t.cy * 3.2) % 7400;
           const flake = x < 1400 ? Math.sin((Math.PI * x) / 1400) : 0;
           g = t.hgt * flake * 0.7;
         } else {
-          // slide mass stays printed as debris — the consequence you
+          // slide mass stays printed as debris: the consequence you
           // scroll back up through
           ctx.beginPath();
           ctx.moveTo(t.xs[0], t.ys[0]);
@@ -330,7 +330,7 @@ function WaveCanvas({ snowOnly = false }: { snowOnly?: boolean }) {
           }
           ctx.fill();
         }
-        // crisp fold edges from each pinned corner to the apex — the
+        // crisp fold edges from each pinned corner to the apex: the
         // lattice's own hairline grammar, so the relief stays registered
         ctx.strokeStyle = dark
           ? `rgba(250,250,250,${0.16 * g})`
@@ -344,8 +344,8 @@ function WaveCanvas({ snowOnly = false }: { snowOnly?: boolean }) {
       }
     };
 
-    // Reduced motion: still, not gone. The fully settled debris field —
-    // the grown cone, printed — with zero animation; redrawn only when the
+    // Reduced motion: still, not gone. The fully settled debris field
+    // (the grown cone, printed) with zero animation; redrawn only when the
     // viewport moves. This is also what makes the backdrop exist at all on
     // iOS devices with Reduce Motion enabled.
     const drawStatic = () => {
@@ -380,6 +380,7 @@ function WaveCanvas({ snowOnly = false }: { snowOnly?: boolean }) {
     const ro = new ResizeObserver(refresh);
     ro.observe(document.body);
     let onScroll: (() => void) | undefined;
+    let io: IntersectionObserver | undefined;
     if (reduced) {
       onScroll = () => {
         if (!raf) {
@@ -392,16 +393,41 @@ function WaveCanvas({ snowOnly = false }: { snowOnly?: boolean }) {
       window.addEventListener("scroll", onScroll, { passive: true });
     } else {
       raf = requestAnimationFrame(tick);
+      // the canvas is fixed, so it always meets the viewport: watch the host
+      // instead. Where the sheet covers only part of the page (the homepage
+      // hero and board), the loop rests while the reader is past it; where
+      // it covers the whole page, the host never leaves and nothing changes.
+      // The margin restarts the loop a little before the sheet shows.
+      io = new IntersectionObserver(
+        (entries) => {
+          // the newest entry wins when several queue up in one frame
+          if (entries[entries.length - 1].isIntersecting) {
+            if (!raf) {
+              last = 0; // no catch-up step for the time spent away
+              raf = requestAnimationFrame(tick);
+            }
+          } else if (raf) {
+            cancelAnimationFrame(raf);
+            raf = 0;
+            // clear once, so a stale frame cannot flash on the way back
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            ctx.clearRect(0, 0, w, h);
+          }
+        },
+        { rootMargin: "200px 0px" },
+      );
+      io.observe(canvas.parentElement!);
     }
     return () => {
       window.removeEventListener("resize", refresh);
       if (onScroll) window.removeEventListener("scroll", onScroll);
       ro.disconnect();
+      io?.disconnect();
       cancelAnimationFrame(raf);
     };
   }, [snowOnly]);
 
-  // The canvas is position:fixed — a viewport-sized window that pans over
+  // The canvas is position:fixed: a viewport-sized window that pans over
   // the document-space terrain (a document-height canvas would be hundreds
   // of MB of backing store). Explicit h/w required: a replaced element with
   // inset-0 sizes to its intrinsic dimensions instead of stretching.
@@ -424,8 +450,8 @@ function LatticePattern({ id, className }: { id: string; className: string }) {
 
 export default function SheetBackdrop({ snowOnly = false }: { snowOnly?: boolean }) {
   // Document-anchored, not viewport-fixed: the lattice is the sheet of
-  // paper the page is printed on, and the avalanche runs its full height —
-  // scroll fast enough and you can chase the slide to the bottom.
+  // paper the page is printed on, and the avalanche runs its full height.
+  // Scroll fast enough and you can chase the slide to the bottom.
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0">
       <style>{`
@@ -461,7 +487,7 @@ export default function SheetBackdrop({ snowOnly = false }: { snowOnly?: boolean
         ))}
       </svg>
 
-      {/* the avalanche terrain: cells tent up as the wave crest passes —
+      {/* the avalanche terrain: cells tent up as the wave crest passes,
           drawn on canvas, aligned to the lattice by construction */}
       <WaveCanvas snowOnly={snowOnly} />
     </div>

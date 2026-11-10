@@ -33,6 +33,8 @@ export default function CompleteWeightChangeStep() {
               subnetIdL1={store.subnetIdL1}
               pChainTxId={store.pChainTxId}
               signingSubnetId={vmcCtx.signingSubnetId}
+              signingSubnetLoading={vmcCtx.isLoading}
+              signingSubnetError={vmcCtx.error}
               updateType="ChangeWeight"
               managerAddress={vmcCtx.validatorManagerAddress}
               isContractOwner={isContractOwner}
@@ -41,6 +43,7 @@ export default function CompleteWeightChangeStep() {
               ownerType={vmcCtx.ownerType}
               onSuccess={(data) => {
                 store.setGlobalSuccess(data.message);
+                store.setFlowCompleted(true);
                 store.setGlobalError(null);
               }}
               onError={(message) => store.setGlobalError(message)}

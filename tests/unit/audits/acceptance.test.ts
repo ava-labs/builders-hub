@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { afterEach, describe, expect, it, vi, beforeEach } from "vitest";
 
 const {
   txQuoteUpdateManyMock,
@@ -182,5 +182,75 @@ describe("acceptQuote", () => {
     expect(noticeMock).not.toHaveBeenCalled();
     expect(acceptedNoticeMock).not.toHaveBeenCalled();
     expect(eventCreateMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("acceptQuote · the week to pick", () => {
+  const atTime = (iso: string) => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(iso));
+  };
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("adds no deadline guard while the release grace holds every window open", async () => {
+    atTime("2026-10-20T12:00:00Z");
+
+    await acceptQuote("req-1", "q-2", OWNER);
+
+    expect(txQuoteUpdateManyMock.mock.calls[0][0].where.request).toEqual({
+      user_id: OWNER,
+      status: "collecting",
+    });
+  });
+
+  it("requires the pick-by date not passed once the grace is over", async () => {
+    atTime("2026-12-01T12:00:00Z");
+
+    await acceptQuote("req-1", "q-2", OWNER);
+
+    // Pick-by = quote deadline + 7 days, so a deadline from 2026-11-24 12:00 on
+    // is still open; no deadline at all stays open, as the derive treats it.
+    expect(txQuoteUpdateManyMock.mock.calls[0][0].where.request).toEqual({
+      user_id: OWNER,
+      status: "collecting",
+      OR: [
+        { quote_deadline: null },
+        { quote_deadline: { gte: new Date("2026-11-24T12:00:00Z") } },
+      ],
+    });
+  });
+
+  // What the database does with the winner write's request filter, for a row
+  // with this quote deadline: OR of "no deadline" and "deadline >= cutoff".
+  type RequestFilter = { OR?: { quote_deadline: null | { gte: Date } }[] };
+  const matches = (filter: RequestFilter, quote_deadline: Date | null) =>
+    !filter.OR ||
+    filter.OR.some((clause) =>
+      clause.quote_deadline === null
+        ? quote_deadline === null
+        : quote_deadline !== null && quote_deadline >= clause.quote_deadline.gte,
+    );
+  const winnerWriteAgainst = (quote_deadline: Date) =>
+    txQuoteUpdateManyMock.mockImplementationOnce(
+      async ({ where }: { where: { request: RequestFilter } }) => ({
+        count: matches(where.request, quote_deadline) ? 1 : 0,
+      }),
+    );
+
+  it("refuses a lapsed request's quote and still accepts one inside its week", async () => {
+    atTime("2026-12-01T12:00:00Z");
+
+    winnerWriteAgainst(new Date("2026-11-10T12:00:00Z")); // pick-by 2026-11-17: lapsed
+    const late = await acceptQuote("req-1", "q-2", OWNER);
+    expect(late).toEqual({ success: false, code: "not_acceptable" });
+    expect(txRequestUpdateManyMock).not.toHaveBeenCalled();
+    expect(eventCreateMock).not.toHaveBeenCalled();
+
+    winnerWriteAgainst(new Date("2026-11-28T00:00:00Z")); // pick-by 2026-12-05: deciding
+    const inTime = await acceptQuote("req-1", "q-2", OWNER);
+    expect(inTime.success).toBe(true);
   });
 });

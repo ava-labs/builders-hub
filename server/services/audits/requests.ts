@@ -1,9 +1,14 @@
 import type { Prisma } from "@prisma/client";
 import { del } from "@vercel/blob";
 import { prisma } from "@/prisma/prisma";
-import { isRequestAttachmentSrc } from "@/lib/audits/blobSrc";
+import { isLegacyAttachmentSrc, isRequestAttachmentSrc } from "@/lib/audits/blobSrc";
 import { parseStoredAttachments } from "@/lib/audits/attachments";
-import { deriveRequestStatus } from "@/lib/audits/status";
+import {
+  ADMIN_DELETABLE_STATUSES,
+  deriveRequestStatus,
+  endOfUtcDay,
+  isAdminDeletable,
+} from "@/lib/audits/status";
 import { QUOTE_DEADLINE_DEFAULT_DAYS } from "@/lib/audits/constants";
 import { logAuditEvent } from "@/server/services/audits/events";
 import {
@@ -160,6 +165,75 @@ export async function deleteDraft(userId: string, requestId: string): Promise<Mu
   return { success: true };
 }
 
+export type DeleteRequestResult =
+  | { success: true }
+  | { success: false; code: "not_found" | "not_deletable" };
+
+type DeleteTxOutcome =
+  | { kind: "not_found" | "not_deletable" }
+  | { kind: "ok"; attachments: Prisma.JsonValue };
+
+/**
+ * Permanent delete by an audit admin (Joey, 2026-10-06: a project resubmitted
+ * and asked for its first proposal to go). The FKs take the quotes, deliveries,
+ * subsidy decisions and the trail with the row, so the record of the delete is
+ * an event with no request id: it is the one row that outlives the cascade.
+ */
+export async function deleteRequest(
+  requestId: string,
+  adminUserId: string,
+  adminName: string,
+): Promise<DeleteRequestResult> {
+  const outcome = await prisma.$transaction(async (tx): Promise<DeleteTxOutcome> => {
+    const row = await tx.auditRequest.findFirst({
+      where: { id: requestId, status: { not: "draft" } },
+      select: {
+        project_name: true,
+        status: true,
+        user_id: true,
+        attachments: true,
+        _count: { select: { quotes: true } },
+      },
+    });
+    if (!row) return { kind: "not_found" };
+    if (!isAdminDeletable(row.status)) return { kind: "not_deletable" };
+
+    // The status guard sits in the delete too: a quote accepted after the read
+    // turns the row engaged, and the delete then matches nothing.
+    const deleted = await tx.auditRequest.deleteMany({
+      where: { id: requestId, status: { in: [...ADMIN_DELETABLE_STATUSES] } },
+    });
+    if (deleted.count === 0) return { kind: "not_deletable" };
+
+    const stored = parseStoredAttachments(row.attachments);
+    await logAuditEvent(tx, {
+      request_id: null,
+      actor_type: "admin",
+      actor_id: adminUserId,
+      action: "request_deleted",
+      meta: {
+        request_id: requestId,
+        project_name: row.project_name,
+        status: row.status,
+        user_id: row.user_id,
+        quote_count: row._count.quotes,
+        // Legacy keys are never deleted (blobSrc.ts), so those files stay
+        // readable once the row is gone: this count is what is left of them.
+        attachment_count: stored.length,
+        legacy_attachment_count: stored.filter((file) => isLegacyAttachmentSrc(file.url)).length,
+        admin_name: adminName,
+      },
+    });
+    return { kind: "ok", attachments: row.attachments };
+  });
+
+  if (outcome.kind !== "ok") return { success: false, code: outcome.kind };
+
+  // After the commit, as deleteDraft does: nothing points at the files now.
+  await unpublishAttachments(requestId, droppedUrls(outcome.attachments, []));
+  return { success: true };
+}
+
 /**
  * Pull a request back out of the review queue. Nothing has been sent to any
  * firm at this point, so the safe and useful move is not deletion but a
@@ -210,7 +284,9 @@ export async function reopen(userId: string, requestId: string): Promise<ReopenR
       include: { _count: { select: { quotes: true } } },
     });
     if (!row) return { kind: "not_found" };
-    if (deriveRequestStatus(row, row._count.quotes) !== "expired") {
+    // A zero-quote expiry only: a lapsed request (quotes in, none accepted by
+    // its pick-by date) also reads expired, and starts again from a copy.
+    if (row._count.quotes > 0 || deriveRequestStatus(row, row._count.quotes) !== "expired") {
       return { kind: "not_reopenable" };
     }
     const priorReopens = await tx.auditEventLog.count({
@@ -218,7 +294,7 @@ export async function reopen(userId: string, requestId: string): Promise<ReopenR
     });
     if (priorReopens >= 1) return { kind: "already_reopened" };
 
-    const quote_deadline = new Date(Date.now() + QUOTE_DEADLINE_DEFAULT_DAYS * DAY);
+    const quote_deadline = endOfUtcDay(new Date(Date.now() + QUOTE_DEADLINE_DEFAULT_DAYS * DAY));
     await tx.auditRequest.update({ where: { id: row.id }, data: { quote_deadline } });
 
     const shortlistIds = row.shortlist_auditor_ids;
@@ -254,6 +330,76 @@ export async function reopen(userId: string, requestId: string): Promise<ReopenR
 
   const { emailFailures } = await deliverFanoutEmails(requestId, outcome.auditors, outcome.request);
   return { success: true, auditorCount: outcome.auditors.length, emailFailures };
+}
+
+export type StartAgainResult =
+  | { success: true; id: string }
+  | { success: false; code: "not_found" | "not_restartable" };
+
+// What a new round copies. Not the files: their keys are bound to the old
+// request id, and the draft would refuse them. Not the two dates: a new round
+// needs new ones. Not a consent or share stamp: those are given at submit.
+const START_AGAIN_FIELDS = {
+  source_project_id: true,
+  project_name: true,
+  website: true,
+  description: true,
+  scope: true,
+  project_types: true,
+  deployment_target: true,
+  multichain: true,
+  services: true,
+  shortlist_auditor_ids: true,
+  repos: true,
+  languages: true,
+  frameworks: true,
+  nsloc: true,
+  doc_links: true,
+  urgency: true,
+  contact_name: true,
+  contact_email: true,
+  contact_handle: true,
+  contact_calendar_url: true,
+} as const;
+
+/**
+ * A new round for a lapsed request (quotes came in, none was accepted by the
+ * pick-by date): a new draft for the same owner, copied from it, that goes
+ * back through review and a fresh quote window. The old request stays as it
+ * is, with request_restarted on its trail. Repeat calls make repeat drafts.
+ */
+export async function startAgain(userId: string, requestId: string): Promise<StartAgainResult> {
+  return prisma.$transaction(async (tx): Promise<StartAgainResult> => {
+    const row = await tx.auditRequest.findFirst({
+      where: { id: requestId, user_id: userId },
+      select: {
+        ...START_AGAIN_FIELDS,
+        status: true,
+        quote_deadline: true,
+        _count: { select: { quotes: true } },
+      },
+    });
+    if (!row) return { success: false, code: "not_found" };
+
+    const { status, quote_deadline, _count, repos, ...fields } = row;
+    const quoteCount = _count.quotes;
+    const lapsed =
+      quoteCount > 0 && deriveRequestStatus({ status, quote_deadline }, quoteCount) === "expired";
+    if (!lapsed) return { success: false, code: "not_restartable" };
+
+    const draft = await tx.auditRequest.create({
+      data: { user_id: userId, ...fields, repos: repos as Prisma.InputJsonValue },
+      select: { id: true },
+    });
+    await logAuditEvent(tx, {
+      request_id: requestId,
+      actor_type: "project_user",
+      actor_id: userId,
+      action: "request_restarted",
+      meta: { new_request_id: draft.id },
+    });
+    return { success: true, id: draft.id };
+  });
 }
 
 export async function withdraw(userId: string, requestId: string): Promise<MutationResult> {

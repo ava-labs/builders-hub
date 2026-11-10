@@ -378,12 +378,6 @@ export const blockchainTools: ToolDomain = {
             if (xResult) {
               const parsed = parseXChainTransaction(xResult);
 
-              let txStatus = 'Unknown';
-              try {
-                const statusResult = await avalancheRPC(net, 'xchain', 'avm.getTxStatus', { txID: txHash }) as Record<string, unknown>;
-                txStatus = (statusResult?.status as string) || (typeof statusResult === 'string' ? statusResult : 'Unknown');
-              } catch { /* ignore */ }
-
               const foundOnTestnet = net === 'fuji';
               return {
                 content: [{
@@ -391,7 +385,8 @@ export const blockchainTools: ToolDomain = {
                   text: JSON.stringify({
                     found: true,
                     chain: 'X-Chain',
-                    transaction: { txID: txHash, type: parsed.type, typeDescription: parsed.description, status: txStatus, ...parsed.details },
+                    // avm.getTx returns only accepted txs, and avm.getTxStatus is deprecated.
+                    transaction: { txID: txHash, type: parsed.type, typeDescription: parsed.description, status: 'Accepted', ...parsed.details },
                     network: foundOnTestnet ? 'Fuji Testnet' : 'Mainnet',
                     ...(net !== network ? { note: `Found on ${foundOnTestnet ? 'Fuji Testnet' : 'Mainnet'} (different from requested)` } : {}),
                     explorerUrl: `https://explorer${foundOnTestnet ? '-test' : ''}.avax.network/x-chain/tx/${txHash}`,

@@ -5,14 +5,20 @@ category: "null"
 ---
 # Contributing to Avalanche Integrations
 
-Welcome! This guide will help you add your integration to the [Avalanche Integrations page](https://build.avax.network/integrations).
+This guide tells you how to add your integration to the [Avalanche Integrations page](https://build.avax.network/integrations).
 
-## Quick Start
+## Request a Listing
+
+Builder Hub accepts pull requests only from Ava Labs contributors. To add or change a listing, open an issue with the [integration listing form](https://github.com/ava-labs/builders-hub/issues/new?template=integration_listing.yml). The Ava Labs team makes the page from your answers.
+
+The rest of this guide shows the format of an integration page. Use it to write the page content for the form.
+
+## Quick Start (Ava Labs contributors)
 
 1. Create a new `.mdx` file in this directory
 2. Follow the template structure below
-3. Add your logo to `/public/images/`
-4. Submit a pull request
+3. Add the logo to `/public/images/`
+4. Open a pull request
 
 ## File Structure
 
@@ -61,35 +67,7 @@ featured: true  # Set to true to appear in Featured section (requires approval)
 
 ## Categories
 
-Choose the most appropriate category for your integration:
-
-### Infrastructure & Development
-- **RPC Providers** - Blockchain node infrastructure and API services
-- **Indexers** - Blockchain data indexing and querying
-- **Oracles** - External data feeds and price information
-- **Developer Tools** - SDKs, frameworks, and development utilities
-
-### DeFi & Trading
-- **DEX Liquidity** - Decentralized exchanges and liquidity protocols
-- **Lending Protocols** - Lending, borrowing, and money markets
-- **DeFi** - Other DeFi protocols and financial primitives
-
-### Identity & Compliance
-- **KYC / Identity Verification** - KYC/KYB providers and identity solutions
-- **Account Abstraction** - Smart account and wallet solutions
-
-### Security & Auditing
-- **Security Audits** - Smart contract auditing services
-- **Security** - Security tools and monitoring
-
-### Other Categories
-- **Analytics** - On-chain analytics and dashboards
-- **NFT** - NFT platforms and tooling
-- **Wallets** - Cryptocurrency wallets
-- **Bridges** - Cross-chain bridges
-- **Payments** - Payment processing and fiat on/off ramps
-
-*Don't see your category? New categories are automatically created when needed.*
+Use a category that the integrations page uses now. The [integration listing form](https://github.com/ava-labs/builders-hub/issues/new?template=integration_listing.yml) shows the full list. If no category fits, select "Other" in the form and write the category that you need.
 
 ## Content Structure
 
@@ -266,7 +244,7 @@ const result = await client.query({ /* ... */ });
 // Multiple files, complex error handling, etc.
 ```
 
-## Submission Process
+## Submission Process (Ava Labs contributors)
 
 ### 1. Prepare Your Files
 - [ ] Create `.mdx` file in `/content/integrations/`
@@ -279,12 +257,11 @@ yarn dev
 ```
 Visit `http://localhost:3000/integrations` to preview your integration.
 
-### 3. Submit Pull Request
-- Fork the [builders-hub repository](https://github.com/ava-labs/builders-hub)
-- Create a new branch: `git checkout -b add-your-integration`
-- Commit your changes: `git commit -m "Add Your Integration"`
-- Push to your fork: `git push origin add-your-integration`
-- Open a Pull Request
+### 3. Open a Pull Request
+- Create a new branch: `git checkout -b docs/add-your-integration`
+- Commit your changes: `git commit -m "docs(integrations): add Your Integration"`
+- Push the branch: `git push origin docs/add-your-integration`
+- Open a pull request against `master`. If the page comes from a listing issue, link the issue.
 
 ### 4. PR Checklist
 - [ ] MDX file follows the template structure

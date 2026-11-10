@@ -1,6 +1,15 @@
 import "server-only";
 import { createHash } from "node:crypto";
-import { createClient } from "redis";
+import { redis } from "@/lib/redis";
+import { familyQuestion } from "./families";
+import { icttQuestion, icttTurn } from "./ictt";
+import { mevQuestion, mevTurn } from "./mev";
+import { lendingQuestion } from "./lending";
+import { networkVersion } from "./network-prompt";
+import { dexQuestion, promptVersion, shareTurn } from "./prompt";
+import { registryTurn } from "./registry-turn";
+import { NETWORK_ID, isFuji, targetOf } from "./target";
+import { upgradeTurn } from "./upgrades";
 import type { ChartSpec, Drill, Turn } from "./types";
 import type { VisualSpec } from "./visual";
 
@@ -8,7 +17,8 @@ import type { VisualSpec } from "./visual";
    layout, never the rows. A hit re-runs the SQL, so the figures are
    always fresh and only the model work is skipped. Recipes live in Redis
    so every instance shares them; without Redis each instance keeps its
-   own for as long as it lives. */
+   own for as long as it lives. A key names the prompt it was written
+   against, so a change to the prompt writes each question again. */
 
 export interface Recipe {
   /** the question as asked; the layout stage designs for it */
@@ -29,36 +39,21 @@ const PREFIX = "explorer-query:v2:";
 const LOCAL_MAX = 500;
 const local = new Map<string, Recipe>();
 
-let client: ReturnType<typeof createClient> | null = null;
-let connecting: Promise<ReturnType<typeof createClient> | null> | null = null;
-
-async function redis() {
-  if (client?.isOpen) return client;
-  if (connecting) return connecting;
-  const url = process.env.REDIS_URL;
-  if (!url) return null;
-  connecting = (async () => {
-    const c = createClient({ url, socket: { connectTimeout: 1500 } });
-    c.on("error", (e) => {
-      console.warn("[explorer-query] redis error", e instanceof Error ? e.message : e);
-      client = null;
-      connecting = null;
-    });
-    await c.connect();
-    client = c;
-    return c;
-  })().catch(() => {
-    connecting = null;
-    return null;
-  });
-  return connecting;
-}
-
-/** the same question on the same chain, however it was typed */
+/** the same question on the same chain, however it was typed, against the same prompt: a DEX, lending, family or
+    ICTT question's names its variant, and a question that names a registry protocol with no chapter, an MEV question,
+    an ICTT question, a network upgrade or a staked share of the supply holds its turn's lines (registry-turn.ts,
+    mev.ts, ictt.ts, upgrades.ts, prompt.ts shareTurn), so a change to them or to the registry asks again; any other
+    question's key is the one it was */
 export function recipeKey(chainId: number, prompt: string, history: Turn[] = []): string {
   const norm = prompt.toLowerCase().replace(/\s+/g, " ").replace(/[?.!\s]+$/, "").trim();
   const past = history.map((t) => t.sql).join("\n");
-  return createHash("sha256").update(`${chainId}\n${norm}\n${past}`).digest("hex").slice(0, 32);
+  const ictt = icttQuestion(chainId, prompt, history);
+  const version =
+    chainId === NETWORK_ID
+      ? networkVersion(ictt)
+      : promptVersion(chainId, dexQuestion(chainId, prompt, history), lendingQuestion(chainId, prompt, history), familyQuestion(chainId, prompt, history), mevQuestion(chainId, prompt, history), ictt);
+  const named = `${registryTurn(chainId, prompt)}${mevTurn(chainId, prompt)}${icttTurn(chainId, prompt)}${isFuji(chainId) ? "" : upgradeTurn(prompt, new Date(), targetOf(chainId).kind !== "pchain")}${shareTurn(chainId, prompt)}`;
+  return createHash("sha256").update(`${chainId}\n${version}\n${norm}\n${past}${named && `\n${named}`}`).digest("hex").slice(0, 32);
 }
 
 export async function getRecipe(key: string): Promise<Recipe | null> {

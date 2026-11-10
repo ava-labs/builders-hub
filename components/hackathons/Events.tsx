@@ -362,7 +362,7 @@ export default function Events({
             {t(lang, "events.discoverMore")}
           </h2>
           <Separator className="mb-6 bg-zinc-300 dark:bg-zinc-800" />
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 gap-6">
             <DiscoveryCard
               title={t(lang, "events.discovery.avalancheCalendar.title")}
               description={t(lang, "events.discovery.avalancheCalendar.description")}
@@ -374,12 +374,6 @@ export default function Events({
               description={t(lang, "events.discovery.communityEvents.description")}
               image="/team1/team1-events.png"
               url="https://lu.ma/Team1?utm_source=builder_hub"
-            />
-            <DiscoveryCard
-              title={t(lang, "events.discovery.campusConnect.title")}
-              description={t(lang, "events.discovery.campusConnect.description")}
-              image="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/University-Slideshow/729e397093550313627a7a1717249ef2%20%282%29.jpg"
-              url="/university"
             />
           </div>
         </div>

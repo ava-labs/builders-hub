@@ -101,6 +101,9 @@ export interface L1Chain {
   isIndexed?: boolean;
   // Pins isIndexed against the derivation above
   isIndexedOverride?: boolean;
+  // A private, permissioned L1: its RPC, blocks and node versions are not public. Set only from the
+  // chain's or its operator's own word; a public chain can also lack a listed RPC or reported versions.
+  isPrivate?: boolean;
 }
 
 export type TimeRange = "30d" | "90d" | "1y" | "all";

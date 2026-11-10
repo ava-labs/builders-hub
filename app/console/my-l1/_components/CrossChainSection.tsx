@@ -5,8 +5,10 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { useUserBridgesForL1 } from '@/hooks/useUserBridgesForL1';
 import { useL1CrossChainStats } from '@/hooks/useL1CrossChainStats';
 import type { CombinedL1 } from '@/lib/console/my-l1/types';
+import { cn } from '@/lib/utils';
 import { YourBridgesCard } from './YourBridgesCard';
 import { L1BridgeActivityCard } from './L1BridgeActivityCard';
+import { DISCLOSURE, DISCLOSURE_HINT, DISCLOSURE_LABEL, FRAME } from './chrome';
 
 /**
  * Cross-chain section for the My L1 dashboard. Pairs the user's local
@@ -27,26 +29,22 @@ export function CrossChainSection({ l1 }: { l1: CombinedL1 }) {
   const hint = buildHint(bridgeCount, icm24h);
 
   return (
-    <Collapsible className="rounded-xl border bg-card overflow-hidden">
+    <Collapsible className={FRAME}>
       <CollapsibleTrigger asChild>
-        <button
-          type="button"
-          className="group w-full cursor-pointer flex items-center gap-2 px-4 py-3 text-sm hover:bg-accent/30 transition-colors text-left [&[data-state=open]_.disclosure-chevron]:rotate-90"
-        >
+        <button type="button" className={DISCLOSURE}>
           <ChevronRight
-            className="disclosure-chevron w-4 h-4 text-muted-foreground transition-transform"
+            className="disclosure-chevron h-3.5 w-3.5 shrink-0 text-zinc-400 transition-transform"
             aria-hidden="true"
           />
-          <span className="font-medium text-foreground">Cross-chain</span>
-          {hint && <span className="text-muted-foreground hidden sm:inline">{hint}</span>}
+          <span className={DISCLOSURE_LABEL}>Cross-chain</span>
+          {hint && <span className={cn(DISCLOSURE_HINT, 'tabular-nums')}>{hint}</span>}
         </button>
       </CollapsibleTrigger>
-      <CollapsibleContent className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
-        <div className="border-t border-border px-4 pt-4 pb-4">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <YourBridgesCard l1={l1} />
-            <L1BridgeActivityCard l1={l1} />
-          </div>
+      <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
+        {/* The two panels share the board's frame, split by one hairline. */}
+        <div className="grid grid-cols-1 divide-y divide-zinc-200 md:grid-cols-2 md:divide-x md:divide-y-0 dark:divide-zinc-800">
+          <YourBridgesCard l1={l1} />
+          <L1BridgeActivityCard l1={l1} />
         </div>
       </CollapsibleContent>
     </Collapsible>

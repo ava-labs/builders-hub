@@ -17,9 +17,10 @@ async function handleGetRelayers(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const response = await fetch(RelayerServiceURLs.list(password), {
+    const response = await fetch(RelayerServiceURLs.list(), {
       method: 'GET',
       headers: {
+        'x-admin-password': password,
         'Accept': 'application/json'
       }
     });
@@ -97,9 +98,10 @@ async function handleCreateRelayer(request: NextRequest): Promise<NextResponse> 
     }
 
     // Make the request to Builder Hub API to create relayer
-    const response = await fetch(RelayerServiceURLs.create(password), {
+    const response = await fetch(RelayerServiceURLs.create(), {
       method: 'POST',
       headers: {
+        'x-admin-password': password,
         'Accept': 'application/json',
         'Content-Type': 'application/json'
       },

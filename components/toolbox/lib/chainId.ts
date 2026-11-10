@@ -1,6 +1,6 @@
 import { createPublicClient } from 'viem';
 import { http } from 'viem';
-import { utils } from '@avalabs/avalanchejs';
+import { utils } from '@avalanche-sdk/client/utils';
 import { WARP_PRECOMPILE_ADDRESS } from '@avalanche-sdk/interchain/warp';
 
 export async function fetchChainId(rpcUrl: string): Promise<{ ethereumChainId: number; avalancheChainId: string }> {

@@ -9,6 +9,7 @@ import {
   type Abi,
   type AbiEvent,
   type AbiFunction,
+  type AbiParameter,
 } from "viem";
 
 /* ------------------------------------------------------------------ */
@@ -238,7 +239,17 @@ function formatArg(value: unknown): string {
 export interface DecodedEvent {
   name: string;
   signature: string;
-  params: Array<{ name: string; type: string; value: string; indexed: boolean }>;
+  params: Array<{ name: string; type: string; value: string; indexed: boolean; components?: Array<{ name: string; type: string; value: string }> }>;
+}
+
+/** a tuple's fields, named, as the registry's decoder gives them */
+function tupleFields(input: AbiParameter, value: unknown): Array<{ name: string; type: string; value: string }> | undefined {
+  if (input.type !== "tuple" || !("components" in input) || value === null || typeof value !== "object") return undefined;
+  return input.components.map((c, k) => ({
+    name: c.name || `field${k}`,
+    type: c.type,
+    value: formatArg(Array.isArray(value) ? value[k] : (value as Record<string, unknown>)[c.name ?? ""]),
+  }));
 }
 
 /** Decode a log with a verified ABI. Null when the ABI doesn't know the
@@ -264,14 +275,17 @@ export function decodeEventWithAbi(
     return {
       name: event.name,
       signature: `${event.name}(${event.inputs.map((i) => i.type).join(",")})`,
-      params: event.inputs.map((input, i) => ({
-        name: input.name || `param${i}`,
-        type: input.type,
-        indexed: input.indexed ?? false,
-        value: formatArg(
-          named ? (args as Record<string, unknown>)[input.name ?? ""] : (args as unknown[])?.[i],
-        ),
-      })),
+      params: event.inputs.map((input, i) => {
+        const value = named ? (args as Record<string, unknown>)[input.name ?? ""] : (args as unknown[])?.[i];
+        const components = tupleFields(input, value);
+        return {
+          name: input.name || `param${i}`,
+          type: input.type,
+          indexed: input.indexed ?? false,
+          value: formatArg(value),
+          ...(components && { components }),
+        };
+      }),
     };
   } catch {
     return null;

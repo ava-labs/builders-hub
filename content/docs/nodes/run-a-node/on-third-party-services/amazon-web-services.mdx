@@ -71,7 +71,7 @@ Now you're ready to launch an EC2 instance. Go to the EC2 Dashboard and select *
 
 ![Select "Launch Instance."](/images/amazon10.png)
 
-Select **Ubuntu 20.04 LTS (HVM), SSD Volume Type** for the operating system.
+Select **Ubuntu Server 24.04 LTS (HVM), SSD Volume Type** for the operating system. AvalancheGo supports Ubuntu 22.04 and 24.04.
 
 ![Select Ubuntu 20.04 LTS.](/images/amazon11.png)
 
@@ -107,7 +107,7 @@ You could save money by using a **Reserved Instance**. With a reserved instance,
 
 Click the **Next: Add Storage** button in the bottom right corner of the screen.
 
-You need to add space to your instance's disk. You should start with at least 700GB of disk space. Although upgrades to reduce disk usage are always in development, on average the database will continually grow, so you need to constantly monitor disk usage on the node and increase disk space if needed.
+You need to add space to your instance's disk. Start with at least 1 TiB of disk space. Although upgrades to reduce disk usage are always in development, on average the database will continually grow, so you need to constantly monitor disk usage on the node and increase disk space if needed.
 
 Note that the image below shows 100GB as disk size, which was appropriate at the time the screenshot was taken. You should check the current [recommended disk space size](https://github.com/ava-labs/avalanchego#installation) before entering the actual value here.
 

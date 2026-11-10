@@ -55,6 +55,9 @@ function CardPill({ item }: { item: AuditorInboxItem }) {
   if (quote?.status === "not_selected") {
     return <StatusBadge kind="quote" status="not_selected" />;
   }
+  if (quote?.display_status === "expired") {
+    return <StatusBadge kind="quote" status="expired" label="Quote expired" />;
+  }
   if (quote) {
     return (
       <StatusBadge

@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { CONSOLE_TOUR_STEPS, type TourStep } from "@/components/console/onboarding-tour/types";
+import { CONSOLE_TOUR_STEPS } from "@/components/console/onboarding-tour/types";
 
 interface OnboardingTourStore {
   // State
@@ -20,13 +20,6 @@ interface OnboardingTourStore {
   goToStep: (index: number) => void;
   resetTour: () => void;
   markWelcomeSeen: () => void;
-
-  // Computed
-  currentStep: TourStep | null;
-  totalSteps: number;
-  isFirstStep: boolean;
-  isLastStep: boolean;
-  progress: number;
 }
 
 export const useOnboardingTour = create<OnboardingTourStore>()(
@@ -100,30 +93,6 @@ export const useOnboardingTour = create<OnboardingTourStore>()(
 
       markWelcomeSeen: () => {
         set({ hasSeenWelcome: true });
-      },
-
-      // Computed (as getters)
-      get currentStep() {
-        const { currentStepIndex, isActive } = get();
-        if (!isActive) return null;
-        return CONSOLE_TOUR_STEPS[currentStepIndex] || null;
-      },
-
-      get totalSteps() {
-        return CONSOLE_TOUR_STEPS.length;
-      },
-
-      get isFirstStep() {
-        return get().currentStepIndex === 0;
-      },
-
-      get isLastStep() {
-        return get().currentStepIndex === CONSOLE_TOUR_STEPS.length - 1;
-      },
-
-      get progress() {
-        const { currentStepIndex } = get();
-        return ((currentStepIndex + 1) / CONSOLE_TOUR_STEPS.length) * 100;
       },
     }),
     {

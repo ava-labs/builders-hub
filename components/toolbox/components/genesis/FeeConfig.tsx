@@ -190,7 +190,7 @@ const FieldTooltip = ({ field }: { field: keyof typeof FIELD_DESCRIPTIONS }) => 
         <div className="space-y-2">
           <p className="font-medium text-xs">{info.title}</p>
           <p className="text-xs text-zinc-300">{info.description}</p>
-          {'recommendation' in info && <p className="text-xs text-blue-300">💡 {info.recommendation}</p>}
+          {'recommendation' in info && <p className="text-xs text-zinc-100">💡 {info.recommendation}</p>}
         </div>
       </TooltipContent>
     </Tooltip>
@@ -226,7 +226,10 @@ const Field = ({
   suffix?: string;
 }) => (
   <div className="space-y-1 text-[13px]">
-    <label className="flex items-center text-sm font-medium text-zinc-800 dark:text-zinc-200" htmlFor={id}>
+    <label
+      className="flex items-center font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400"
+      htmlFor={id}
+    >
       {label}
       {tooltipField && <FieldTooltip field={tooltipField} />}
     </label>
@@ -242,62 +245,22 @@ const Field = ({
         onFocus={onFocus}
         onBlur={onBlur}
         placeholder={placeholder}
-        className={`py-2 text-[14px] ${suffix ? 'pr-16' : ''}`}
+        className={`text-[13px] ${suffix ? 'pr-16' : ''}`}
         inputMode={type === 'text' ? 'decimal' : 'numeric'}
         autoComplete="off"
       />
       {suffix && (
-        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-400 pointer-events-none">
+        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 font-mono text-[11px] uppercase tracking-[0.1em] text-zinc-400">
           {suffix}
         </span>
       )}
     </div>
     <div className="min-h-[16px]">
-      {error && <div className="text-xs text-red-500">{error}</div>}
+      {error && <div className="text-[12px] text-red-700 dark:text-red-400">{error}</div>}
       {!error && warning && <div className="text-xs text-zinc-500 dark:text-zinc-400">{warning}</div>}
     </div>
   </div>
 );
-
-// Color mappings for presets
-const PRESET_COLORS: Record<string, { border: string; bg: string; icon: string; text: string }> = {
-  green: {
-    border: 'border-green-500',
-    bg: 'bg-green-50 dark:bg-green-950/30',
-    icon: 'text-green-600 dark:text-green-400',
-    text: 'text-green-700 dark:text-green-300',
-  },
-  blue: {
-    border: 'border-blue-500',
-    bg: 'bg-blue-50 dark:bg-blue-950/30',
-    icon: 'text-blue-600 dark:text-blue-400',
-    text: 'text-blue-700 dark:text-blue-300',
-  },
-  pink: {
-    border: 'border-pink-500',
-    bg: 'bg-pink-50 dark:bg-pink-950/30',
-    icon: 'text-pink-600 dark:text-pink-400',
-    text: 'text-pink-700 dark:text-pink-300',
-  },
-  violet: {
-    border: 'border-violet-500',
-    bg: 'bg-violet-50 dark:bg-violet-950/30',
-    icon: 'text-violet-600 dark:text-violet-400',
-    text: 'text-violet-700 dark:text-violet-300',
-  },
-  emerald: {
-    border: 'border-emerald-500',
-    bg: 'bg-emerald-50 dark:bg-emerald-950/30',
-    icon: 'text-emerald-600 dark:text-emerald-400',
-    text: 'text-emerald-700 dark:text-emerald-300',
-  },
-  purple: {
-    border: 'border-purple-500',
-    bg: 'bg-purple-50 dark:bg-purple-950/30',
-    icon: 'text-purple-600 dark:text-purple-400',
-    text: 'text-purple-700 dark:text-purple-300',
-  },
-};
 
 // Preset selector component
 const PresetSelector = ({ selected, onSelect }: { selected: PresetType; onSelect: (preset: PresetType) => void }) => {
@@ -314,15 +277,15 @@ const PresetSelector = ({ selected, onSelect }: { selected: PresetType; onSelect
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-1">
-        <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200">Configuration Preset</span>
+        <span className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+          Configuration Preset
+        </span>
         <FieldTooltip field="preset" />
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
         {presetOrder.map((presetKey) => {
           const isCustom = presetKey === 'custom';
           const preset = isCustom ? null : PRESETS[presetKey];
-          const color = isCustom ? 'purple' : preset!.color;
-          const colors = PRESET_COLORS[color];
           const Icon = isCustom ? Settings2 : preset!.icon;
           const isSelected = selected === presetKey;
           const isBlueprint = ['gaming', 'defi', 'rwa'].includes(presetKey);
@@ -334,42 +297,46 @@ const PresetSelector = ({ selected, onSelect }: { selected: PresetType; onSelect
               type="button"
               onClick={() => !isComingSoon && onSelect(presetKey)}
               disabled={isComingSoon}
-              className={`flex items-start gap-3 p-3 rounded-lg border-2 transition-all text-left ${
+              className={`relative flex items-start gap-3 border p-3 text-left transition-colors before:absolute before:inset-y-0 before:left-0 before:w-0.5 ${
                 isComingSoon
-                  ? 'border-zinc-200 dark:border-zinc-800 opacity-50 cursor-not-allowed'
+                  ? 'cursor-not-allowed border-zinc-200 opacity-50 dark:border-zinc-800'
                   : isSelected
-                    ? `${colors.border} ${colors.bg}`
-                    : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
+                    ? 'border-zinc-900 bg-white before:bg-zinc-900 dark:border-zinc-300 dark:bg-zinc-950 dark:before:bg-zinc-100'
+                    : 'border-zinc-200 bg-white hover:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-zinc-600'
               }`}
             >
               <Icon
-                className={`h-5 w-5 mt-0.5 flex-shrink-0 ${
-                  isComingSoon ? 'text-zinc-300 dark:text-zinc-600' : isSelected ? colors.icon : 'text-zinc-400'
+                className={`mt-0.5 h-4 w-4 flex-shrink-0 ${
+                  isComingSoon
+                    ? 'text-zinc-300 dark:text-zinc-600'
+                    : isSelected
+                      ? 'text-zinc-900 dark:text-zinc-100'
+                      : 'text-zinc-400'
                 }`}
               />
               <div className="min-w-0 flex-1 overflow-hidden">
                 <div
-                  className={`font-medium text-sm flex items-center gap-1.5 overflow-hidden ${
+                  className={`flex items-center gap-1.5 overflow-hidden text-[13px] font-medium ${
                     isComingSoon
                       ? 'text-zinc-400 dark:text-zinc-500'
                       : isSelected
-                        ? colors.text
+                        ? 'text-zinc-900 dark:text-zinc-100'
                         : 'text-zinc-700 dark:text-zinc-300'
                   }`}
                 >
                   <span className="truncate">{isCustom ? 'Custom' : preset!.name}</span>
                   {isComingSoon ? (
-                    <span className="text-[10px] font-normal px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 whitespace-nowrap flex-shrink-0">
+                    <span className="flex-shrink-0 whitespace-nowrap border border-zinc-200 px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.12em] text-zinc-400 dark:border-zinc-800 dark:text-zinc-500">
                       Coming Soon
                     </span>
                   ) : isBlueprint ? (
-                    <span className="text-[10px] font-normal px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 whitespace-nowrap flex-shrink-0">
+                    <span className="flex-shrink-0 whitespace-nowrap border border-zinc-200 px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.12em] text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
                       Blueprint
                     </span>
                   ) : null}
                 </div>
                 <div
-                  className={`text-xs mt-0.5 truncate ${
+                  className={`mt-0.5 truncate text-[12px] ${
                     isComingSoon ? 'text-zinc-400 dark:text-zinc-500' : 'text-zinc-500 dark:text-zinc-400'
                   }`}
                 >
@@ -674,7 +641,7 @@ function FeeConfigBase({
 
   // Common slider class
   const sliderClass =
-    'w-full h-1.5 bg-zinc-200 dark:bg-zinc-700 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-500 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-sm';
+    'h-1 w-full cursor-pointer appearance-none bg-zinc-200 dark:bg-zinc-800 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-zinc-900 [&::-webkit-slider-thumb]:bg-white dark:[&::-webkit-slider-thumb]:border-zinc-100 dark:[&::-webkit-slider-thumb]:bg-zinc-950 [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:rounded-none [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-zinc-900 [&::-moz-range-thumb]:bg-white';
 
   // Format large numbers for display
   const formatNumber = (num: number) => {
@@ -689,17 +656,19 @@ function FeeConfigBase({
       <PresetSelector selected={selectedPreset} onSelect={handlePresetSelect} />
 
       {/* Core Parameters - Enhanced */}
-      <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden">
+      <div className="overflow-hidden border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
         {/* Header with live metrics */}
-        <div className="px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50">
+        <div className="border-b border-zinc-200 bg-zinc-50/60 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/40">
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <h4 className="text-sm font-medium text-zinc-800 dark:text-zinc-200">Core Parameters</h4>
+            <h4 className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+              Core Parameters
+            </h4>
             <div className="flex items-center gap-2">
               <span
-                className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
+                className={`border px-1.5 py-0.5 font-mono text-[9.5px] font-bold uppercase tracking-[0.12em] ${
                   isStaticPricing
-                    ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
-                    : 'bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300'
+                    ? 'border-zinc-200 text-zinc-500 dark:border-zinc-800 dark:text-zinc-400'
+                    : 'border-zinc-900 text-zinc-900 dark:border-zinc-300 dark:text-zinc-100'
                 }`}
               >
                 {isStaticPricing ? 'Static' : 'Dynamic'}
@@ -713,7 +682,10 @@ function FeeConfigBase({
           <div className="space-y-2.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
-                <label className="text-sm font-medium text-zinc-800 dark:text-zinc-200" htmlFor="gasLimit">
+                <label
+                  className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400"
+                  htmlFor="gasLimit"
+                >
                   Gas Limit per Block
                 </label>
                 <FieldTooltip field="gasLimit" />
@@ -760,27 +732,30 @@ function FeeConfigBase({
                   onPointerDownCapture={(e) => e.stopPropagation()}
                   onFocus={() => handleFocus('gasLimit')}
                   onBlur={() => normalizeOnBlur('gasLimit')}
-                  className="py-1.5 text-xs font-mono text-right"
+                  className="text-right font-mono text-[12px]"
                   inputMode="numeric"
                   autoComplete="off"
                 />
               </div>
             </div>
             {validationMessages.errors.gasLimit && (
-              <div className="text-xs text-red-500">{validationMessages.errors.gasLimit}</div>
+              <div className="text-[12px] text-red-700 dark:text-red-400">{validationMessages.errors.gasLimit}</div>
             )}
             {!validationMessages.errors.gasLimit && validationMessages.warnings.gasLimit && (
               <div className="text-xs text-zinc-500 dark:text-zinc-400">{validationMessages.warnings.gasLimit}</div>
             )}
           </div>
 
-          <div className="border-t border-zinc-100 dark:border-zinc-800/50" />
+          <div className="border-t border-zinc-200 dark:border-zinc-800" />
 
           {/* Min Base Fee */}
           <div className="space-y-2.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
-                <label className="text-sm font-medium text-zinc-800 dark:text-zinc-200" htmlFor="minBaseFee">
+                <label
+                  className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400"
+                  htmlFor="minBaseFee"
+                >
                   Minimum Base Fee
                 </label>
                 <FieldTooltip field="minBaseFee" />
@@ -824,7 +799,7 @@ function FeeConfigBase({
                   onPointerDownCapture={(e) => e.stopPropagation()}
                   onFocus={() => handleFocus('minBaseFee')}
                   onBlur={() => normalizeOnBlur('minBaseFee')}
-                  className="py-1.5 text-xs font-mono text-right"
+                  className="text-right font-mono text-[12px]"
                   inputMode="decimal"
                   autoComplete="off"
                 />
@@ -832,29 +807,32 @@ function FeeConfigBase({
               </div>
             </div>
             {validationMessages.errors.minBaseFee && (
-              <div className="text-xs text-red-500">{validationMessages.errors.minBaseFee}</div>
+              <div className="text-[12px] text-red-700 dark:text-red-400">{validationMessages.errors.minBaseFee}</div>
             )}
             {!validationMessages.errors.minBaseFee && validationMessages.warnings.minBaseFee && (
               <div className="text-xs text-zinc-500 dark:text-zinc-400">{validationMessages.warnings.minBaseFee}</div>
             )}
           </div>
 
-          <div className="border-t border-zinc-100 dark:border-zinc-800/50" />
+          <div className="border-t border-zinc-200 dark:border-zinc-800" />
 
           {/* Target Gas */}
           <div className="space-y-2.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
-                <label className="text-sm font-medium text-zinc-800 dark:text-zinc-200" htmlFor="targetGas">
+                <label
+                  className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400"
+                  htmlFor="targetGas"
+                >
                   Target Gas (10s window)
                 </label>
                 <FieldTooltip field="targetGas" />
               </div>
               <span
-                className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
+                className={`border px-1.5 py-0.5 font-mono text-[9.5px] font-bold uppercase tracking-[0.12em] ${
                   isStaticPricing
-                    ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
-                    : 'bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300'
+                    ? 'border-zinc-200 text-zinc-500 dark:border-zinc-800 dark:text-zinc-400'
+                    : 'border-zinc-900 text-zinc-900 dark:border-zinc-300 dark:text-zinc-100'
                 }`}
               >
                 {isStaticPricing ? 'Static' : `Dynamic ${blockUtilizationTarget}%`}
@@ -878,7 +856,7 @@ function FeeConfigBase({
                   {/* Static pricing threshold marker */}
                   {staticGasThreshold > 1000000 && staticGasThreshold < targetGasSliderMax && (
                     <div
-                      className="absolute top-0 h-1.5 w-0 border-r-[2px] border-dashed border-green-500/50 pointer-events-none"
+                      className="pointer-events-none absolute top-0 h-1.5 w-0 border-r-[2px] border-dashed border-emerald-500/50"
                       style={{
                         left: `${((staticGasThreshold - 1000000) / (targetGasSliderMax - 1000000)) * 100}%`,
                       }}
@@ -895,8 +873,10 @@ function FeeConfigBase({
                       className="absolute -translate-x-1/2 flex flex-col items-center"
                       style={{ left: `${((staticGasThreshold - 1000000) / (targetGasSliderMax - 1000000)) * 100}%` }}
                     >
-                      <span className="w-px h-1.5 bg-green-400 dark:bg-green-500" />
-                      <span className="text-[9px] text-green-600 dark:text-green-400 whitespace-nowrap">static</span>
+                      <span className="h-1.5 w-px bg-emerald-500" />
+                      <span className="whitespace-nowrap text-[9px] text-emerald-700 dark:text-emerald-400">
+                        static
+                      </span>
                     </span>
                   )}
                 </div>
@@ -912,7 +892,7 @@ function FeeConfigBase({
                   onPointerDownCapture={(e) => e.stopPropagation()}
                   onFocus={() => handleFocus('targetGas')}
                   onBlur={() => normalizeOnBlur('targetGas')}
-                  className="py-1.5 text-xs font-mono text-right"
+                  className="text-right font-mono text-[12px]"
                   inputMode="numeric"
                   autoComplete="off"
                 />
@@ -925,7 +905,7 @@ function FeeConfigBase({
                 : `Fees adjust when block utilization exceeds ${blockUtilizationTarget}% of capacity. Threshold: ${formatNumber(staticGasThreshold)} gas.`}
             </p>
             {validationMessages.errors.targetGas && (
-              <div className="text-xs text-red-500">{validationMessages.errors.targetGas}</div>
+              <div className="text-[12px] text-red-700 dark:text-red-400">{validationMessages.errors.targetGas}</div>
             )}
             {!validationMessages.errors.targetGas && validationMessages.warnings.targetGas && (
               <div className="text-xs text-zinc-500 dark:text-zinc-400">{validationMessages.warnings.targetGas}</div>
@@ -938,17 +918,21 @@ function FeeConfigBase({
       <button
         type="button"
         onClick={() => setShowAdvanced(!showAdvanced)}
-        className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors"
+        className="group/adv flex items-center gap-2 font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 underline-offset-4 transition-colors hover:text-zinc-900 hover:underline dark:text-zinc-400 dark:hover:text-zinc-100"
       >
         <Settings2 className="h-4 w-4" />
         {showAdvanced ? 'Hide' : 'Show'} Advanced Fee Settings
-        <span className={`transform transition-transform ${showAdvanced ? 'rotate-180' : ''}`}>▼</span>
+        <span
+          className={`transform transition-transform group-hover/adv:text-[#E6212F] ${showAdvanced ? 'rotate-180' : ''}`}
+        >
+          ▼
+        </span>
       </button>
 
       {/* Advanced Settings */}
       {showAdvanced && (
-        <div className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 space-y-4">
-          <div className="flex items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+        <div className="space-y-4 border border-zinc-200 bg-zinc-50/60 p-4 dark:border-zinc-800 dark:bg-zinc-900/40">
+          <div className="flex items-center gap-2 font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
             <Settings2 className="h-4 w-4" />
             Dynamic Fee Adjustment Parameters
           </div>

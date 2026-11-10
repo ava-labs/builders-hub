@@ -30,6 +30,53 @@ const SUBNET_EVM_DEFAULTS = {
   // Default: ["eth", "eth-filter", "net", "web3", "internal-eth", "internal-blockchain", "internal-transaction"]
 };
 
+type NodeType = 'validator' | 'rpc' | 'archival';
+
+/**
+ * Debug trace is an RPC feature. The node pages show its toggle only for RPC and archival nodes, so a validator never
+ * gets the debug APIs, whatever value the hidden toggle keeps (the L1 page turns it on by default on Fuji).
+ */
+export const isDebugTraceOn = (nodeType: NodeType, enableDebugTrace: boolean): boolean =>
+  nodeType !== 'validator' && enableDebugTrace;
+
+/**
+ * Starting storage in GB of each node type's preset on the L1 node page. Each value is the "Initial" figure that
+ * StorageRequirements (variant 'l1') shows for the preset: a validator prunes, uses state sync and skips the tx index;
+ * an RPC node prunes, uses state sync and keeps the tx index; an archival node keeps all state.
+ * tests/unit/console/node-setup.test.tsx checks that the two agree.
+ */
+const L1_PRESET_STORAGE_GB: Record<'mainnet' | 'fuji', Record<NodeType, number>> = {
+  mainnet: { validator: 200, rpc: 240, archival: 800 },
+  fuji: { validator: 40, rpc: 48, archival: 160 },
+};
+
+/** Storage tile of the L1 page's Set up Instance step. It follows the node type and the network. */
+export const l1StorageTileText = (nodeType: NodeType, isTestnet: boolean): string =>
+  `~${L1_PRESET_STORAGE_GB[isTestnet ? 'fuji' : 'mainnet'][nodeType]} GB ${isTestnet ? 'Fuji' : 'Mainnet'}`;
+
+/**
+ * Open ports tile of the L1 page's Set up Instance step. A validator opens only the P2P port: its Docker command binds
+ * the RPC port to localhost. RPC and archival nodes open both ports.
+ */
+export const l1PortsTileText = (nodeType: NodeType): string =>
+  nodeType === 'validator' ? '9651 P2P' : '9651 P2P · 9650 RPC';
+
+/**
+ * Storage of the validator preset on the Primary Network node page: the "Initial" and "/mo" figures that
+ * StorageRequirements (variant 'primary') shows for pruning, state sync and no tx index.
+ * tests/unit/console/node-setup.test.tsx checks that the two agree.
+ */
+const PRIMARY_VALIDATOR_STORAGE_GB: Record<'mainnet' | 'fuji', { initial: number; monthly: number }> = {
+  mainnet: { initial: 300, monthly: 80 },
+  fuji: { initial: 45, monthly: 12 },
+};
+
+/** Storage note for a validator on the Primary Network node page, with the numbers of the page's storage chart. */
+export const primaryValidatorStorageNote = (isTestnet: boolean): string => {
+  const { initial, monthly } = PRIMARY_VALIDATOR_STORAGE_GB[isTestnet ? 'fuji' : 'mainnet'];
+  return `With the validator settings, storage starts at about ${initial} GB and grows about ${monthly} GB a month.`;
+};
+
 /**
  * Generates the Subnet-EVM chain configuration
  * Only includes values that differ from defaults
@@ -158,7 +205,7 @@ export const generateChainConfig = (
   // eth-apis configuration:
   // The node automatically enables default APIs: ["eth", "eth-filter", "net", "web3", "internal-eth", "internal-blockchain", "internal-transaction"]
   // We only need to specify eth-apis when adding debug or admin APIs
-  if (enableDebugTrace) {
+  if (isDebugTraceOn(nodeType, enableDebugTrace)) {
     // Debug trace requires additional debug APIs.
     // Note: internal-personal is intentionally excluded -- it exposes wallet
     // management RPCs (personal_newAccount, personal_unlockAccount, etc.) which

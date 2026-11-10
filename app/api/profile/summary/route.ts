@@ -7,6 +7,7 @@ import { buildReferralUrl } from "@/server/services/referrals";
 import {
   getUserProjects,
   getUserBadgesForProfile,
+  getAcademyProgress,
   getProfileEngagement,
   getUserReferralCount,
   getUserReferralLinks,
@@ -37,6 +38,7 @@ export const GET = withAuth(async (_request, _context: unknown, session: Session
     const [
       projects,
       badges,
+      academy,
       engagement,
       referralCount,
       referralLinks,
@@ -45,6 +47,7 @@ export const GET = withAuth(async (_request, _context: unknown, session: Session
     ] = await Promise.all([
       getUserProjects(userId),
       getUserBadgesForProfile(userId),
+      getAcademyProgress(userId),
       getProfileEngagement(userId),
       getUserReferralCount(userId),
       getUserReferralLinks(userId, origin),
@@ -61,6 +64,7 @@ export const GET = withAuth(async (_request, _context: unknown, session: Session
     return NextResponse.json({
       projects,
       badges,
+      academy,
       engagement,
       referralCount,
       bhSignupCode,

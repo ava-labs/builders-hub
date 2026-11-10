@@ -7,7 +7,12 @@ import {
 import type { AuditEmailDetail } from "@/server/services/audits/emails/template";
 import { PORTAL_URL, portalRequestUrl } from "@/server/services/audits/emails/links";
 import { DEPLOYMENT_TARGET_LABELS, URGENCY_LABELS } from "@/lib/audits/constants";
-import type { DeploymentTarget, UrgencyOption } from "@/lib/audits/status";
+import {
+  decisionDeadline,
+  formatUtcDeadline,
+  type DeploymentTarget,
+  type UrgencyOption,
+} from "@/lib/audits/status";
 
 export type FanoutAuditor = FirmRecipient;
 
@@ -60,7 +65,7 @@ function detailRows(request: FanoutRequest): AuditEmailDetail[] {
   if (request.repo_count && request.repo_count > 0) {
     rows.push({
       label: "Repositories",
-      value: `${request.repo_count} pinned · read access on acceptance`,
+      value: `${request.repo_count} pinned · private ones: the project may add your team by GitHub username`,
       mono: true,
     });
   }
@@ -89,9 +94,12 @@ function detailRows(request: FanoutRequest): AuditEmailDetail[] {
   }
 
   if (request.quote_deadline) {
+    // The pick-by date tells the firm how long its quote is held.
+    const pickBy = isoDate(decisionDeadline(request.quote_deadline));
     rows.push({
       label: "Your window",
-      value: `closes ${isoDate(request.quote_deadline)}`,
+      // Emails cannot know the reader's zone, so the time prints in UTC.
+      value: `closes ${formatUtcDeadline(request.quote_deadline)} · project picks by ${pickBy}`,
       mono: true,
       urgent: true,
     });
@@ -114,7 +122,7 @@ export async function sendFanoutNotification(
   request: FanoutRequest,
 ): Promise<void> {
   const subject = `«${request.project_name}» requested an audit on Avalanche Builder Hub`;
-  const deadline = request.quote_deadline ? isoDate(request.quote_deadline) : null;
+  const deadline = request.quote_deadline ? formatUtcDeadline(request.quote_deadline) : null;
   const requestUrl = portalRequestUrl(request.id);
 
   const category = request.project_types?.[0];

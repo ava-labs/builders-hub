@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { getCumulativeTxs, getDailyTxsByChain } from "@/lib/explorer-clickhouse";
-import { DEDICATED_STATS_BASE_URL, resolveDedicatedMetricsChain } from "@/lib/dedicated-stats";
 import { assertPublicRpcTarget } from "@/lib/rpcUrlValidator";
+import { readNewBlocks } from "./new-blocks";
 
 interface Block {
   number: string;
@@ -400,7 +400,7 @@ async function fetchHistoricalIcmMessages(
   }
 }
 
-async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: string, coingeckoId?: string, tokenSymbol?: string, currentBlockchainId?: string, initialLoad?: boolean, lastFetchedBlock?: number): Promise<ExplorerData> {
+async function fetchExplorerData(evmChainId: string, rpcUrl: string, coingeckoId?: string, tokenSymbol?: string, currentBlockchainId?: string, initialLoad?: boolean, lastFetchedBlock?: number): Promise<ExplorerData> {
   const startTime = Date.now();
   const timing: Record<string, number> = {};
 
@@ -501,7 +501,6 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
     for (let i = 0; i < allTxHashes.length; i++) {
       const { blockIndex, txHash } = allTxHashes[i];
       const receipt = receiptMap.get(txHash);
-      const block = validBlocks[blockIndex];
 
       if (receipt && receipt.gasUsed) {
         const gasUsed = BigInt(receipt.gasUsed);
@@ -785,48 +784,6 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
   };
 }
 
-// Glacier dependency removed: the explorer is now served entirely by the
-// self-hosted ClickHouse-backed APIs (/api/evm for EVM chains, /v1 + /api for
-// P-chain), so an external "is this chain Glacier-indexed?" probe is obsolete.
-// Kept as a no-op returning true so existing call sites (the `isIndexed` gate
-// and ExplorerContext) resolve without any external round-trip. Real coverage
-// is still gated by checkChainIndexed()/hasMetricsActivity.
-async function checkGlacierSupport(_chainId: string): Promise<boolean> {
-  return true;
-}
-
-// Probe metrics API for any non-zero activity over the last ~30 days.
-// Returns false if metrics API is unconfigured, errors out, or every value is zero —
-// which is our signal that the chain is not indexed yet. Chains served by the dedicated
-// metrics source are probed there (with their remapped id) instead of the shared API.
-async function checkChainIndexed(chainId: string): Promise<boolean> {
-  const baseUrl = DEDICATED_STATS_BASE_URL;
-  const resolvedChainId = resolveDedicatedMetricsChain(chainId) ?? chainId;
-  try {
-    const endTimestamp = Math.floor(Date.now() / 1000);
-    const startTimestamp = endTimestamp - 30 * 24 * 60 * 60;
-    const url = new URL(`${baseUrl}/v2/chains/${resolvedChainId}/metrics/cumulativeTxCount`);
-    url.searchParams.set('timeInterval', 'day');
-    url.searchParams.set('startTimestamp', String(startTimestamp));
-    url.searchParams.set('endTimestamp', String(endTimestamp));
-    url.searchParams.set('pageSize', '30');
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-    try {
-      const res = await fetch(url.toString(), { signal: controller.signal });
-      if (!res.ok) return false;
-      const data = await res.json();
-      const results: { value?: number }[] = Array.isArray(data?.results) ? data.results : [];
-      return results.some((r) => Number(r?.value) > 0);
-    } finally {
-      clearTimeout(timeoutId);
-    }
-  } catch {
-    return false;
-  }
-}
-
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ chainId: string }> }
@@ -877,85 +834,37 @@ export async function GET(
       );
     }
 
-    // If priceOnly, just fetch price and glacier support (for ExplorerContext)
+    // priceOnly returns the token price and symbol. The response is the same
+    // for every visitor, so the CDN keeps it for 60 s. No caller reads an
+    // indexed flag here: the explorer layout gets it from fetchIndexedChainIds.
     if (priceOnly) {
       const priceOnlyStart = Date.now();
-      const [price, glacierSupported, hasMetricsActivity] = await Promise.all([
-        coingeckoId ? fetchPrice(coingeckoId) : Promise.resolve(undefined),
-        checkGlacierSupport(chainId),
-        checkChainIndexed(chainId),
-      ]);
+      const price = coingeckoId ? await fetchPrice(coingeckoId) : undefined;
       requestTiming.priceOnly = Date.now() - priceOnlyStart;
       requestTiming.total = Date.now() - requestStart;
 
-      // Chains on the dedicated metrics source aren't in Glacier, so don't gate their
-      // indexed status on Glacier support — their metrics activity alone is authoritative.
-      const isDedicatedChain = resolveDedicatedMetricsChain(chainId) !== undefined;
-      return NextResponse.json({
-        price,
-        tokenSymbol,
-        glacierSupported,
-        isIndexed: hasMetricsActivity && (glacierSupported || isDedicatedChain),
-      });
+      return NextResponse.json(
+        { price, tokenSymbol },
+        { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" } },
+      );
     }
 
     if (!rpcUrl) {
       return NextResponse.json({ error: "RPC URL not configured. Provide rpcUrl query parameter for custom chains." }, { status: 400 });
     }
 
-    // If blocksOnly, return just the newest block headers (tx hashes, no
-    // bodies) — the network tape's polling diet: no receipts, no ICM scan
+    // If blocksOnly, return just the newest block headers: the All Networks
+    // boards' polling diet (see new-blocks.ts)
     if (blocksOnly) {
-      const blocksOnlyStart = Date.now();
-      const latest = hexToNumber(await fetchFromRPC(rpcUrl, "eth_blockNumber"));
-      if (lastFetchedBlock !== undefined && lastFetchedBlock >= latest) {
-        return NextResponse.json({ blocks: [], latestBlock: latest });
-      }
-      const count =
-        lastFetchedBlock !== undefined && lastFetchedBlock > 0
-          ? Math.min(latest - lastFetchedBlock, 10)
-          : 6;
-      const headers = await Promise.all(
-        Array.from({ length: count }, (_, i) => latest - i)
-          .filter((n) => n >= 0)
-          .map(
-            (n) =>
-              fetchFromRPC(rpcUrl, "eth_getBlockByNumber", [`0x${n.toString(16)}`, false]).catch(
-                () => null
-              ) as Promise<RpcBlock | null>
-          )
-      );
-      const blocks = headers
-        .filter((b): b is RpcBlock => b !== null)
-        .map((block) => ({
-          number: hexToNumber(block.number).toString(),
-          hash: block.hash,
-          timestamp: formatTimestamp(block.timestamp),
-          transactionCount: block.transactions?.length || 0,
-          gasUsed: hexToNumber(block.gasUsed).toLocaleString(),
-          gasLimit: hexToNumber(block.gasLimit).toLocaleString(),
-          timestampMilliseconds: block.timestampMilliseconds
-            ? parseInt(block.timestampMilliseconds, 16)
-            : undefined,
-        }));
-      requestTiming.blocksOnly = Date.now() - blocksOnlyStart;
-      requestTiming.total = Date.now() - requestStart;
-      return NextResponse.json({ blocks, latestBlock: latest });
+      return NextResponse.json(await readNewBlocks(rpcUrl, lastFetchedBlock, Number(searchParams.get("txs")) || 0));
     }
 
-    // Fetch fresh data and check Glacier support in parallel
     const dataFetchStart = Date.now();
-    const [data, glacierSupported] = await Promise.all([
-      fetchExplorerData(chainId, chainId, rpcUrl, coingeckoId, tokenSymbol, blockchainId, initialLoad, lastFetchedBlock),
-      checkGlacierSupport(chainId),
-    ]);
+    const data = await fetchExplorerData(chainId, rpcUrl, coingeckoId, tokenSymbol, blockchainId, initialLoad, lastFetchedBlock);
     requestTiming.dataFetch = Date.now() - dataFetchStart;
     requestTiming.total = Date.now() - requestStart;
 
-    // Add glacierSupported to the response
-    const responseData = { ...data, glacierSupported };
-
-    return NextResponse.json(responseData);
+    return NextResponse.json(data);
   } catch (error) {
     requestTiming.total = Date.now() - requestStart;
     requestTiming.error = 1;

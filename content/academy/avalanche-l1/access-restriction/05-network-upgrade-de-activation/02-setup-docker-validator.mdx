@@ -62,13 +62,9 @@ Before starting, ensure you have:
   <Step>
     ### Step 3: Verify Bootstrap Status
 
-    Open a shell inside your container:
+    Run this check in a terminal on the Docker host, not inside the container. The container image does not include `curl`, and the Docker command publishes port 9650 on the host.
 
-    ```bash
-    docker exec -it <YOUR_CONTAINER_NAME_OR_ID> sh
-    ```
-
-    Then check if your chain is bootstrapped:
+    Check if your chain is bootstrapped:
 
     ```bash
     curl -X POST --data '{

@@ -1,6 +1,12 @@
 import { createFlowStore } from './createFlowStore';
 import { STORE_VERSION } from './utils';
 
+/**
+ * A ProxyAdmin that Proxy Setup deployed for a new proxy that it has not
+ * deployed yet. The chain and the L1 keep it out of another L1's setup.
+ */
+export type SavedProxyAdmin = { address: string; evmChainId: number; subnetId: string };
+
 const createChainInitialState = {
   subnetId: '',
   chainID: '',
@@ -14,6 +20,7 @@ const createChainInitialState = {
   validatorWeights: Array(100).fill(100) as number[],
   nodePopJsons: [''] as string[],
   blueprint: null as string | null,
+  proxyAdmin: null as SavedProxyAdmin | null,
 };
 
 type CreateChainState = typeof createChainInitialState & {
@@ -29,6 +36,7 @@ type CreateChainState = typeof createChainInitialState & {
   setValidatorWeights: (validatorWeights: number[]) => void;
   setNodePopJsons: (nodePopJsons: string[]) => void;
   setBlueprint: (blueprint: string | null) => void;
+  setProxyAdmin: (proxyAdmin: SavedProxyAdmin | null) => void;
   reset: () => void;
 };
 
@@ -48,6 +56,7 @@ const { getStore: getCreateChainStore, useStoreApi: useCreateChainStore } = crea
     setValidatorWeights: (validatorWeights: number[]) => set({ validatorWeights }),
     setNodePopJsons: (nodePopJsons: string[]) => set({ nodePopJsons }),
     setBlueprint: (blueprint: string | null) => set({ blueprint }),
+    setProxyAdmin: (proxyAdmin: SavedProxyAdmin | null) => set({ proxyAdmin }),
 
     reset: () => {
       set({

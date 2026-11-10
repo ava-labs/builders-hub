@@ -1,13 +1,12 @@
 import { prisma } from "@/prisma/prisma";
 import { Prisma } from "@prisma/client";
 import { Badge, BadgeAwardStatus, Requirement } from "@/types/badge";
-import { parseBadgeMetadata } from "./rewardBoard";
+import { NOT_CONSOLE_BADGE, parseBadgeMetadata } from "./rewardBoard";
 
 export enum BadgeCategory {
   academy,
   project,
   requirement,
-  console,
 }
 
 export interface AssignBadgeBody {
@@ -18,7 +17,6 @@ export interface AssignBadgeBody {
   projectId?: string;
   requirementId?: string; // For social badges - specific requirement to fulfill
   badgesId?: string[];
-  consoleTrigger?: 'console_log' | 'faucet_claim' | 'node_registration';
 }
 
 export interface AssignBadgeResult {
@@ -36,7 +34,7 @@ export interface BadgeData {
 }
 
 export async function getAllBadges(): Promise<Badge[]> {
-  const badges = await prisma.badge.findMany({});
+  const badges = await prisma.badge.findMany({ where: NOT_CONSOLE_BADGE });
 
   return badges.map((badge) => ({
     ...badge,
@@ -250,6 +248,7 @@ export async function getBadgesByIds(
       id: {
         in: badgesIds,
       },
+      ...NOT_CONSOLE_BADGE,
     },
   });
 

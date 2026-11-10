@@ -7,12 +7,19 @@ import StateGrowthChart from "@/components/content-design/state-growth-chart";
 import { BackToTop } from "@/components/ui/back-to-top";
 import { Feedback } from "@/components/ui/feedback";
 import { SidebarActions } from "@/components/ui/sidebar-actions";
+import { ApiDeprecationNotice } from "@/components/api/api-deprecation-notice";
 import { CChainAPIPage, DataAPIPage, MetricsAPIPage, PChainAPIPage, VerificationAPIPage, XChainAPIPage } from "@/components/api/api-pages";
 import AddNetworkButtonInline from "@/components/client/AddNetworkButtonInline";
+import { getApiDeprecation } from "@/lib/api-deprecations";
 import { documentation } from "@/lib/source";
 import { createMetadata } from "@/utils/metadata";
 import { sharedMDXComponents } from "@/components/mdx/shared-components";
-import { Callout } from "fumadocs-ui/components/callout";
+import { DocsCallout } from "@/components/docs-book/callout";
+import { ColorKeyToggle } from "@/components/docs-book/color-key-toggle";
+import { Figure } from "@/components/docs-book/figure";
+import { RewardRoutesFigure } from "@/components/docs-book/reward-routes-figure";
+import { docsFigures } from "@/components/docs-book/figures";
+import { Term } from "@/components/docs-book/term";
 import { File, Files, Folder } from "fumadocs-ui/components/files";
 import { Tabs } from "fumadocs-ui/components/tabs";
 import defaultComponents from "fumadocs-ui/mdx";
@@ -40,6 +47,7 @@ export default async function Page(props: {
   if (!page) notFound();
 
   const { body: MDX, toc } = await page.data.load();
+  const apiDeprecation = getApiDeprecation(page.slugs);
   // Use page.path which contains the actual file path relative to collection root
   // (e.g., "tooling/avalanche-sdk/index.mdx" for an index file)
   // This correctly handles both regular .mdx files and index.mdx files
@@ -65,16 +73,21 @@ export default async function Page(props: {
           pagePath={`/${params.slug.join("/")}`}
           pageType="docs"
         />
+            <ColorKeyToggle />
             <BackToTop />
           </>
         ),
       }}
+      // Below 1280px the TOC rail is hidden, so the popover carries the color key too. Only with headings:
+      // a footer alone makes fumadocs show the popover bar on a page with no headings.
+      tableOfContentPopover={toc.length > 0 ? { footer: <ColorKeyToggle /> } : undefined}
     >
       <DocsTitle>{page.data.title || "Untitled"}</DocsTitle>
       {page.data.description && (
         <DocsDescription>{page.data.description}</DocsDescription>
       )}
       <DocsBody className="text-fd-foreground/80">
+        {apiDeprecation && <ApiDeprecationNotice deprecation={apiDeprecation} />}
         <MDX
           components={{
             ...(() => {
@@ -83,6 +96,11 @@ export default async function Page(props: {
             })(),
             ...((await import("lucide-react")) as unknown as MDXComponents),
             ...sharedMDXComponents,
+            Callout: DocsCallout,
+            Figure,
+            Term,
+            RewardRoutesFigure,
+            ...docsFigures,
             // Fix srcset -> srcSet for React 19 compatibility
             img: (props: any) => {
               const { srcset, ...imgProps } = props;
@@ -134,7 +152,7 @@ export default async function Page(props: {
               }
             },
             blockquote: (props: ComponentProps<"blockquote">) => (
-              <Callout>{props.children}</Callout>
+              <DocsCallout art={false}>{props.children}</DocsCallout>
             ),
           }}
         />

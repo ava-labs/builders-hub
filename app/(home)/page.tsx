@@ -1,5 +1,9 @@
 import type { Metadata } from 'next';
 import StoryHome from '@/components/landing-v2/StoryHome';
+import { ACADEMY_COURSES } from '@/components/academy/learning-path-configs/academy.config';
+import { getCourseDurations } from '@/content/courses';
+import { groupFacts, programmeLine } from '@/lib/academy/academy-programme';
+import { COURSE_STATS } from '@/lib/academy/course-stats.generated';
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://build.avax.network';
 
@@ -53,8 +57,8 @@ async function getGlobeData() {
 
 const PRIMARY_NETWORK_ID = '11111111111111111111111111111111LpoYY';
 
-// P-Chain-derived figures: L1 count (subnets flagged isL1 in the registry —
-// the Glacier activity aggregate undercounts at ~27) and the AVAX staked on
+// P-Chain-derived figures: L1 count (subnets flagged isL1 in the registry.
+// The Glacier activity aggregate undercounts at ~27) and the AVAX staked on
 // the primary network (economic security, the number institutions evaluate).
 async function getPChainStats(): Promise<{
   l1Count: number | null;
@@ -78,7 +82,7 @@ async function getPChainStats(): Promise<{
   }
 }
 
-// Live AVAX/USD for the stake figure — short revalidate keeps it honest,
+// Live AVAX/USD for the stake figure. A short revalidate keeps it honest,
 // and a failed fetch degrades to showing AVAX only (never a stale price).
 async function getAvaxUsdPrice(): Promise<number | null> {
   try {
@@ -110,31 +114,7 @@ async function getCirculatingSupply(): Promise<number | null> {
   }
 }
 
-// Kite AI's mainnet L1 is not indexed by the shared Metrics API; the
-// chain-stats route proxies its dedicated metrics source. We sum the daily
-// series so the showcase row matches the table's 30-day window.
-const KITEAI_CHAIN_ID = '3USaEfTcoUhHxpKXvpAG916UKCUEyjrtkg2hBArBG3JyDP7my';
-
-async function getKiteTxCount(): Promise<number | null> {
-  try {
-    const res = await fetch(`${BASE_URL}/api/chain-stats/${KITEAI_CHAIN_ID}?timeRange=30d`, {
-      next: { revalidate: 3600 },
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    const points: { value?: unknown }[] = data?.txCount?.data ?? [];
-    const total = points.reduce(
-      (sum, p) => sum + (typeof p.value === 'number' && Number.isFinite(p.value) ? p.value : 0),
-      0,
-    );
-    return total > 0 ? total : null;
-  } catch (error) {
-    console.error('Failed to fetch Kite AI stats:', error);
-    return null;
-  }
-}
-
-// DeFiLlama: capital metrics institutions screen for — TVL (committed
+// DeFiLlama: capital metrics institutions screen for: TVL (committed
 // capital), stablecoin float (settlement liquidity), DEX volume (depth).
 async function getDefiStats(): Promise<{
   tvlUsd: number | null;
@@ -150,7 +130,7 @@ async function getDefiStats(): Promise<{
     fetch('https://stablecoins.llama.fi/stablecoinchains', opts)
       .then((r) => (r.ok ? r.json() : null))
       .then((rows) => {
-        // sum every peg (USD, EUR, JPY, SGD, ...) — values are USD-denominated
+        // sum every peg (USD, EUR, JPY, SGD, ...): values are USD-denominated
         const pegs = rows?.find((c: any) => c.name === 'Avalanche')?.totalCirculatingUSD;
         if (!pegs) return null;
         return Object.values(pegs).reduce(
@@ -167,24 +147,34 @@ async function getDefiStats(): Promise<{
       .then((d) => d?.total30d ?? null)
       .catch(() => null),
   ]);
-  // full float precision — the ledger displays money to the cent
+  // full float precision: the figures' hover titles and screen-reader text give the exact amount
   const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : null);
   return { tvlUsd: num(tvl), stablesUsd: num(stables), dexVolume30dUsd: num(dex) };
 }
 
+// The Academy's own line ("13 courses · 377 lessons · 26 hours"), built the
+// way the Academy landing builds it, so the two pages never disagree.
+function academyLine(): string | null {
+  try {
+    const stats = { ...COURSE_STATS['avalanche-l1'], ...COURSE_STATS['blockchain'] };
+    return programmeLine(groupFacts(ACADEMY_COURSES, stats, getCourseDurations()));
+  } catch {
+    return null;
+  }
+}
+
 export default async function HomePage(): Promise<React.ReactElement> {
-  const [globeData, pchain, avaxUsd, circulatingSupply, defi, kiteTxCount] = await Promise.all([
+  const [globeData, pchain, avaxUsd, circulatingSupply, defi] = await Promise.all([
     getGlobeData(),
     getPChainStats(),
     getAvaxUsdPrice(),
     getCirculatingSupply(),
     getDefiStats(),
-    getKiteTxCount(),
   ]);
   return (
     <StoryHome
       globeData={globeData}
-      kiteTxCount={kiteTxCount}
+      academyLine={academyLine()}
       l1Count={pchain.l1Count}
       primaryStakeAvax={pchain.primaryStakeAvax}
       primaryStakeUsd={

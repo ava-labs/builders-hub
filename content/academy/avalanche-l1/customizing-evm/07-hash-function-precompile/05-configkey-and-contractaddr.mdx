@@ -31,7 +31,7 @@ Each precompile has a unique contract address we can use to call it. This is the
 var ContractAddress = common.HexToAddress("{ASUITABLEHEXADDRESS}") // SET A SUITABLE HEX ADDRESS HERE
 ```
 
-The `0x01` range is reserved for precompiles added by Ethereum.
+The `0x01` range is reserved for stateful precompiles that come from the C-Chain (Coreth), for example `nativeAssetBalance` at `0x0100000000000000000000000000000000000001`. The Ethereum precompiles use low addresses such as `0x0000000000000000000000000000000000000001`.
 
 The `0x02` range is reserved for precompiles provided by Avalanche.
 

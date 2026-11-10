@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useId, useMemo, useState } from 'react';
 import type { AbiEvent, Address, Log } from 'viem';
 import { bytesToHex, hexToBytes, encodeFunctionData, type Abi } from 'viem';
 import { Alert } from '@/components/toolbox/components/Alert';
@@ -15,11 +15,11 @@ import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorMan
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 import { CB58ToHex } from '@avalanche-sdk/client/utils';
 import {
-  getRegistrationJustification,
   newL1ValidatorRegistrationMessage,
   newWarpMessage,
   packWarpIntoAccessList,
 } from '@avalanche-sdk/interchain/warp';
+import { findRegistrationJustification } from '@/components/toolbox/utils/registrationJustification';
 import { hexToCB58 } from '@avalanche-sdk/client/utils';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
@@ -31,6 +31,7 @@ import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicC
 import { useValidatorManager, usePoAManager } from '@/components/toolbox/hooks/contracts';
 import versions from '@/scripts/versions.json';
 import { generateCastSendCommand } from '@/components/toolbox/utils/castCommand';
+import { INVALID_L1_SELECTED } from '@/components/toolbox/utils/vmcLookupText';
 import { CliAlternative } from '@/components/console/cli-alternative';
 import {
   Search,
@@ -46,6 +47,20 @@ import {
 } from 'lucide-react';
 
 const ICM_COMMIT = versions['ava-labs/icm-services'];
+
+/** How far back a blank 'From Block' searches. */
+export const DEFAULT_LOOKBACK_BLOCKS = 100_000n;
+
+/**
+ * The first block of the event search. A blank field starts DEFAULT_LOOKBACK_BLOCKS before the latest block, or at
+ * block 0 on a shorter chain. 'Search All' fills in 0, which searches from genesis. Other input goes to BigInt, which
+ * throws on text that is not an integer.
+ */
+export function resolveSearchStartBlock(fromBlock: string, latest: bigint): bigint {
+  const trimmed = fromBlock.trim();
+  if (trimmed.length === 0) return latest > DEFAULT_LOOKBACK_BLOCKS ? latest - DEFAULT_LOOKBACK_BLOCKS : 0n;
+  return BigInt(trimmed);
+}
 
 type ParsedInitiatedRegistration = {
   validationId: string;
@@ -72,6 +87,7 @@ function RemoveExpiredValidatorRegistration() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fromBlock, setFromBlock] = useState<string>('');
+  const fromBlockId = useId();
   const [events, setEvents] = useState<ParsedInitiatedRegistration[]>([]);
   const [isDetailsExpanded, setIsDetailsExpanded] = useState<boolean>(false);
   const [_isLoadingValidators, setIsLoadingValidators] = useState<boolean>(false);
@@ -179,7 +195,7 @@ function RemoveExpiredValidatorRegistration() {
 
   const fetchEvents = async () => {
     if (!validatorManagerAddress) {
-      setError('Validator Manager address not found for selected subnet');
+      setError(INVALID_L1_SELECTED);
       return;
     }
     if (!initiatedEventAbi) {
@@ -191,21 +207,22 @@ function RemoveExpiredValidatorRegistration() {
     setEvents([]);
     setFetchProgress(null);
     try {
-      const startBlock = fromBlock && fromBlock.trim().length > 0 ? BigInt(fromBlock) : 0n;
       const latest = await chainPublicClient!.getBlockNumber();
+      const startBlock = resolveSearchStartBlock(fromBlock, latest);
       if (startBlock > latest) {
         setEvents([]);
         return;
       }
-      const CHUNK_SIZE = 2000n;
-      const totalBlocks = latest - startBlock;
+      // The public C-Chain RPC answers eth_getLogs for at most 100 blocks, both ends counted, and rejects a wider range
+      const CHUNK_SIZE = 100n;
+      const totalBlocks = latest - startBlock + 1n;
       const totalChunks = Math.ceil(Number(totalBlocks) / Number(CHUNK_SIZE));
       let currentChunk = 0;
       let cursor = startBlock;
       const allLogs: any[] = [];
 
       while (cursor <= latest) {
-        const to = cursor + CHUNK_SIZE > latest ? latest : cursor + CHUNK_SIZE;
+        const to = cursor + CHUNK_SIZE - 1n > latest ? latest : cursor + CHUNK_SIZE - 1n;
         currentChunk++;
         setFetchProgress({ current: currentChunk, total: totalChunks });
 
@@ -354,7 +371,7 @@ function RemoveExpiredValidatorRegistration() {
     });
   }, [events, validatorIdHexSet, nowSeconds, validatorStatusById]);
 
-  const handleForceRemove = async (validationId: string) => {
+  const handleForceRemove = async (validationId: string, initiateTxHash: string) => {
     setActionState((s) => ({
       ...s,
       [validationId]: {
@@ -368,8 +385,14 @@ function RemoveExpiredValidatorRegistration() {
       if (!walletClient || !viemChain || !walletClient.account) throw new Error('Wallet/chain not initialized');
       if (!subnetId) throw new Error('Subnet ID required');
 
-      const justification = await getRegistrationJustification(validationId, subnetId, chainPublicClient!);
-      if (!justification) throw new Error('Could not build justification for this validation ID');
+      // The event's tx is the initiate tx, so the justification needs no log search
+      const justification = await findRegistrationJustification({
+        validationId: validationId as `0x${string}`,
+        subnetId,
+        publicClient: chainPublicClient!,
+        validatorManager: validatorManagerAddress as `0x${string}`,
+        initiateTxHash: initiateTxHash as `0x${string}`,
+      });
 
       const innerRemovalMsg = newL1ValidatorRegistrationMessage(hexToCB58(validationId as `0x${string}`), false);
       const unsignedRemovalMsg = newWarpMessage(
@@ -463,9 +486,9 @@ function RemoveExpiredValidatorRegistration() {
 
         {error && <Alert variant="error">Error: {error}</Alert>}
 
-        {/* Subnet Selection */}
+        {/* L1 Selection */}
         <div className="p-4 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-          <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-3">1. Select Subnet</h3>
+          <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-3">1. Select L1</h3>
           <SelectSubnetId
             value={subnetId}
             onChange={setSubnetId}
@@ -511,11 +534,15 @@ function RemoveExpiredValidatorRegistration() {
 
           <div className="space-y-3">
             <div>
-              <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
+              <label
+                htmlFor={fromBlockId}
+                className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5"
+              >
                 From Block <span className="text-zinc-400">(defaults to last 100k blocks)</span>
               </label>
               <div className="flex gap-2">
                 <input
+                  id={fromBlockId}
                   type="text"
                   value={fromBlock}
                   onChange={(e) => setFromBlock(e.target.value)}
@@ -608,7 +635,7 @@ function RemoveExpiredValidatorRegistration() {
                         </div>
                         <Button
                           variant="primary"
-                          onClick={() => handleForceRemove(ev.validationId)}
+                          onClick={() => handleForceRemove(ev.validationId, ev.txHash)}
                           disabled={!!state?.isProcessing || !subnetId}
                           className="shrink-0"
                         >

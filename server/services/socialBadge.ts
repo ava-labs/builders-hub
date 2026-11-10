@@ -1,6 +1,6 @@
 import { prisma } from "@/prisma/prisma";
 import { Badge, BadgeAwardStatus, Requirement } from "@/types/badge";
-import { parseBadgeMetadata } from "./rewardBoard";
+import { NOT_CONSOLE_BADGE, parseBadgeMetadata } from "./rewardBoard";
 
 /**
  * Assigns social badges based on a specific requirement
@@ -159,7 +159,7 @@ export async function getBadgesByRequirementId(
   requirementId: string
 ): Promise<Badge[]> {
   // Get all badges and filter those that contain the requirementId
-  const allBadges = await prisma.badge.findMany();
+  const allBadges = await prisma.badge.findMany({ where: NOT_CONSOLE_BADGE });
   
   const badges = allBadges.filter((badge) =>
     badge.requirements?.some((req: any) => req.id === requirementId)

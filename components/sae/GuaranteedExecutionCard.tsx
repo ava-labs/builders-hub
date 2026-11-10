@@ -42,10 +42,10 @@ export function GuaranteedExecutionCard({ colors }: { colors: Colors }) {
     >
       <div className="mb-4">
         <h3 className={`text-lg font-bold ${colors.text} mb-2`}>
-          Budget for worst case, pay for what you use.
+          Budget for worst case, pay at least half the gas limit.
         </h3>
         <p className={`text-base sm:text-sm ${colors.textMuted} leading-relaxed`}>
-          If you can cover the maximum possible cost, your transaction is guaranteed to execute. You only pay for actual gas used.
+          If you can cover the maximum possible cost, your transaction is guaranteed to execute. You pay for the gas used, but at least half of the gas limit.
         </p>
       </div>
       

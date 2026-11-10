@@ -2,9 +2,36 @@ import { createMDX } from 'fumadocs-mdx/next';
 
 const withMDX = createMDX();
 
+// The Vercel toolbar runs on preview deployments only, so the report-only CSP
+// adds the sources its docs list there and nowhere else
+// (vercel.com/docs/vercel-toolbar/managing-toolbar).
+const vercelToolbarSources =
+  process.env.VERCEL_ENV === 'preview'
+    ? {
+        'script-src': 'https://vercel.live',
+        'style-src': 'https://vercel.live',
+        'img-src': 'https://vercel.live https://vercel.com',
+        'font-src': 'https://vercel.live https://assets.vercel.com',
+        'connect-src': 'https://vercel.live wss://ws-us3.pusher.com',
+        'frame-src': 'https://vercel.live',
+      }
+    : {};
+
 /** @type {import('next').NextConfig} */
 const config = {
   reactStrictMode: true,
+  // AGENTS.md holds the agent instructions, so next dev must not write its own AGENTS.md or CLAUDE.md.
+  agentRules: false,
+  experimental: {
+    // The fumadocs-mdx loader names only source.config.ts as a dependency, so a restored
+    // Turbopack build cache can keep old MDX output after a remark plugin or package change.
+    // The Vercel build cache still restores node_modules and the incremental type check.
+    turbopackFileSystemCacheForBuild: false,
+  },
+  // scripts/build-with-typecheck.mjs runs tsc beside next build and sets this flag.
+  typescript: {
+    ignoreBuildErrors: process.env.SKIP_NEXT_TYPECHECK === '1',
+  },
   serverExternalPackages: [
     'ts-morph',
     'typescript',
@@ -21,6 +48,33 @@ const config = {
   // Include tsconfig.json in serverless function bundles for twoslash
   outputFileTracingIncludes: {
     '/*': ['./tsconfig.json'],
+    // Studio reads blueprints, compiled ICM/eERC artifacts and the deps script from disk at run time.
+    '/api/studio/**': [
+      './blueprints/**/*',
+      './contracts/icm-contracts/compiled/*.json',
+      './contracts/encrypted-erc/compiled/*.json',
+      './scripts/blueprints/setup-test-deps.sh',
+      // The exported Next.js app and the @studio/react hooks the preview compiles.
+      './templates/studio-web/**/*',
+      // The eERC client an export copies when its app uses useEERC.
+      './lib/eerc/**/*.ts',
+      './types/eerc-modules.d.ts',
+      // An export pins its dependencies to the versions in the repo's package.json.
+      './package.json',
+    ],
+    // Published sites and their API read the blueprint registry, the studio-react source and contract artifacts.
+    '/builder/**': [
+      './blueprints/**/*',
+      './templates/studio-web/lib/studio-react.ts',
+      './contracts/icm-contracts/compiled/*.json',
+      './contracts/encrypted-erc/compiled/*.json',
+    ],
+    '/api/builder/**': [
+      './blueprints/**/*',
+      './templates/studio-web/lib/studio-react.ts',
+      './contracts/icm-contracts/compiled/*.json',
+      './contracts/encrypted-erc/compiled/*.json',
+    ],
   },
   transpilePackages: ["next-mdx-remote"],
   images: {
@@ -65,10 +119,6 @@ const config = {
       {
         protocol: 'https',
         hostname: 'developers.avacloud.io',
-      },
-      {
-        protocol: 'https',
-        hostname: 'dashboard-assets.dappradar.com',
       },
       {
         protocol: 'https',
@@ -150,6 +200,108 @@ const config = {
         destination: '/explorer/:network/:chain#chain',
         permanent: true,
       },
+      // ── Docs pages no sidebar listed: duplicates and stale copies ──
+      // Each goes to the listed page on the same topic.
+      {
+        source: '/docs/rpcs/subnet-evm/config',
+        destination: '/docs/nodes/chain-configs/avalanche-l1s/subnet-evm',
+        permanent: true,
+      },
+      {
+        source: '/docs/nodes/chain-configs/subnet-evm',
+        destination: '/docs/nodes/chain-configs/avalanche-l1s/subnet-evm',
+        permanent: true,
+      },
+      {
+        source: '/docs/nodes/configure/avalanche-l1-configs',
+        destination: '/docs/nodes/chain-configs/avalanche-l1s/avalanche-l1-configs',
+        permanent: true,
+      },
+      {
+        source: '/docs/tooling/cli-commands',
+        destination: '/docs/tooling/platform-cli',
+        permanent: true,
+      },
+      {
+        source: '/docs/avalanche-l1s/deploy-a-avalanche-l1/cli_structure',
+        destination: '/docs/tooling/platform-cli',
+        permanent: true,
+      },
+      {
+        source: '/docs/avalanche-l1s/evm-configuration/warpmessenger',
+        destination: '/docs/avalanche-l1s/precompiles/warp-messenger',
+        permanent: true,
+      },
+      {
+        source: '/docs/rpcs/c-chain/api',
+        destination: '/docs/rpcs/c-chain',
+        permanent: true,
+      },
+      {
+        source: '/docs/rpcs/x-chain/api',
+        destination: '/docs/rpcs/x-chain',
+        permanent: true,
+      },
+      {
+        source: '/docs/rpcs/x-chain/rpc',
+        destination: '/docs/rpcs/x-chain',
+        permanent: true,
+      },
+      {
+        source: '/docs/avalanche-l1s/add-utility/testnet-faucet',
+        destination: '/docs/tooling/avalanche-deploy/add-ons#faucet',
+        permanent: true,
+      },
+      {
+        source: '/docs/avalanche-l1s/wagmi-avalanche-l1',
+        destination: '/docs/avalanche-l1s/upgrade/precompile-upgrades',
+        permanent: true,
+      },
+      {
+        source: '/docs/primary-network/validate/what-is-staking',
+        destination: '/docs/primary-network/validate/how-to-stake',
+        permanent: true,
+      },
+      // ── Unused or deprecated tools removed from the docs ──
+      // Avalanche-CLI is deprecated and Platform CLI replaces it; its cross-chain
+      // tutorials go to the ICM and ICTT docs (the two ICM ones have near-copies
+      // there). The Postman collection issued node API calls. Interchain Kit was
+      // a local ICM/ICTT toolkit.
+      {
+        source: '/docs/tooling/avalanche-cli/cross-chain/teleporter-local-network',
+        destination: '/docs/cross-chain/icm-contracts/icm-contracts-on-local-network',
+        permanent: true,
+      },
+      {
+        source: '/docs/tooling/avalanche-cli/cross-chain/teleporter-devnet',
+        destination: '/docs/cross-chain/icm-contracts/icm-contracts-on-devnet',
+        permanent: true,
+      },
+      {
+        source: '/docs/tooling/avalanche-cli/cross-chain/teleporter-token-bridge',
+        destination: '/docs/cross-chain/interchain-token-transfer/overview',
+        permanent: true,
+      },
+      {
+        source: '/docs/tooling/avalanche-cli/cross-chain/:path*',
+        destination: '/docs/cross-chain',
+        permanent: true,
+      },
+      {
+        source: '/docs/tooling/avalanche-cli/:path*',
+        destination: '/docs/tooling/platform-cli',
+        permanent: true,
+      },
+      {
+        source: '/docs/tooling/avalanche-postman/:path*',
+        destination: '/docs/rpcs/other/guides/issuing-api-calls',
+        permanent: true,
+      },
+      {
+        source: '/docs/tooling/interchain-kit/:path*',
+        destination: '/docs/cross-chain',
+        permanent: true,
+      },
       // ── Renamed/moved pages ──
       {
         // ACP-236 was renamed upstream (avalanche-foundation/ACPs):
@@ -196,7 +348,7 @@ const config = {
       },
       {
         source: '/docs/avalanche-l1s/deploy-a-avalanche-l1',
-        destination: '/docs/avalanche-l1s/deploy-a-avalanche-l1/cli_structure',
+        destination: '/docs/tooling/platform-cli',
         permanent: false,
       },
       {
@@ -261,7 +413,7 @@ const config = {
       },
       {
         source: '/docs/primary-network/validate',
-        destination: '/docs/primary-network/validate/what-is-staking',
+        destination: '/docs/primary-network/validate/how-to-stake',
         permanent: false,
       },
       {
@@ -277,41 +429,6 @@ const config = {
       {
         source: '/docs/rpcs/other/standards',
         destination: '/docs/rpcs/other/standards/avalanche-network-protocol',
-        permanent: false,
-      },
-      {
-        source: '/docs/tooling/avalanche-cli/create-avalanche-nodes',
-        destination: '/docs/tooling/avalanche-cli/create-avalanche-nodes/deploy-custom-vm',
-        permanent: false,
-      },
-      {
-        source: '/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s',
-        destination: '/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s/deploy-locally',
-        permanent: false,
-      },
-      {
-        source: '/docs/tooling/avalanche-cli/cross-chain',
-        destination: '/docs/tooling/avalanche-cli/cross-chain/teleporter-devnet',
-        permanent: false,
-      },
-      {
-        source: '/docs/tooling/avalanche-cli/guides',
-        destination: '/docs/tooling/avalanche-cli/guides/import-avalanche-l1',
-        permanent: false,
-      },
-      {
-        source: '/docs/tooling/avalanche-cli/maintain',
-        destination: '/docs/tooling/avalanche-cli/maintain/add-validator-l1',
-        permanent: false,
-      },
-      {
-        source: '/docs/tooling/avalanche-cli/transactions',
-        destination: '/docs/tooling/avalanche-cli/transactions/native-send',
-        permanent: false,
-      },
-      {
-        source: '/docs/tooling/avalanche-cli/upgrade',
-        destination: '/docs/tooling/avalanche-cli/upgrade/avalanche-l1-precompile-config',
         permanent: false,
       },
       {
@@ -358,6 +475,11 @@ const config = {
       {
         source: '/integrations/trader-joe',
         destination: '/integrations/lfj',
+        permanent: true,
+      },
+      {
+        source: '/integrations/areta',
+        destination: '/audits',
         permanent: true,
       },
       {
@@ -422,7 +544,7 @@ const config = {
       },
       {
         source: '/docs/subnets/create-a-subnet',
-        destination: '/docs/tooling/avalanche-cli/create-avalanche-l1',
+        destination: '/docs/tooling/platform-cli',
         permanent: true,
       },
       {
@@ -442,7 +564,7 @@ const config = {
       },
       {
         source: '/docs/avalanchego/tools/cli',
-        destination: '/docs/tooling/avalanche-cli',
+        destination: '/docs/tooling/platform-cli',
         permanent: true,
       },
       {
@@ -457,32 +579,32 @@ const config = {
       },
       {
         source: '/docs/tooling/cross-chain/teleporter-local-network',
-        destination: '/docs/tooling/avalanche-cli/cross-chain/teleporter-local-network',
+        destination: '/docs/cross-chain/icm-contracts/icm-contracts-on-local-network',
         permanent: true,
       },
       {
         source: '/docs/tooling/cross-chain',
-        destination: '/docs/tooling/avalanche-cli/cross-chain/teleporter-local-network',
+        destination: '/docs/cross-chain/icm-contracts/icm-contracts-on-local-network',
         permanent: true,
       },
       {
         source: '/docs/tooling/create-avalanche-l1',
-        destination: '/docs/tooling/avalanche-cli/create-avalanche-l1',
+        destination: '/docs/tooling/platform-cli',
         permanent: true,
       },
       {
         source: '/docs/tooling/create-deploy-avalanche-l1s/deploy-with-custom-vm',
-        destination: '/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s/deploy-with-custom-vm',
+        destination: '/docs/tooling/platform-cli',
         permanent: true,
       },
       {
         source: '/docs/tooling/create-deploy-avalanche-l1s/deploy-locally',
-        destination: '/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s/deploy-locally',
+        destination: '/docs/tooling/platform-cli',
         permanent: true,
       },
       {
         source: '/docs/tooling/get-avalanche-cli',
-        destination: '/docs/tooling/avalanche-cli/get-avalanche-cli',
+        destination: '/docs/tooling/platform-cli',
         permanent: true,
       },
       {
@@ -607,7 +729,7 @@ const config = {
       },
       {
         source: '/docs/tooling/maintain/troubleshooting',
-        destination: '/docs/tooling/avalanche-cli/maintain/troubleshooting',
+        destination: '/docs/tooling/platform-cli',
         permanent: true,
       },
       {
@@ -616,18 +738,13 @@ const config = {
         permanent: true,
       },
       {
-        source: '/docs/tooling/avalanche-postman/add-postman-collection',
-        destination: '/docs/tooling/avalanche-postman',
-        permanent: true,
-      },
-      {
         source: '/docs/avalanche-l1s/validator-manager/add-validator',
-        destination: '/docs/tooling/avalanche-cli/maintain/add-validator-l1',
+        destination: '/docs/tooling/platform-cli',
         permanent: true,
       },
       {
         source: '/docs/dapps/deploy-nft-collection/prep-nft-files',
-        destination: '/academy/blockchain/nft-deployment/02-prepare-nft-files',
+        destination: '/academy',
         permanent: true,
       },
       {
@@ -638,6 +755,17 @@ const config = {
       {
         source: '/docs/api-reference/c-chain/txn-format',
         destination: '/docs/rpcs/c-chain/txn-format',
+        permanent: true,
+      },
+      // AvalancheGo v1.15.4 removes platform.getBalance and platform.getStake.
+      {
+        source: '/docs/rpcs/p-chain/balances-utxos/platform_getBalance',
+        destination: '/docs/rpcs/p-chain/balances-utxos/platform_getUTXOs',
+        permanent: true,
+      },
+      {
+        source: '/docs/rpcs/p-chain/staking/platform_getStake',
+        destination: '/docs/rpcs/p-chain/validators/platform_getCurrentValidators',
         permanent: true,
       },
       {
@@ -707,12 +835,12 @@ const config = {
       },
       {
         source: '/introduction',
-        destination: '/docs/api-reference/introduction',
+        destination: '/docs/api-reference/data-api',
         permanent: false,
       },
       {
         source: '/docs/tooling/rpc-providers',
-        destination: '/integrations#rpc-providers',
+        destination: '/integrations#RPC%20Endpoints',
         permanent: true,
       },
       {
@@ -767,12 +895,12 @@ const config = {
       },
       {
         source: '/codebase-entrepreneur',
-        destination: '/academy/entrepreneur',
+        destination: '/academy',
         permanent: true,
       },
       {
         source: '/codebase-entrepreneur/:path*',
-        destination: '/academy/entrepreneur/:path*',
+        destination: '/academy',
         permanent: true,
       },
       {
@@ -782,7 +910,7 @@ const config = {
       },
       {
         source: '/codebase-entrepreneur-academy/:path*',
-        destination: '/academy/entrepreneur/:path*',
+        destination: '/academy',
         permanent: true,
       },
       {
@@ -853,7 +981,7 @@ const config = {
       },
       {
         source: '/docs/virtual-machines/default-precompiles/warpmessenger',
-        destination: '/docs/avalanche-l1s/evm-configuration/warpmessenger',
+        destination: '/docs/avalanche-l1s/precompiles/warp-messenger',
         permanent: true,
       },
       {
@@ -900,7 +1028,7 @@ const config = {
         permanent: true,
       }, {
         source: '/docs/tooling/guides/get-avalanche-cli',
-        destination: '/docs/tooling/avalanche-cli/get-avalanche-cli',
+        destination: '/docs/tooling/platform-cli',
         permanent: true,
       }, {
         source: '/evm-l1s/validator-manager/poa-vs-pos',
@@ -948,11 +1076,11 @@ const config = {
         permanent: true,
       }, {
         source: "/docs/tooling/avalanchego-postman-collection/setup",
-        destination: "/docs/tooling/avalanche-postman",
+        destination: "/docs/rpcs/other/guides/issuing-api-calls",
         permanent: true,
       }, {
         source: "/docs/avalanche-l1s/deploy-a-avalanche-l1/fuji-testnet",
-        destination: "/docs/tooling/create-deploy-avalanche-l1s/deploy-on-fuji-testnet",
+        destination: "/docs/tooling/platform-cli",
         permanent: true,
       }, {
         source: "/academy/l1-validator-management",
@@ -986,7 +1114,7 @@ const config = {
       },
       {
         source: "/docs/nodes/configure/chain-configs/p-chain",
-        destination: "/docs/nodes/chain-configs/p-chain",
+        destination: "/docs/nodes/chain-configs/primary-network/p-chain",
         permanent: true,
       },
       {
@@ -1001,7 +1129,7 @@ const config = {
       },
       {
         source: "/docs/nodes/configure/chain-configs/subnet-evm",
-        destination: "/docs/nodes/chain-configs/subnet-evm",
+        destination: "/docs/nodes/chain-configs/avalanche-l1s/subnet-evm",
         permanent: true,
       },
       {
@@ -1375,7 +1503,7 @@ const config = {
       },
       {
         source: "/docs/subnets/create-a-local-subnet",
-        destination: "/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s/deploy-locally",
+        destination: "/docs/tooling/platform-cli",
         permanent: true,
       },
       {
@@ -1390,12 +1518,7 @@ const config = {
       },
       {
         source: "/docs/subnets/upgrade/subnet-precompile-config",
-        destination: "/docs/tooling/avalanche-cli/upgrade/avalanche-l1-precompile-config",
-        permanent: true,
-      },
-      {
-        source: "/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s/deploy-public-network",
-        destination: "/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s/deploy-on-fuji-testnet",
+        destination: "/docs/tooling/platform-cli",
         permanent: true,
       },
       {
@@ -1405,12 +1528,12 @@ const config = {
       },
       {
         source: "/docs/tooling/cross-chain/teleporter-token-bridge",
-        destination: "/docs/tooling/avalanche-cli/cross-chain/teleporter-token-bridge",
+        destination: "/docs/cross-chain/interchain-token-transfer/overview",
         permanent: true,
       },
       {
         source: "/docs/tooling/maintain/delete-avalanche-l1",
-        destination: "/docs/tooling/avalanche-cli/maintain/delete-avalanche-l1",
+        destination: "/docs/tooling/platform-cli",
         permanent: true,
       },
       {
@@ -1503,7 +1626,7 @@ const config = {
       // Additional broken link redirects - round 2
       {
         source: "/docs/build/avalanche-cli/install",
-        destination: "/docs/tooling/avalanche-cli/get-avalanche-cli",
+        destination: "/docs/tooling/platform-cli",
         permanent: true,
       },
       {
@@ -1568,7 +1691,7 @@ const config = {
       },
       {
         source: "/docs/avalanche-l1s/troubleshooting",
-        destination: "/docs/tooling/avalanche-cli/maintain/troubleshooting",
+        destination: "/docs/tooling/platform-cli",
         permanent: true,
       },
       {
@@ -1618,12 +1741,12 @@ const config = {
       },
       {
         source: "/docs/tooling/create-avalanche-nodes/:path*",
-        destination: "/docs/tooling/avalanche-cli/create-avalanche-nodes/:path*",
+        destination: "/docs/tooling/platform-cli",
         permanent: true,
       },
       {
         source: "/docs/tooling/create-deploy-avalanche-l1s/:path*",
-        destination: "/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s/:path*",
+        destination: "/docs/tooling/platform-cli",
         permanent: true,
       },
       {
@@ -1639,7 +1762,7 @@ const config = {
       },
       {
         source: "/docs/tooling/avalanche-network-runner/:path*",
-        destination: "/docs/tooling/avalanche-cli",
+        destination: "/docs/tooling/platform-cli",
         permanent: true,
       },
       {
@@ -1649,12 +1772,12 @@ const config = {
       },
       {
         source: "/docs/build/dapp/smart-contracts/nfts/deploy-collection",
-        destination: "/academy/blockchain/nft-deployment",
+        destination: "/academy",
         permanent: true,
       },
       {
         source: "/docs/build/tutorials/smart-digital-assets/wallet-nft-studio",
-        destination: "/academy/blockchain/nft-deployment",
+        destination: "/academy",
         permanent: true,
       },
       {
@@ -1675,11 +1798,6 @@ const config = {
       {
         source: "/docs/virtual-machines/rust-vms/:path*",
         destination: "/docs/avalanche-l1s/rust-vms/:path*",
-        permanent: true,
-      },
-      {
-        source: "/docs/tooling/avalanche-cli/create-wallet",
-        destination: "/docs/tooling/avalanche-cli",
         permanent: true,
       },
       {
@@ -1740,12 +1858,12 @@ const config = {
       },
       {
         source: "/docs/tooling/guides/import-avalanche-l1",
-        destination: "/docs/tooling/avalanche-cli/guides/import-avalanche-l1",
+        destination: "/docs/tooling/platform-cli",
         permanent: true,
       },
       {
         source: "/docs/tooling/maintain/view-avalanche-l1s",
-        destination: "/docs/tooling/avalanche-cli/maintain/view-avalanche-l1s",
+        destination: "/docs/tooling/platform-cli",
         permanent: true,
       },
       {
@@ -1867,8 +1985,9 @@ const config = {
       },
       // Legacy docs.avax.network IA. That domain is an alias for this app rather
       // than a forward, so pre-migration paths 404 instead of redirecting. These
-      // three are linked from the upstream avalanche-foundation/ACPs READMEs,
-      // which are fetched into /docs/acps at build time.
+      // are linked from upstream READMEs that are fetched into /docs at build
+      // time: the first three from avalanche-foundation/ACPs, rpc-providers
+      // from ava-labs/icm-services.
       {
         source: "/nodes/configure/avalanchego-config-flags",
         destination: "/docs/nodes/configure/configs-flags",
@@ -1882,6 +2001,11 @@ const config = {
       {
         source: "/build/cross-chain/awm/overview",
         destination: "/docs/cross-chain/avalanche-warp-messaging/overview",
+        permanent: true,
+      },
+      {
+        source: "/tooling/rpc-providers",
+        destination: "/integrations#RPC%20Endpoints",
         permanent: true,
       },
       // Docker node setup redirect
@@ -1921,7 +2045,7 @@ const config = {
       },
       {
         source: "/academy/codebase-entrepreneur-academy/09-fundraising/:path*",
-        destination: "/academy/entrepreneur/fundraising-finance/09-fundraising/:path*",
+        destination: "/academy",
         permanent: true,
       },
       {
@@ -2039,7 +2163,7 @@ const config = {
       },
       {
         source: "/docs/tooling/transactions/:path*",
-        destination: "/docs/tooling/avalanche-cli/transactions/:path*",
+        destination: "/docs/tooling/platform-cli",
         permanent: true,
       },
       {
@@ -2242,46 +2366,54 @@ const config = {
           {
             type: 'query',
             key: 'path',
-            value: 'avalanche-l1',
-          },
-        ],
-        destination: "/academy/avalanche-l1",
-        permanent: true,
-      },
-      {
-        source: "/academy",
-        has: [
-          {
-            type: 'query',
-            key: 'path',
-            value: 'blockchain',
-          },
-        ],
-        destination: "/academy/blockchain",
-        permanent: true,
-      },
-      {
-        source: "/academy",
-        has: [
-          {
-            type: 'query',
-            key: 'path',
-            value: 'entrepreneur',
-          },
-        ],
-        destination: "/academy/entrepreneur",
-        permanent: true,
-      },
-      {
-        source: "/academy",
-        has: [
-          {
-            type: 'query',
-            key: 'path',
             value: 'team1',
           },
         ],
         destination: "/academy/team1",
+        permanent: true,
+      },
+      // Academy consolidation (FDE-154): the NFT Deployment course was removed; `:path*` also
+      // matches the bare course url.
+      {
+        source: "/academy/blockchain/nft-deployment/:path*",
+        destination: "/academy",
+        permanent: true,
+      },
+      // Academy consolidation (FDE-153): the Entrepreneur Academy was removed; `:path*` also
+      // matches the bare track url.
+      {
+        source: "/academy/entrepreneur/:path*",
+        destination: "/academy",
+        permanent: true,
+      },
+      // Campus Connect was removed: its pages for students and educators send visitors to the
+      // Academy, the nearest student content. `:path*` also matches the bare url.
+      {
+        source: "/university/:path*",
+        destination: "/academy",
+        permanent: true,
+      },
+      {
+        source: "/students/:path*",
+        destination: "/academy",
+        permanent: true,
+      },
+      {
+        source: "/student-launchpad/:path*",
+        destination: "/academy",
+        permanent: true,
+      },
+      // Academy consolidation (FDE-155): the Avalanche L1 and Blockchain landings merged into /academy. Exact
+      // paths only, so the course urls below them stay. No ?path rule may point here: Next passes the query on,
+      // so /academy would loop.
+      {
+        source: "/academy/avalanche-l1",
+        destination: "/academy",
+        permanent: true,
+      },
+      {
+        source: "/academy/blockchain",
+        destination: "/academy",
         permanent: true,
       },
       // Hackathons → Events migration
@@ -2377,12 +2509,12 @@ const config = {
       },
       {
         source: '/docs/primary-network/validators',
-        destination: '/docs/primary-network/validate/what-is-staking',
+        destination: '/docs/primary-network/validate/how-to-stake',
         permanent: true,
       },
       {
         source: '/docs/rpcs/other/admin-rpc',
-        destination: '/docs/rpcs/other/admin-api',
+        destination: '/docs/rpcs/other',
         permanent: true,
       },
       {
@@ -2463,6 +2595,8 @@ const config = {
             key: 'Cache-Control',
             value: 'public, max-age=31536000, immutable',
           },
+          // Apps exported from Studio prove with these from their own origin.
+          { key: 'Access-Control-Allow-Origin', value: '*' },
         ],
       },
       {
@@ -2492,16 +2626,23 @@ const config = {
             key: 'Content-Security-Policy-Report-Only',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://us.i.posthog.com https://app.posthog.com https://mcp.figma.com",
+              // PostHog loads its config and extensions from us-assets; Cloudflare
+              // injects its analytics beacon on build.avax.network
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://us.i.posthog.com https://us-assets.i.posthog.com https://app.posthog.com https://mcp.figma.com https://static.cloudflareinsights.com",
               "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: blob: https://avatars.githubusercontent.com https://lh3.googleusercontent.com https://abs.twimg.com https://*.public.blob.vercel-storage.com https://images.ctfassets.net https://f005.backblazeb2.com https://explorer-binaryholdings.cogitus.io https://cdn.prod.website-files.com https://developers.avacloud.io https://dashboard-assets.dappradar.com",
+              "img-src 'self' data: blob: https://avatars.githubusercontent.com https://lh3.googleusercontent.com https://abs.twimg.com https://*.public.blob.vercel-storage.com https://images.ctfassets.net https://f005.backblazeb2.com https://explorer-binaryholdings.cogitus.io https://cdn.prod.website-files.com https://developers.avacloud.io https://www.avalanche.com",
               "font-src 'self'",
               "connect-src 'self' https://us.i.posthog.com https://app.posthog.com https://api.openai.com https://api.github.com https://www.googleapis.com https://api.hubapi.com https://api.dune.com https://glacier-api.avax.network https://data-api.avax.network https://accounts.google.com https://api.avax.network https://api.avax-test.network",
               "frame-src 'self' https://calendar.google.com https://www.google.com https://chromewebstore.google.com",
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",
-            ].join('; '),
+            ]
+              .map((directive) => {
+                const extra = vercelToolbarSources[directive.split(' ')[0]];
+                return extra ? `${directive} ${extra}` : directive;
+              })
+              .join('; '),
           },
         ],
       },

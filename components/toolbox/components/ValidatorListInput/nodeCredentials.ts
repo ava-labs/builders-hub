@@ -1,4 +1,4 @@
-import { utils } from '@avalabs/avalanchejs';
+import { utils } from '@avalanche-sdk/client/utils';
 
 // Pasted node credentials routinely arrive wrapped in JSON punctuation (a terminal
 // drag-copy of info.getNodeID output grabs the closing quote). A stray trailing quote

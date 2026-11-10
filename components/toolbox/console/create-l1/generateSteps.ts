@@ -1,6 +1,15 @@
 import React from 'react';
 import { type StepDefinition } from '@/components/console/step-flow';
 import { type QuestionnaireAnswers } from '@/components/toolbox/stores/createL1FlowStore';
+import { getCreateChainStore } from '@/components/toolbox/stores/createChainStore';
+import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+
+/* What each P-Chain step leaves in the Create L1 store once its transaction has landed; the step bar reads these so a
+   step done by any route (an ID pasted in, a CLI run, a reload) shows as complete. */
+const chainState = () => getCreateChainStore(Boolean(useWalletStore.getState().isTestnet)).getState();
+const subnetCreated = () => !!chainState().subnetId;
+const chainCreated = () => !!chainState().chainID;
+const convertedToL1 = () => !!chainState().convertToL1TxId;
 
 // ── Layer-1 creation (P-Chain) ───────────────────────────────
 import CreateSubnet from '@/components/toolbox/console/layer-1/create/CreateSubnet';
@@ -45,7 +54,7 @@ import ManagedTestnetRelayers from '@/components/toolbox/console/testnet-infra/m
  * Produces a prop-less component for step-flow that mounts CreateChain with
  * the questionnaire-driven defaults. The step runner can't pass props, so we
  * close over `answers` here. The user can still toggle any genesis option
- * from the GenesisBuilder UI — these are only *defaults*.
+ * from the GenesisBuilder UI. These are only *defaults*.
  */
 function createChainWithAnswers(answers: QuestionnaireAnswers): React.ComponentType {
   const preinstallDefaults = {
@@ -85,7 +94,7 @@ function dockerForL1Flow(): React.ComponentType {
  *   Q1: Starting point (new / convert existing)
  *   Q2: Validator management (PoA / PoS Native / PoS ERC20)
  *   Q3: VM location (L1 / C-Chain)
- *   Q4: Ownership (multisig — PoA + C-Chain only)
+ *   Q4: Ownership (multisig, PoA + C-Chain only)
  *   Q5: Hosting (managed / docker)
  */
 export function generateCreateL1Steps(answers: QuestionnaireAnswers): StepDefinition[] {
@@ -104,6 +113,7 @@ export function generateCreateL1Steps(answers: QuestionnaireAnswers): StepDefini
       title: 'Create Subnet',
       component: CreateSubnet,
       requiredChain: 'p-chain',
+      isComplete: subnetCreated,
     });
 
     if (answers.vmLocation === 'l1') {
@@ -114,9 +124,10 @@ export function generateCreateL1Steps(answers: QuestionnaireAnswers): StepDefini
         title: 'Create Chain',
         component: createChainWithAnswers(answers),
         requiredChain: 'p-chain',
+        isComplete: chainCreated,
       });
 
-      // Node hosting — after Create Chain (need chain ID), before Convert to L1
+      // Node hosting: after Create Chain (need chain ID), before Convert to L1
       if (answers.hosting === 'managed') {
         steps.push({
           type: 'single',
@@ -141,6 +152,7 @@ export function generateCreateL1Steps(answers: QuestionnaireAnswers): StepDefini
         title: 'Convert to L1',
         component: ConvertSubnetToL1,
         requiredChain: 'p-chain',
+        isComplete: convertedToL1,
       });
       steps.push({
         type: 'single',
@@ -199,9 +211,10 @@ export function generateCreateL1Steps(answers: QuestionnaireAnswers): StepDefini
         title: 'Create Chain',
         component: createChainWithAnswers(answers),
         requiredChain: 'p-chain',
+        isComplete: chainCreated,
       });
 
-      // Node hosting — after Create Chain, before Convert to L1
+      // Node hosting: after Create Chain, before Convert to L1
       if (answers.hosting === 'managed') {
         steps.push({
           type: 'single',
@@ -226,6 +239,7 @@ export function generateCreateL1Steps(answers: QuestionnaireAnswers): StepDefini
         title: 'Convert to L1',
         component: ConvertSubnetToL1,
         requiredChain: 'p-chain',
+        isComplete: convertedToL1,
       });
       steps.push({
         type: 'single',
@@ -375,7 +389,7 @@ export function getStepLabel(key: string): string {
   const labels: Record<string, string> = {
     // Chain creation
     'create-subnet': 'Create Subnet',
-    'create-chain': 'Create Chain + Genesis',
+    'create-chain': 'Create Chain',
     'convert-to-l1': 'Convert to L1',
     // Node hosting
     'managed-nodes': 'Setup Managed Nodes',
@@ -384,7 +398,7 @@ export function getStepLabel(key: string): string {
     'deploy-validator-manager': 'Deploy Validator Manager',
     'proxy-setup': 'Proxy Setup',
     'initialize-manager': 'Initialize Validator Manager',
-    'init-validator-set': 'Init Validator Set',
+    'init-validator-set': 'Initialize Validator Set',
     // PoS Native
     'deploy-native-staking': 'Deploy Native Staking Manager',
     'deploy-reward-calculator': 'Deploy Reward Calculator',

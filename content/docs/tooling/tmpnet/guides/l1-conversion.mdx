@@ -3,7 +3,7 @@ title: Testing L1 Conversion
 description: Learn how to convert subnets to L1s with validator managers in your tests
 ---
 
-This guide shows how to test converting a subnet to an L1 (Layer 1) blockchain with a validator manager. L1 conversion is the process of upgrading a subnet to use Proof of Stake consensus with custom validator management.
+This guide shows how to test the conversion of a permissioned chain to an L1 with a validator manager. A `ConvertSubnetToL1Tx` moves validator management from the owner key to a validator manager contract, and registers the initial L1 validators on the P-Chain. The validator manager can use Proof of Authority or Proof of Stake. Consensus does not change.
 
 > Pattern guide only. These snippets mirror helpers in `icm-services` (for example `icm-contracts/tests/network`) and rely on shared utilities for genesis creation, contract bindings, and Warp signing. Copy from those source files for runnable code.
 
@@ -20,7 +20,7 @@ Converting a subnet to an L1 involves:
 
 - Complete the [Getting Started](/docs/tooling/tmpnet/guides/getting-started) guide
 - Understand basic Ginkgo test setup
-- Have a network with at least one L1 created
+- Have a network with at least one chain created by `tmpnet.Subnet` and not yet converted to an L1
 
 ## Validator Manager Types
 
@@ -50,7 +50,7 @@ import (
     "github.com/ava-labs/avalanchego/ids"
     "github.com/ava-labs/avalanchego/tests/fixture/e2e"
     "github.com/ava-labs/avalanchego/tests/fixture/tmpnet"
-    "github.com/ava-labs/avalanchego/units"
+    "github.com/ava-labs/avalanchego/utils/units"
     "github.com/ava-labs/avalanchego/utils/crypto/secp256k1"
     "github.com/ethereum/go-ethereum/common"
     "github.com/ethereum/go-ethereum/crypto"
@@ -218,7 +218,9 @@ func ConvertSubnet(
         fundedKey,
     )
 
-    // Step 6: Add new nodes as L1 validators
+    // Step 6: Set --track-subnets on the new nodes and restart them, so that they sync and
+    // validate the L1. The ConvertSubnetToL1Tx already registered them as L1 validators.
+    // icm-services does this right after the conversion, before it initializes the validator set.
     for i, node := range newNodes {
         addNodeToL1(ctx, network, l1, node)
     }
@@ -300,8 +302,11 @@ func issueConvertSubnetToL1Tx(
     fundedKey *ecdsa.PrivateKey,
 ) ids.ID {
 
-    // Get P-Chain wallet
-    pChainWallet := network.GetPChainWallet(fundedKey)
+    // subnet is the *tmpnet.Subnet to convert. The conversion must be signed with
+    // subnet.OwningKey. tmpnet takes that key out of network.PreFundedKeys.
+    wallet, err := subnet.GetWallet(ctx, network.Nodes[0].GetAccessibleURI())
+    Expect(err).NotTo(HaveOccurred())
+    pChainWallet := wallet.P()
 
     // Convert address to proper format
     managerAddressBytes := validatorManagerAddress.Bytes()
@@ -309,14 +314,17 @@ func issueConvertSubnetToL1Tx(
     copy(chainAddress[:], managerAddressBytes)
 
     // Issue ConvertSubnetToL1Tx
-    txID, err := pChainWallet.IssueConvertSubnetToL1Tx(
+    // The tx lists the initial L1 validators: node ID, weight, balance, BLS proof of
+    // possession, remaining balance owner and deactivation owner (sorted by node ID).
+    tx, err := pChainWallet.IssueConvertSubnetToL1Tx(
         subnetID,
-        chainAddress,
-        fundedKey,
+        managerChainID,             // blockchain ID of the chain that hosts the validator manager
+        validatorManagerAddress[:], // validator manager address
+        initialValidators,          // []*platform.ConvertSubnetToL1Validator
     )
     Expect(err).NotTo(HaveOccurred())
 
-    return txID
+    return tx.ID()
 }
 
 // initializeValidatorSet creates initial validators with Warp message
@@ -334,12 +342,12 @@ func initializeValidatorSet(
     // Build initial validator set
     validatorSet := make([]InitialValidator, len(nodes))
     for i, node := range nodes {
-        validationID := createValidationID(node.NodeID, l1.SubnetID)
+        validationID := l1.SubnetID.Append(uint32(i)) // initial validator i: subnet ID + index in the ConvertSubnetToL1Tx
 
         validatorSet[i] = InitialValidator{
             NodeID:       node.NodeID.Bytes(),
             Weight:       weights[i],
-            BlsPublicKey: node.BlsPublicKey,
+            BlsPublicKey: blsPublicKey(node), // from node.GetProofOfPossession(); tmpnet.Node has no BLS key field
         }
     }
 
@@ -351,12 +359,20 @@ func initializeValidatorSet(
         Validators:                validatorSet,
     }
 
-    // Sign with P-Chain validators
-    unsignedMessage := warp.NewUnsignedMessage(
-        network.NetworkID,
-        l1.BlockchainID,
-        encodeConversionData(conversionData),
+    // The P-Chain signs this message, so the source chain is the P-Chain. The payload is
+    // an AddressedCall with an empty source address that carries the conversion ID.
+    conversionID, err := message.SubnetToL1ConversionID(conversionData) // a message.SubnetToL1ConversionData
+    Expect(err).NotTo(HaveOccurred())
+    conversionPayload, err := message.NewSubnetToL1Conversion(conversionID)
+    Expect(err).NotTo(HaveOccurred())
+    addressedCall, err := payload.NewAddressedCall(nil, conversionPayload.Bytes())
+    Expect(err).NotTo(HaveOccurred())
+    unsignedMessage, err := warp.NewUnsignedMessage(
+        network.GetNetworkID(),
+        constants.PlatformChainID,
+        addressedCall.Bytes(),
     )
+    Expect(err).NotTo(HaveOccurred())
 
     signedMessage := signWarpMessage(
         ctx,
@@ -415,8 +431,8 @@ ginkgo.It("should convert to native staking",
     func() {
         // Use different weights for validators
         weights := []uint64{
-            1 * units.Schmeckle,      // Validator 1: 1 AVAX
-            1000 * units.Schmeckle,   // Validator 2: 1000 AVAX
+            1 * units.Schmeckle,      // Validator 1: weight 49,463 (units.Schmeckle is 49,463 nAVAX)
+            1000 * units.Schmeckle,   // Validator 2: weight 49,463,000
         }
 
         nodes, validationIDs := convertSubnetToL1WithWeights(
@@ -502,7 +518,7 @@ func verifyPChainValidators(
     subnetID ids.ID,
     expectedCount int,
 ) {
-    pClient := network.GetPChainClient()
+    pClient := platformvm.NewClient(network.Nodes[0].GetAccessibleURI())
 
     validators, err := pClient.GetCurrentValidators(ctx, subnetID, nil)
     Expect(err).NotTo(HaveOccurred())

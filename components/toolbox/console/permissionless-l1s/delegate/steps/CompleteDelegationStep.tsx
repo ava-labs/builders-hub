@@ -28,7 +28,9 @@ export default function CompleteDelegationStep() {
             <CompletePChainWeightUpdate
               subnetIdL1={store.subnetIdL1}
               pChainTxId={store.pChainTxId}
-              signingSubnetId={vmcCtx.signingSubnetId || store.subnetIdL1}
+              signingSubnetId={vmcCtx.signingSubnetId}
+              signingSubnetLoading={vmcCtx.isLoading}
+              signingSubnetError={vmcCtx.error}
               updateType="Delegation"
               managerAddress={vmcCtx.staking?.stakingManagerAddress || vmcCtx.validatorManagerAddress || ''}
               delegationID={store.delegationID}

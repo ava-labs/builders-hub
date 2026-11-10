@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { prisma } from "@/prisma/prisma";
 import { TOMBSTONE_MS, scopeSchema, type WireBoard } from "@/lib/explorer-query/board-wire";
+import { PLAYGROUND_PREFIX } from "@/lib/explorer-query/board-links";
 
 /* GET /api/explorer/boards?scope=mainnet:c-chain
    The signed-in reader's boards for one chain, deleted ones included (as
@@ -14,8 +15,11 @@ export async function GET(req: NextRequest) {
   const scope = scopeSchema.safeParse(req.nextUrl.searchParams.get("scope"));
   if (!scope.success) return NextResponse.json({ error: "scope must look like mainnet:c-chain" }, { status: 400 });
   try {
-    // deletes older than every device's last sync are dropped for good
-    await prisma.queryBoard.deleteMany({ where: { user_id: session.user.id, deleted_at: { lt: new Date(Date.now() - TOMBSTONE_MS) } } });
+    // deletes older than every device's last sync are dropped for good; a board that came over from a
+    // Playground dashboard keeps its delete, so no device brings the dashboard back (playground.ts)
+    await prisma.queryBoard.deleteMany({
+      where: { user_id: session.user.id, deleted_at: { lt: new Date(Date.now() - TOMBSTONE_MS) }, NOT: { id: { startsWith: PLAYGROUND_PREFIX } } },
+    });
     const rows = await prisma.queryBoard.findMany({
       where: { user_id: session.user.id, scope: scope.data },
       orderBy: { updated_at: "desc" },

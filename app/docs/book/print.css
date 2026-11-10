@@ -1,0 +1,137 @@
+/*
+ * Docs book skin: print. A printed docs page is the article only: black text on white paper, at the
+ * full width of the page, with every code line visible. Every selector starts with
+ * [data-route-layout="docs"], except the first block: the site header, the chat button and the
+ * privacy banner are outside the docs root, so those selectors start with
+ * :root:has([data-route-layout="docs"]). That is the same scope: it matches only while the docs
+ * root is on the page.
+ *
+ * Many docs rules in app/docs/styles.css use !important and choose their padding by viewport width
+ * (a printed page is about 740px wide, so the phone rules apply). The overrides below need
+ * !important and an id in the selector to win.
+ */
+
+@media print {
+  /* ---------- Outside the docs root ---------- */
+
+  :root:has([data-route-layout="docs"]) :is(#nd-nav, #privacy-banner-root, body > [data-chatbot]) {
+    display: none !important;
+  }
+
+  :root:has([data-route-layout="docs"]),
+  :root:has([data-route-layout="docs"]) body {
+    background: #fff !important;
+  }
+
+  /* The home layout keeps 56px of space for the fixed site header. */
+  :root:has([data-route-layout="docs"]) #nd-home-layout {
+    padding-top: 0 !important;
+  }
+
+  /* ---------- Colors: the light palette in both themes ---------- */
+
+  /* A reader in dark mode prints on white paper too, so the dark tokens go back to their light values
+     (tokens.css). The fumadocs colors follow: text and borders read as ink and rules on paper. */
+  [data-route-layout="docs"],
+  html.dark [data-route-layout="docs"] {
+    --bk-red-rule: #e6212f;
+    --bk-red-text: #b20f2a;
+    --bk-blue: #0061e2;
+    --bk-steel: #5f6b7a;
+    --bk-ink: #000;
+    --bk-ink-2: #000;
+    --bk-rule: #d4d4d8;
+    --bk-rule-2: #d4d4d8;
+    --bk-panel: #fff;
+    --color-fd-background: #fff;
+    --color-fd-card: #fff;
+    --color-fd-foreground: #000;
+    --color-fd-card-foreground: #000;
+    --color-fd-muted-foreground: var(--bk-steel);
+    --color-fd-border: var(--bk-rule);
+    background: #fff !important;
+    color: #000;
+  }
+
+  /* ---------- Chrome: hide everything around the article ---------- */
+
+  [data-route-layout="docs"] :is(#docs-subnav, #nd-sidebar, #nd-subnav, #nd-tocnav, #nd-toc) {
+    display: none !important;
+  }
+
+  /* After the page body come the feedback block, the edit row and the previous and next cards. */
+  [data-route-layout="docs"] #nd-page article > .prose ~ * {
+    display: none !important;
+  }
+
+  /* ---------- Layout: the article at full width ---------- */
+
+  [data-route-layout="docs"] #nd-docs-layout {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  [data-route-layout="docs"] #nd-page,
+  [data-route-layout="docs"] #nd-page article {
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  [data-route-layout="docs"] #nd-page article,
+  [data-route-layout="docs"] #nd-page article > .prose {
+    color: #000 !important;
+  }
+
+  [data-route-layout="docs"] #nd-page article > .prose > :is(h2, h3, h4) {
+    break-after: avoid;
+  }
+
+  /* A link keeps its text, without its address. The underline marks it on black and white paper. A
+     heading's own anchor link is not a reference, so it gets no underline. */
+  [data-route-layout="docs"] #nd-page article a {
+    color: inherit;
+    text-decoration: underline;
+  }
+
+  [data-route-layout="docs"] #nd-page article :is(h1, h2, h3, h4, h5, h6) a {
+    text-decoration: none;
+  }
+
+  /* ---------- Code blocks: every line on paper ---------- */
+
+  /* No scroll box: the block grows to its full height and a long line wraps at the frame. */
+  [data-route-layout="docs"] #nd-page figure.shiki,
+  [data-route-layout="docs"] #nd-page figure.shiki > div[role="region"],
+  [data-route-layout="docs"] #nd-page figure.shiki pre {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  [data-route-layout="docs"] #nd-page figure.shiki > div[role="region"] {
+    --padding-right: calc(var(--spacing) * 4);
+  }
+
+  [data-route-layout="docs"] #nd-page figure.shiki pre {
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    white-space: pre-wrap !important;
+    overflow-wrap: anywhere;
+  }
+
+  [data-route-layout="docs"] #nd-page figure.shiki .line {
+    break-inside: avoid;
+  }
+
+  /* The light theme's token colors, also for a reader in dark mode. */
+  [data-route-layout="docs"] #nd-page figure.shiki code span {
+    color: var(--shiki-light) !important;
+  }
+
+  [data-route-layout="docs"] #nd-page figure.shiki > div:has(> button),
+  [data-route-layout="docs"] #nd-page figure.shiki > div:has(> figcaption) > div:has(> button) {
+    display: none !important;
+  }
+}

@@ -1,0 +1,72 @@
+/*
+ * Docs book skin: tokens and reading type. Every selector starts with [data-route-layout="docs"],
+ * the root of the docs layout (app/docs/docs-layout-wrapper.tsx), so Academy and Blog keep their
+ * own look even after a client navigation leaves this CSS loaded.
+ *
+ * Colors come from the brand palette. Each text token passes WCAG AA (4.5:1) and each rule token
+ * passes 3:1 on the docs page (#f5f5f5 light, #0a0a0a dark) and on the card (#f1f1f1, #191919).
+ */
+
+[data-route-layout="docs"] {
+  /* Brand red: the active path in the sidebar, Warning callouts, the EVM side of the color key. */
+  --bk-red-rule: #e6212f; /* 4.17:1 */
+  --bk-red-text: #b20f2a; /* 6.43:1 */
+  /* Brand blue: Note callouts, the P-Chain side of the color key. */
+  --bk-blue: #0061e2; /* 5.06:1 */
+  /* Steel: numbers, captions, cross-chain terms. */
+  --bk-steel: #5f6b7a; /* 4.98:1 */
+  --bk-ink: #1f1f1f;
+  --bk-ink-2: #3f3f46;
+  --bk-rule: #e4e4e7;
+  --bk-rule-2: #d4d4d8;
+  --bk-panel: #fafafa;
+  --bk-danger-band: #b20f2a; /* white text on it: 7.01:1 */
+
+  /* The color key. The toggle sets html[data-colorkey="off"] and every role falls back to ink. */
+  --bk-role-pchain: var(--bk-blue);
+  --bk-role-evm: var(--bk-red-text);
+  --bk-role-icm: var(--bk-steel);
+
+  --bk-display: 'Aeonik', var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --bk-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --bk-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.dark [data-route-layout="docs"] {
+  --bk-red-rule: #ff394a; /* 5.60:1 */
+  --bk-red-text: #ff394a; /* 5.60:1, 4.97:1 on the card */
+  --bk-blue: #5f9dff; /* 7.31:1, the Explorer's dark link blue */
+  --bk-steel: #a2afb2; /* 8.78:1 */
+  --bk-ink: #ededed;
+  --bk-ink-2: #d4d4d8;
+  --bk-rule: #262626;
+  --bk-rule-2: #3f3f46;
+  --bk-panel: #121212;
+}
+
+html[data-colorkey="off"] [data-route-layout="docs"] {
+  --bk-role-pchain: currentColor;
+  --bk-role-evm: currentColor;
+  --bk-role-icm: currentColor;
+}
+
+/* ---------- Reading type ---------- */
+
+/* The page title in Aeonik Medium, as on the Academy lesson pages. */
+[data-route-layout="docs"] #nd-page article > h1 {
+  font-family: var(--bk-display);
+  font-size: 40px;
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.022em;
+}
+
+@media (max-width: 639px) {
+  [data-route-layout="docs"] #nd-page article > h1 { font-size: 32px; }
+}
+
+[data-route-layout="docs"] #nd-page article > .prose :is(h2, h3) {
+  font-family: var(--bk-display);
+  font-weight: 500;
+  letter-spacing: -0.012em;
+}

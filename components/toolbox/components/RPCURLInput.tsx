@@ -42,36 +42,36 @@ export function RPCURLInput({
   return (
     <div className="space-y-2">
       <Input label={label} value={value} onChange={onChange} placeholder={placeholder} disabled={disabled} />
-      {helperText && !error && <p className="text-sm text-zinc-600 dark:text-zinc-400">{helperText}</p>}
+      {helperText && !error && <p className="text-[12px] text-zinc-500 dark:text-zinc-400">{helperText}</p>}
       {error && (
-        <div className="p-3 bg-red-50/80 border border-red-200 text-red-900 rounded">
+        <div className="border border-red-200 bg-red-50/60 p-3 text-[13px] text-red-800 dark:border-red-900/60 dark:bg-red-950/20 dark:text-red-300">
           <div className="flex items-start gap-2">
-            <AlertTriangle className="h-5 w-5 mt-0.5 flex-shrink-0" style={{ color: '#B91C1C' }} />
+            <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-600 dark:text-red-400" />
             <div className="space-y-2 w-full">
-              <p className="font-medium">Warning</p>
-              <p className="text-sm text-red-800/90">
+              <p className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em]">Warning</p>
+              <p className="text-[13px]">
                 HTTP URLs are not secure and may not work due to browser security policies. Please use HTTPS or consider
                 the following options:
               </p>
-              <div className="space-y-3 text-sm mt-3">
-                <div className="border-l-2 border-red-300 pl-3">
+              <div className="mt-3 space-y-3 text-[13px]">
+                <div className="border-l-2 border-red-300 pl-3 dark:border-red-800">
                   <h4 className="font-medium">Option 1: Use a Reverse Proxy</h4>
-                  <p className="text-red-800/80">
+                  <p className="text-[12px] opacity-80">
                     Set up a reverse proxy (like Nginx) to forward HTTPS requests to your HTTP endpoint.
                   </p>
                 </div>
-                <div className="border-l-2 border-red-300 pl-3">
+                <div className="border-l-2 border-red-300 pl-3 dark:border-red-800">
                   <h4 className="font-medium">Option 2: Run the Toolbox Locally</h4>
-                  <p className="text-red-800/80">
+                  <p className="text-[12px] opacity-80">
                     Clone and run the toolbox locally to avoid browser security restrictions.
                     <a
                       href="https://github.com/ava-labs/builders-hub/blob/master/toolbox/README.md"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center text-red-700 hover:text-red-900 font-medium ml-1"
+                      className="group/link ml-1 inline-flex items-center font-medium underline-offset-4 hover:underline"
                     >
                       View on GitHub
-                      <ExternalLink className="h-3.5 w-3.5 ml-0.5 text-red-700" />
+                      <ExternalLink className="ml-0.5 h-3 w-3 transition-colors group-hover/link:text-[#E6212F]" />
                     </a>
                   </p>
                 </div>

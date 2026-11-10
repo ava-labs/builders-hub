@@ -238,7 +238,7 @@ export const PILLARS: Pillar[] = [
         heading: "DOCUMENTATION",
         links: [
           { text: "Avalanche L1s", href: "/docs/avalanche-l1s" },
-          { text: "Validator-only configuration", href: "/docs/nodes/configure/avalanche-l1-configs" },
+          { text: "Validator-only configuration", href: "/docs/nodes/chain-configs/avalanche-l1s/avalanche-l1-configs" },
           { text: "Node configuration flags", href: "/docs/nodes/configure/configs-flags" },
         ],
       },
@@ -513,9 +513,10 @@ export const COMPARISON: ComparisonRow[] = [
   { pillar: "performance", label: "Gas token", cChain: "AVAX", l1: "A token you choose" },
   { pillar: "interoperability", label: "Interchain Messaging", cChain: "Native", l1: "Native" },
   { pillar: "interoperability", label: "Token transfer (ICTT)", cChain: "Native", l1: "Native" },
-  { pillar: "privacy", label: "Network access", cChain: "Public", l1: "Public, or validator-only" },
+  { pillar: "privacy", label: "Access model", cChain: "Public", l1: "Public, permissioned, private, or a mix" },
+  { pillar: "privacy", label: "Who can read the chain", cChain: "Everyone", l1: "Everyone, or only your validators" },
   { pillar: "privacy", label: "Data residency", cChain: "Primary Network validators", l1: "Wherever you place validators" },
-  { pillar: "compliance", label: "Validators", cChain: "Primary Network validators", l1: "Operators you admit" },
-  { pillar: "compliance", label: "Contract deployment", cChain: "Anyone", l1: "Approved deployers only" },
-  { pillar: "compliance", label: "Transactions", cChain: "Anyone", l1: "Approved wallets only" },
+  { pillar: "compliance", label: "Who validates", cChain: "Primary Network validators", l1: "Anyone who stakes, operators you approve, or your own rules" },
+  { pillar: "compliance", label: "Who deploys contracts", cChain: "Anyone", l1: "Anyone, or approved deployers" },
+  { pillar: "compliance", label: "Who transacts", cChain: "Anyone", l1: "Anyone, or approved wallets" },
 ];

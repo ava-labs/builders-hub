@@ -22,24 +22,24 @@ This tutorial will guide you through the process of doing various Avalanche L1 u
 General Upgrade Considerations
 -------------------------------------------------------------------------------------------
 
-When operating an Avalanche L1, you should always keep in mind that Proof of Stake networks like Avalanche can only make progress if sufficient amount of validating nodes are connected and processing transactions. Each validator on an Avalanche L1 is assigned a certain `weight`, which is a numerical value representing the significance of the node in consensus decisions. On the Primary Network, weight is equal to the amount of AVAX staked on the node. On Avalanche L1s, weight is currently assigned by the Avalanche L1 owners when they issue the transaction adding a validator to the Avalanche L1.
+When operating an Avalanche L1, you should always keep in mind that Proof of Stake networks like Avalanche can only make progress if sufficient amount of validating nodes are connected and processing transactions. Each validator on an Avalanche L1 is assigned a certain `weight`, which is a numerical value representing the significance of the node in consensus decisions. On the Primary Network, weight is equal to the amount of AVAX staked on the node. On an L1, the validator manager contract sets each validator's weight. The P-Chain records it from the Warp message in `RegisterL1ValidatorTx`, and `SetL1ValidatorWeightTx` changes it later.
 
 Avalanche L1s can operate normally only if validators representing 80% or more of the cumulative validator weight is connected. If the amount of connected stake falls close to or below 80%, Avalanche L1 performance (time to finality) will suffer, and ultimately the Avalanche L1 will halt (stop processing transactions).
 
 You as an Avalanche L1 operator need to ensure that whatever you do, at least 80% of the validators' cumulative weight is connected and working at all times.
 
 <Callout title="Note">
-It is mandatory that the cumulative weight of all validators in the Avalanche L1 must be at least the value of [`snow-sample-size`](/docs/nodes/configure/configs-flags#--snow-sample-size-int) (default 20). For example, if there is only one validator in the Avalanche L1, its weight must be at least `snow-sample-size` . Hence, when assigning weight to the nodes, always use values greater than 20. Recall that a validator's weight can't be changed while it is validating, so take care to use an appropriate value.
+It is mandatory that the cumulative weight of all validators in the Avalanche L1 must be at least the value of [`snow-sample-size`](/docs/nodes/configure/configs-flags#--snow-sample-size-int) (default 20). For example, if there is only one validator in the Avalanche L1, its weight must be at least `snow-sample-size` . Hence, when assigning weight to the nodes, always use values greater than 20. The validator manager can change a validator's weight later with a `SetL1ValidatorWeightTx`, but choose an appropriate value from the start.
 </Callout>
 
 Upgrading Avalanche L1 Validator Nodes
 -----------------------------------------------------------------------------------------------
 
-AvalancheGo, the node client that is running the Avalanche validators is under constant and rapid development. New versions come out often (roughly every two weeks), bringing added capabilities, performance improvements or security fixes. Updates are usually optional, but from time to time (much less frequently than regular updates) there will be an update that includes a mandatory network upgrade. Those upgrades are **MANDATORY** for every node running the Avalanche L1. Any node that does not perform the update before the activation timestamp will immediately stop working when the upgrade activates.
+AvalancheGo, the node client that is running the Avalanche validators is under constant and rapid development. New versions come out several times each year, bringing added capabilities, performance improvements or security fixes. Updates are usually optional, but from time to time (much less frequently than regular updates) there will be an update that includes a mandatory network upgrade. Those upgrades are **MANDATORY** for every node running the Avalanche L1. Any node that does not perform the update before the activation timestamp will immediately stop working when the upgrade activates.
 
 That's why having a node upgrade strategy is absolutely vital, and you should always update to the latest AvalancheGo client immediately when it is made available.
 
-For a general guide on upgrading AvalancheGo check out [this tutorial](/docs/nodes/maintain/upgrade). When upgrading Avalanche L1 nodes and keeping in mind the previous section, make sure to stagger node upgrades and start a new upgrade only once the previous node has successfully upgraded. Use the [Health API](/docs/rpcs/other/health-rpc#healthhealth) to check that `healthy` value in the response is `true` on the upgraded node, and on other Avalanche L1 validators check that [platform.getCurrentValidators()](/docs/rpcs/p-chain#platformgetcurrentvalidators) has `true` in `connected` attribute for the upgraded node's `nodeID`. Once those two conditions are satisfied, node is confirmed to be online and validating the Avalanche L1 and you can start upgrading another node.
+For a general guide on upgrading AvalancheGo check out [this tutorial](/docs/nodes/maintain/upgrade). When upgrading Avalanche L1 nodes and keeping in mind the previous section, make sure to stagger node upgrades and start a new upgrade only once the previous node has successfully upgraded. Use the [Health API](/docs/rpcs/other/health-rpc#healthhealth) to check that `healthy` value in the response is `true` on the upgraded node, and on another validator of the L1, call [`validators.getCurrentValidators`](/docs/rpcs/subnet-evm#validatorsgetcurrentvalidators) on the L1 chain endpoint (`/ext/bc/<blockchainID>/validators`) and check that `isConnected` is `true` for the upgraded node's `nodeID`. `platform.getCurrentValidators` returns `connected` only for Primary Network validators. Once those two conditions are satisfied, node is confirmed to be online and validating the Avalanche L1 and you can start upgrading another node.
 
 Continue the upgrade cycle until all the Avalanche L1 nodes are upgraded.
 
@@ -52,22 +52,22 @@ All the considerations for doing staggered node upgrades as discussed in previou
 
 In the future, VM upgrades will be handled by the [Avalanche-CLI tool](https://github.com/ava-labs/avalanche-cli), but for now we need to do it manually.
 
-Go to the [releases page](https://github.com/ava-labs/subnet-evm/releases) of the Subnet-EVM repository. Locate the latest version, and copy link that corresponds to the OS and architecture of the machine the node is running on (`darwin` = Mac, `amd64` = Intel/AMD processor, `arm64` = Arm processor). Log into the machine where the node is running and download the archive, using `wget` and the link to the archive, like this:
+Go to the [AvalancheGo releases page](https://github.com/ava-labs/avalanchego/releases). Since v1.14.2, each AvalancheGo release includes the Subnet-EVM binaries. Use the Subnet-EVM archive from the same release as your AvalancheGo version, because the plugin version must match. Copy the link for the OS and architecture of the node machine (`linux-amd64` = Linux on Intel/AMD, `linux-arm64` = Linux on Arm, `macos` = Mac). Log into the machine where the node is running and download the archive, using `wget` and the link to the archive, like this:
 
 ```bash
-wget https://github.com/ava-labs/subnet-evm/releases/download/v0.2.9/subnet-evm_0.2.9_linux_amd64.tar.gz
+wget https://github.com/ava-labs/avalanchego/releases/download/v1.15.1/subnet-evm-linux-amd64-v1.15.1.tar.gz
 ```
 
 This will download the archive to the machine. Unpack it like this (use the correct filename, of course):
 
 ```bash
-tar xvf subnet-evm_0.2.9_linux_amd64.tar.gz
+tar xvf subnet-evm-linux-amd64-v1.15.1.tar.gz
 ```
 
-This will unpack and place the contents of the archive in the current directory, file `subnet-evm` is the plugin binary. You need to stop the node now (if the node is running as a service, use `sudo systemctl stop avalanchego` command). You need to place that file into the plugins directory where the AvalancheGo binary is located. If the node is installed using the install script, the path will be `~/avalanche-node/plugins` Instead of the `subnet-evm` filename, VM binary needs to be named as the VM ID of the chain on the Avalanche L1. For example, for the [WAGMI Avalanche L1](/docs/avalanche-l1s/wagmi-avalanche-l1) that VM ID is `srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy`. So, the command to copy the new plugin binary would look like:
+This unpacks the archive into the directory `subnet-evm-v1.15.1`. The file `subnet-evm-v1.15.1/subnet-evm` is the plugin binary. You need to stop the node now (if the node is running as a service, use `sudo systemctl stop avalanchego` command). Put that file in the node's plugin directory (`--plugin-dir`). The default is `~/.avalanchego/plugins`, and the install script also uses `~/.avalanchego/plugins`. Instead of the `subnet-evm` filename, VM binary needs to be named as the VM ID of the chain on the Avalanche L1. For example, for the WAGMI Avalanche L1 that VM ID is `srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy`. So, the command to copy the new plugin binary would look like:
 
 ```bash
-cp subnet-evm ~/avalanche-node/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+cp subnet-evm-v1.15.1/subnet-evm ~/.avalanchego/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
 ```
 
 <Callout type="warn">
@@ -80,26 +80,26 @@ After you do that, you can start the node back up (if running as service do `sud
 {
   "jsonrpc": "2.0",
   "result": {
-    "version": "avalanche/1.7.18",
+    "version": "avalanchego/1.15.1",
     "databaseVersion": "v1.4.5",
-    "gitCommit": "b6d5827f1a87e26da649f932ad649a4ea0e429c4",
+    "rpcProtocolVersion": "46",
+    "gitCommit": "fdb2c1b9b02ef357b5867d5ababb6acc83837a01",
     "vmVersions": {
-      "avm": "v1.7.18",
-      "evm": "v0.8.15",
-      "platform": "v1.7.18",
-      "sqja3uK17MJxfC7AN8nGadBw9JK5BcrsNwNynsqP5Gih8M5Bm": "v0.0.7",
-      "srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy": "v0.2.9"
+      "avm": "avalanchego/1.15.1",
+      "evm": "v1.15.1",
+      "platform": "avalanchego/1.15.1",
+      "srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy": "v1.15.1"
     }
   },
   "id": 1
 }
 ```
 
-Note that entry next to the VM ID we upgraded correctly says `v0.2.9`. You have successfully upgraded the VM!
+Note that the entry for the VM ID you upgraded says `v1.15.1`. Since v1.14.2, Subnet-EVM reports the AvalancheGo version that it ships with. You have successfully upgraded the VM!
 
 Refer to the previous section on how to make sure node is healthy and connected before moving on to upgrading the next Avalanche L1 validator.
 
-If you don't get the expected result, you can stop the `AvalancheGo`, examine and follow closely step-by-step of the above. You are free to remove files under `~/avalanche-node/plugins`, however, you should keep in mind that removing files is to remove an existing VM binary. You must put the correct VM plugin in place before you restart AvalancheGo.
+If you don't get the expected result, you can stop the `AvalancheGo`, examine and follow closely step-by-step of the above. You are free to remove files under `~/.avalanchego/plugins`, however, you should keep in mind that removing files is to remove an existing VM binary. You must put the correct VM plugin in place before you restart AvalancheGo.
 
 Network Upgrades
 ---------------------------------------------------------------
@@ -110,6 +110,8 @@ Sometimes you need to do a network upgrade to change the configured rules in the
 - Restrict Who Can Submit Transactions
 - Mint Native Coins
 - Configure Dynamic Fees
+- Set Where Transaction Fees Go (Reward Manager)
+- Send and Receive Avalanche Warp Messages (Warp Messenger)
 
 Please refer to [Customize an Avalanche L1](/docs/avalanche-l1s/evm-configuration/customize-avalanche-l1#network-upgrades-enabledisable-precompiles) for a detailed discussion of possible precompile upgrade parameters.
 

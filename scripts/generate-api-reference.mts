@@ -4,6 +4,7 @@ import { generateFiles } from "fumadocs-openapi";
 import { createOpenAPI } from "fumadocs-openapi/server";
 import { load } from "js-yaml";
 import { addCodeSamplesToSpec } from "./add-code-samples.mts";
+import { rpcReferenceOptions } from "./rpc-reference-options.mts";
 
 async function generate() {
   // Ensure the public/openapi directory exists
@@ -138,8 +139,7 @@ async function generate() {
   await generateFiles({
     input: pChainApi,
     output: pOut,
-    includeDescription: true,
-    groupBy: "tag",
+    ...rpcReferenceOptions,
   });
   if (pMetaBackup !== undefined) writeFileSync(pMeta, pMetaBackup);
   if (pIndexBackup !== undefined) writeFileSync(pIndex, pIndexBackup);
@@ -159,8 +159,7 @@ async function generate() {
   await generateFiles({
     input: cChainApi,
     output: cOut,
-    includeDescription: true,
-    groupBy: "tag",
+    ...rpcReferenceOptions,
   });
   if (cMetaBackup !== undefined) writeFileSync(cMeta, cMetaBackup);
   if (cIndexBackup !== undefined) writeFileSync(cIndex, cIndexBackup);
@@ -180,8 +179,7 @@ async function generate() {
   await generateFiles({
     input: xChainApi,
     output: xOut,
-    includeDescription: true,
-    groupBy: "tag",
+    ...rpcReferenceOptions,
   });
   if (xMetaBackup !== undefined) writeFileSync(xMeta, xMetaBackup);
   if (xIndexBackup !== undefined) writeFileSync(xIndex, xIndexBackup);

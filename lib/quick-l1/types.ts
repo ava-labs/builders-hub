@@ -1,12 +1,12 @@
 /**
  * Shared types for the Basic L1 Setup (one-click deploy) feature.
  *
- * The real implementation will live in a separate Railway microservice.
+ * The real implementation will live in a separate quick-l1 service.
  * This repo either:
  *   1. Runs the mock orchestrator locally (when QUICK_L1_SERVICE_URL is unset)
- *   2. Proxies the same payload/response shape to Railway (when set)
+ *   2. Proxies the same payload/response shape to the quick-l1 service (when set)
  *
- * Keep these types stable — the Railway service must match them exactly.
+ * Keep these types stable — the quick-l1 service must match them exactly.
  */
 
 export type DeploymentStep =
@@ -33,7 +33,7 @@ export type DeploymentStatus = 'pending' | 'running' | 'complete' | 'failed';
  * The ordered list of steps every deployment may walk through. Frontend
  * progress tracker renders this in order; the orchestrator advances one
  * at a time. Any reordering must stay in sync with the `quick-l1`
- * Railway service.
+ * quick-l1 service.
  *
  * The last 6 steps only run when the request has
  * `precompiles.interoperability` enabled — they bootstrap ICM + ICTT
@@ -51,7 +51,7 @@ export type DeploymentStatus = 'pending' | 'running' | 'complete' | 'failed';
  * relayer's ~60-90s Warp-quorum boot overlaps convert-to-L1 +
  * init-validator-set + the three L1-side deploys. By the time
  * `starting-relayer` polls health, the container is almost always
- * already up. See the Railway service's `attachRelayer.ts` for the
+ * already up. See the quick-l1 service's `attachRelayer.ts` for the
  * invariants that make this ordering safe (L1 RPC readiness guard +
  * WS proxy buffering + late signing).
  */
@@ -131,7 +131,7 @@ export const STEP_LABEL: Record<DeploymentStep, string> = {
 };
 
 /**
- * Genesis precompile configuration. All optional — the Railway service
+ * Genesis precompile configuration. All optional — the quick-l1 service
  * applies sensible defaults when a field is omitted (see DEFAULT_PRECOMPILES
  * below). Each toggle corresponds to a Subnet-EVM precompile; when enabled
  * the precompile's admin list is seeded with `ownerEvmAddress`.
@@ -185,7 +185,7 @@ export interface PoAValidatorMode {
 }
 
 /**
- * ERC20-backed PoS configuration. All knobs optional — the Railway
+ * ERC20-backed PoS configuration. All knobs optional — the quick-l1
  * service falls back to the upstream icm-contracts test defaults
  * (rewardBasisPoints=10, min stake=0.01 token, max stake=10 token,
  * etc.) when omitted. Stake amounts are base-unit decimal strings to
@@ -230,7 +230,7 @@ export interface DeployRequest {
    * ~60-120s because we spin up a docker-compose relayer, deploy
    * TeleporterRegistry + TokenRemote on the new L1, and bridge 10
    * MockUSDC to the owner. Requires `precompiles.interoperability`
-   * to be true; the Railway orchestrator rejects the request
+   * to be true; the quick-l1 orchestrator rejects the request
    * otherwise. Frontend should enforce the same constraint at form
    * submit so users don't round-trip to see the error.
    */
@@ -332,22 +332,6 @@ export interface DeploymentResult {
    * `undefined` means the feature was disabled for this deploy.
    */
   interop?: InteropResult;
-  /**
-   * Per-L1 firn block explorer at `<slug>.firn.gg` — populated when
-   * the managed-testnet-nodes service is reachable and the slot node
-   * accepted the assignment. Same 3-day TTL as the node assignment;
-   * after expiry the URL serves a "tenant not found" page until a
-   * redeploy creates a new (likely identical, since slug is derived
-   * from blockchainID) tenant entry.
-   */
-  explorer?: ExplorerResult;
-}
-
-export interface ExplorerResult {
-  /** Public URL — share this with the team for the 3-day window. */
-  url: string;
-  /** Lowercased first 8 chars of the L1's blockchainID. */
-  slug: string;
 }
 
 export interface Erc20PoSResult {

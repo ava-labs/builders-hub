@@ -17,9 +17,9 @@ To get the process started, at the minimum, you will to implement the following 
 To build a blockchain taking advantage of AvalancheGo's consensus to build blocks, you will need to implement:
 
 - [AppSender](https://buf.build/ava-labs/avalanche/docs/main:appsender) (Client)
-- [Messenger](https://buf.build/ava-labs/avalanche/docs/main:messenger) (Client)
+- [`VM.WaitForEvent`](https://github.com/ava-labs/avalanchego/blob/master/proto/vm/vm.proto) (Server)
 
-To have a json-RPC endpoint, `/ext/bc/subnetId/rpc` exposed by AvalancheGo, you will need to implement:
+To have a JSON-RPC endpoint such as `/ext/bc/[blockchainID]/rpc` exposed by AvalancheGo, you will need to implement:
 
 - [`Http`](https://buf.build/ava-labs/avalanche/docs/main:http) (Server)
 
@@ -48,25 +48,19 @@ AvalancheGo starts/stops your process multiple times before launching the real i
 
 1. [VM.Version](https://buf.build/ava-labs/avalanche/docs/main:vm#vm.VM.Version)
     - Return: your VM's version.
-2. [VM.CreateStaticHandler](https://buf.build/ava-labs/avalanche/docs/main:vm#vm.VM.CreateStaticHandlers)
-    - Return: an empty array - (Not absolutely required).
-3. [VM.Shutdown](https://buf.build/ava-labs/avalanche/docs/main:vm#vm.VM.Shutdown)
+2. [VM.Shutdown](https://buf.build/ava-labs/avalanche/docs/main:vm#vm.VM.Shutdown)
     - You should gracefully stop your process.
     - Return: Empty
 
 ### Initialization Sequence
 
-1. [VM.CreateStaticHandlers](https://buf.build/ava-labs/avalanche/docs/main:vm#vm.VM.CreateStaticHandlers)
-    - Return an empty array - (Not absolutely required).
-2. [VM.Initialize](https://buf.build/ava-labs/avalanche/docs/main:vm#vm.VM.Initialize)
+1. [VM.Initialize](https://buf.build/ava-labs/avalanche/docs/main:vm#vm.VM.Initialize)
     - Param: an [InitializeRequest](https://buf.build/ava-labs/avalanche/docs/main:vm#vm.InitializeRequest).
     - You must use this data to initialize your VM.
     - You should add the genesis block to your blockchain and set it as the last accepted block.
     - Return: an [InitializeResponse](https://buf.build/ava-labs/avalanche/docs/main:vm#vm.InitializeResponse) containing data about the genesis extracted from the `genesis_bytes` that was sent in the request.
-3. [VM.VerifyHeightIndex](https://buf.build/ava-labs/avalanche/docs/main:vm#vm.VM.VerifyHeightIndex)
-    - Return: a [VerifyHeightIndexResponse](https://buf.build/ava-labs/avalanche/docs/main:vm#vm.VerifyHeightIndexResponse) with the code `ERROR_UNSPECIFIED` to indicate that no error has occurred.
-4. [VM.CreateHandlers](https://buf.build/ava-labs/avalanche/docs/main:vm#vm.VM.CreateHandlers)
-    - To serve json-RPC endpoint, `/ext/bc/subnetId/rpc` exposed by AvalancheGo
+2. [VM.CreateHandlers](https://buf.build/ava-labs/avalanche/docs/main:vm#vm.VM.CreateHandlers)
+    - To serve a JSON-RPC endpoint such as `/ext/bc/[blockchainID]/rpc` exposed by AvalancheGo
     - See [json-RPC](#json-rpc) for more detail
     - Create a [`Http`](https://buf.build/ava-labs/avalanche/docs/main:http) server and get its url.
     - Return: a `CreateHandlersResponse` containing a single item with the server's url. (or an empty array if not implementing the json-RPC endpoint)
@@ -125,11 +119,11 @@ AvalancheGo then propagates this to the other nodes.
 
 #### Block Building Sequence
 
-Whenever your VM is ready to build a new block, it will initiate the block building process by using the [Messenger](https://buf.build/ava-labs/avalanche/docs/main:messenger) service. Supposing that nodeY wants to build the block. you probably will implement some kind of background worker checking every second if there are any pending transactions:
+Whenever your VM is ready to build a new block, it returns `MESSAGE_BUILD_BLOCK` from [`VM.WaitForEvent`](https://github.com/ava-labs/avalanchego/blob/master/proto/vm/vm.proto). AvalancheGo calls this method and waits for the response. Supposing that nodeY wants to build the block. you probably will implement some kind of background worker checking every second if there are any pending transactions:
 
 <Accordions>
 <Accordion title="On NodeY">
-_client_ [`Messenger.Notify`](https://buf.build/ava-labs/avalanche/docs/main:messenger#messenger.Messenger.Notify): You must issue a notify request to AvalancheGo by calling the method with the `MESSAGE_BUILD_BLOCK` value.
+_server_ [`VM.WaitForEvent`](https://github.com/ava-labs/avalanchego/blob/master/proto/vm/vm.proto): Return a `WaitForEventResponse` with the `MESSAGE_BUILD_BLOCK` value. AvalancheGo then calls `VM.BuildBlock`.
 
 1. [VM.BuildBlock](https://buf.build/ava-labs/avalanche/docs/main:vm#vm.VM.BuildBlock)
     - Param: Empty
@@ -148,7 +142,7 @@ _client_ [`Messenger.Notify`](https://buf.build/ava-labs/avalanche/docs/main:mes
 1. [VM.ParseBlock](https://buf.build/ava-labs/avalanche/docs/main:vm#vm.VM.ParseBlock)
     - Param: A byte array containing a the newly built block's data
     - Store this block in memory as a "pending blocks"
-    - Return: a [ParseBlockResponse](https://buf.build/ava-labs/avalanche/docs/main:vm#vm.ParseBlockResponse) built from the last accepted block.
+    - Return: a [ParseBlockResponse](https://buf.build/ava-labs/avalanche/docs/main:vm#vm.ParseBlockResponse) built from the parsed block (`id`, `parent_id`, `height`, `timestamp`).
 2. [VM.BlockVerify](https://buf.build/ava-labs/avalanche/docs/main:vm#vm.VM.BlockVerify)
     - Param: The byte array containing the block data
     - Return: the block's timestamp
@@ -199,7 +193,7 @@ Supposing that AvalancheGo accepts block `0x123...`. The following RPC methods a
 To enable your json-RPC endpoint, you must implement the [HandleSimple](https://buf.build/ava-labs/avalanche/docs/main:http#http.HTTP.HandleSimple) method of the [`Http`](https://buf.build/ava-labs/avalanche/docs/main:http) interface.
 
 - Param: a [HandleSimpleHTTPRequest](https://buf.build/ava-labs/avalanche/docs/main:http#http.HandleSimpleHTTPRequest) containing the original request's method, url, headers, and body.
-- Analyze, deserialize and handle the request. For example: if the request represents a transaction, we must deserialize it, check the signature, store it and gossip it to the other nodes using the [messenger client](#block-building-sequence)).
+- Analyze, deserialize and handle the request. For example: if the request represents a transaction, we must deserialize it, check the signature, store it and gossip it to the other nodes using the [AppSender client](#transaction-gossiping-sequence).
 - Return the [HandleSimpleHTTPResponse](https://buf.build/ava-labs/avalanche/docs/main:http#http.HandleSimpleHTTPResponse) response that will be sent back to the original sender.
         
 This server is registered with AvalancheGo during the [initialization process](#initialization-sequence) when the `VM.CreateHandlers` method is called. You must simply respond with the server's url in the `CreateHandlersResponse` result.

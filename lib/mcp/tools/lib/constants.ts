@@ -33,6 +33,13 @@ export const ALLOWED_CHAIN_IDS: Set<number> = (() => {
 
 export const NETWORKS = ['mainnet', 'fuji'] as const;
 
+/**
+ * The most requests that one P-Chain balance read may send: platform_get_balance and onchain_lookup. The Avalanche
+ * SDK's pChain.getBalance sends platform.getStakingAssetID, then reads a set of more than 1 page at least twice, so 11
+ * requests read up to 5 pages (5,120 UTXOs). The MCP is anonymous, so it sends fewer requests than the Console (21).
+ */
+export const MCP_MAX_P_CHAIN_BALANCE_REQUESTS = 11;
+
 export const CONSOLE_BASE = 'https://build.avax.network/console';
 
 /**

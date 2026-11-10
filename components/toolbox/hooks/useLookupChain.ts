@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { utils } from '@avalabs/avalanchejs';
+import { utils } from '@avalanche-sdk/client/utils';
 import { getBlockchainInfo, getChainDetails } from '../coreViem/utils/glacier';
 
 interface LookupResult {

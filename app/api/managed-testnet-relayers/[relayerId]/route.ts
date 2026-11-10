@@ -18,9 +18,10 @@ async function handleDeleteRelayer(relayerId: string, request: NextRequest): Pro
 
   try {
     // First verify the relayer belongs to the user by fetching the list
-    const listResponse = await fetch(RelayerServiceURLs.list(password), {
+    const listResponse = await fetch(RelayerServiceURLs.list(), {
       method: 'GET',
       headers: {
+        'x-admin-password': password,
         'Accept': 'application/json'
       }
     });
@@ -58,13 +59,14 @@ async function handleDeleteRelayer(relayerId: string, request: NextRequest): Pro
 
     // URL encode the relayerId to handle special characters
     const encodedRelayerId = encodeURIComponent(relayerId);
-    const deleteUrl = RelayerServiceURLs.delete(encodedRelayerId, password);
+    const deleteUrl = RelayerServiceURLs.delete(encodedRelayerId);
     
     console.log(`[Relayers] Deleting relayer ${encodedRelayerId}`);
     
     const response = await fetch(deleteUrl, {
       method: 'DELETE',
       headers: {
+        'x-admin-password': password,
         'Accept': 'application/json'
       }
     });

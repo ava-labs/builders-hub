@@ -2,6 +2,7 @@ import { z } from "zod";
 import { emailSchema } from "@/lib/email";
 import {
   DEPLOYMENT_TARGETS,
+  QUOTE_DURATION_UNITS,
   SUBSIDY_DECISION_STATES,
   URGENCY_OPTIONS,
 } from "@/lib/audits/status";
@@ -10,11 +11,12 @@ import {
   AUDIT_LANGUAGES,
   AUDIT_PROJECT_TYPES,
   AUDIT_SERVICES,
-  MAX_QUOTE_WEEKS,
+  MAX_QUOTE_DURATION,
   SHORTLIST_LIMIT,
 } from "@/lib/audits/constants";
 import { SUBSIDY_MAX_PCT } from "@/lib/audits/subsidy";
 import { isAllowedAttachmentSrc, isAllowedLogoSrc } from "@/lib/audits/blobSrc";
+import { parseWholeNumber } from "@/components/audits/shared/format";
 
 const MAX_NAME = 200;
 const MAX_URL = 2048;
@@ -75,6 +77,19 @@ const auditorServicesField = z
 // "required" instead.
 const requiredDate = (message: string) =>
   z.preprocess((v) => v ?? undefined, z.coerce.date({ message }));
+
+// Firms price from this number (Joey, 2026-09-30: two of them could not quote
+// a request that left it blank). The wizard holds it as typed text ("4,200"),
+// the stored row as an integer, and both pass through this one gate.
+const LINES_OF_CODE_MESSAGE = "Enter the lines of code as a whole number, like 4200";
+const requiredLinesOfCode = z.preprocess(
+  (v) => (typeof v === "string" ? parseWholeNumber(v) : v),
+  z
+    .number({ message: LINES_OF_CODE_MESSAGE })
+    .int(LINES_OF_CODE_MESSAGE)
+    .min(1, LINES_OF_CODE_MESSAGE)
+    .max(100_000_000, LINES_OF_CODE_MESSAGE),
+);
 
 const repoDraftSchema = z.strictObject({
   url: trimmed(MAX_URL),
@@ -154,6 +169,7 @@ export const auditSubmitSchema = z.object({
     .max(20)
     .optional()
     .default([]),
+  nsloc: requiredLinesOfCode,
   doc_links: z.array(httpsUrl).max(20).optional().default([]),
   // Re-checked against the STORED row at submit, like every other link:
   // without this the draft-time refinement is the only gate and a row written
@@ -167,26 +183,36 @@ export const auditSubmitSchema = z.object({
 });
 export type AuditSubmitData = z.infer<typeof auditSubmitSchema>;
 
-export const auditQuoteSchema = z.strictObject({
-  price_usd: z.number().int().min(1, "Price is required").max(100_000_000),
-  duration_weeks: z.number().int().min(1).max(MAX_QUOTE_WEEKS),
-  earliest_start: requiredDate("Pick the earliest start date"),
-  message: trimmed(MAX_LONG).min(1, "A message to the project is required"),
-  // The firm's own proposal, scoping doc or SOW. Optional, and normalized so
-  // a pasted "docs.google.com/..." still resolves.
-  deal_doc_url: httpsUrl.nullable().optional().or(z.literal("").transform(() => null)),
-});
+export const auditQuoteSchema = z
+  .strictObject({
+    price_usd: z.number().int().min(1, "Price is required").max(100_000_000),
+    duration: z.number().int().min(1),
+    duration_unit: z.enum(QUOTE_DURATION_UNITS),
+    earliest_start: requiredDate("Pick the earliest start date"),
+    message: trimmed(MAX_LONG).min(1, "A message to the project is required"),
+    // The firm's own proposal, scoping doc or SOW. Optional, and normalized so
+    // a pasted "docs.google.com/..." still resolves.
+    deal_doc_url: httpsUrl.nullable().optional().or(z.literal("").transform(() => null)),
+  })
+  // One year at most, in the unit the firm picked.
+  .refine((quote) => quote.duration <= MAX_QUOTE_DURATION[quote.duration_unit], {
+    message: "A quote can run at most one year",
+    path: ["duration"],
+  });
 export type AuditQuoteInput = z.infer<typeof auditQuoteSchema>;
 
 /**
  * Submission carries the consent explicitly rather than reading a stored
  * flag: consent is given at the moment of sending, so it is re-affirmed on
- * every submit and the server stamps the time itself.
+ * every submit and the server stamps the time itself. The Telegram and
+ * calendar shares are chosen the same way; a body without them shares nothing.
  */
 export const submitRequestSchema = z.strictObject({
   contact_consent: z.literal(true, {
     message: "Confirm that your contact details can be shared with the audit firms",
   }),
+  share_contact_handle: z.boolean().default(false),
+  share_calendar: z.boolean().default(false),
 });
 
 export const acceptQuoteSchema = z.strictObject({
@@ -243,6 +269,57 @@ export const auditorMemberCreateSchema = z.strictObject({
   email: normalizedEmail,
 });
 export type AuditorMemberCreateInput = z.infer<typeof auditorMemberCreateSchema>;
+
+// GitHub's own rule: 1 to 39 letters, digits and single inner hyphens. One
+// definition for the portal write below and for the reads that turn a stored
+// value into a profile link (visibility.ts), so the two cannot drift.
+export const GITHUB_USERNAME_MAX = 39;
+export const GITHUB_USERNAME_RE = /^[A-Za-z0-9](?:-?[A-Za-z0-9])*$/;
+const GITHUB_USERNAME_MESSAGE =
+  "Enter a valid GitHub username: up to 39 letters, digits or single hyphens, no hyphen at the start or end.";
+
+/** A value as stored, checked against the same rule (nothing is normalized). */
+export const isGithubUsername = (value: string) =>
+  value.length <= GITHUB_USERNAME_MAX && GITHUB_USERNAME_RE.test(value);
+
+/** The profile a project opens before it invites the person. */
+export const githubProfileUrl = (username: string) =>
+  `https://github.com/${encodeURIComponent(username)}`;
+
+/**
+ * A pasted "@name" or profile link works: the prefixes and one trailing slash
+ * are stripped before GitHub's rule applies. Empty clears the username.
+ * Anything else that is not a string passes through to fail the check.
+ */
+const normalizeGithubUsername = (value: unknown) => {
+  if (typeof value !== "string") return value;
+  const raw = value.trim();
+  if (raw === "") return null;
+  return raw
+    .replace(/^@/, "")
+    .replace(/^https?:\/\//i, "")
+    .replace(/^www\./i, "")
+    .replace(/^github\.com\//i, "")
+    .replace(/\/$/, "");
+};
+
+/**
+ * One person's own GitHub username, the only body the portal's GitHub route
+ * takes: it names the value and nothing else, so the signed-in address alone
+ * decides whose row it lands on. Stored as typed (GitHub names are
+ * case-insensitive); null clears it.
+ */
+export const auditorGithubUpdateSchema = z.strictObject({
+  github_username: z.preprocess(
+    normalizeGithubUsername,
+    z
+      .string()
+      .max(GITHUB_USERNAME_MAX, GITHUB_USERNAME_MESSAGE)
+      .regex(GITHUB_USERNAME_RE, GITHUB_USERNAME_MESSAGE)
+      .nullable(),
+  ),
+});
+export type AuditorGithubUpdateInput = z.infer<typeof auditorGithubUpdateSchema>;
 
 export const adminRequestFiltersSchema = z.object({
   // Must track DISPLAY_REQUEST_STATUSES: a value missing here fails

@@ -5,7 +5,7 @@
   "pages": [
     "index",
     "---",
-    "---📘 FUNDAMENTALS---",
+    "---FUNDAMENTALS---",
     "---Introduction---",
     "...01-introduction",
     "---Genesis Activation---",
@@ -13,7 +13,7 @@
     "---Fundamentals Certificate---",
     "certificate-fundamentals",
     "---",
-    "---🔬 ADVANCED TOPICS---",
+    "---ADVANCED TOPICS---",
     "---Precompile Flow (Optional)---",
     "...03-precompile-flow",
     "---User Error---",

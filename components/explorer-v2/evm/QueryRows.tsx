@@ -3,22 +3,27 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CartesianGrid, Cell, ResponsiveContainer, Scatter, ScatterChart, Tooltip as RechartsTooltip, XAxis, YAxis, ZAxis } from "recharts";
-import { X } from "lucide-react";
+import { CartesianGrid, Cell, ReferenceArea, ResponsiveContainer, Scatter, ScatterChart, Tooltip as RechartsTooltip, XAxis, YAxis, ZAxis } from "recharts";
 import { TipPlate } from "@/components/explorer-v2/staking/bits";
 import { cn } from "@/lib/utils";
-import { HEAD, ROW, RowDoor, idInk, fnInk } from "@/components/explorer-v2/ui";
+import { HEAD, ROW, idInk, fnInk } from "@/components/explorer-v2/ui";
 import { formatNumber, truncate } from "@/components/explorer-v2/format";
 import type { Names } from "@/lib/explorer-query/types";
 import type { ColumnMeta } from "@/lib/explorer-query/clickhouse";
-import type { Format, VisualSpec } from "@/lib/explorer-query/visual";
+import type { Format, Panel, VisualSpec } from "@/lib/explorer-query/visual";
 import { order } from "@/lib/explorer-query/selection";
+import { PERCENT_COLUMN } from "@/lib/explorer-query/stat-label";
+import { isAddress, isHash, isSelector, isTime } from "@/lib/explorer-query/values";
+import { rowBase } from "@/lib/explorer-query/target";
 import { fmt, fmtX, nameFor, spanOf } from "./QueryVisual";
+import { noteParts } from "./query-client";
+import type { DrillCut, DrillProfile } from "@/lib/explorer-query/drill-profile";
+import { DrillStrip, GUTTER, RIGHT } from "./QueryDrillStrip";
 
 /* The rows of a query answer, as the explorer reads them: the column
-   words, the doors out of a cell, the generic table, the transaction
-   ledger and the one-dot-per-transaction plot. Shared by the answer
-   page, its zoom and its rows inspector. */
+   words, the doors out of a cell and a row, the generic table, a table
+   panel and the one-dot-per-transaction plot. Shared by the answer page,
+   its zoom, its rows inspector and the board tiles. */
 
 export type Row = Record<string, unknown>;
 export type Span = ReturnType<typeof spanOf>;
@@ -53,18 +58,22 @@ export const header = (col: string) => HEADERS[col] ?? col.replace(/_/g, " ").re
 export function formatOf(col: string, visual: VisualSpec | null): Format {
   const fromVisual = visual?.panels.flatMap((p) => p.series).find((s) => s.column === col)?.format ?? visual?.stats.find((s) => s.column === col)?.format;
   if (fromVisual) return fromVisual;
-  if (/pct|share|percent|rate/.test(col)) return "percent";
+  // by the words of its name: generated holds no rate, shares no share, and a fee in usd is dollars
+  if (PERCENT_COLUMN.test(col)) return "percent";
+  if (/(?:^|_)usd(?:_|$)/.test(col)) return "usd";
   if (/avax|fee/.test(col)) return "avax";
   if (/gas/.test(col)) return "gas";
   return "number";
 }
 
-export const isAddress = (v: unknown): v is string => typeof v === "string" && /^0x[0-9a-fA-F]{40}$/.test(v);
-export const isHash = (v: unknown): v is string => typeof v === "string" && /^0x[0-9a-fA-F]{64}$/.test(v);
-export const isSelector = (v: unknown): v is string => typeof v === "string" && /^0x[0-9a-fA-F]{8}$/.test(v);
-export const isTime = (v: unknown): v is string => typeof v === "string" && /^\d{4}-\d{2}-\d{2}([ T]\d{2}:\d{2}(:\d{2})?)?$/.test(v);
+/** a column that holds transaction hashes, by its name: hash, tx_hash, transaction_hash, and any *_tx or *_tx_hash.
+    Elsewhere a 32-byte value is not known to be a transaction (a v4 pool id, a topic, a message id) and stays text */
+const TX_COLUMN = /^(?:hash|tx|txhash|tx_hash|transaction_hash)$|_tx(?:_hash)?$/;
 
-export function doorFor(col: string, v: unknown, base: string): string | null {
+/** the page a value opens; on the network's page, on the chain its row's chain_id names */
+export function doorFor(col: string, v: unknown, page: string, row?: Row): string | null {
+  const base = rowBase(page, row);
+  if (!base) return null;
   const c = col.toLowerCase();
   // P-Chain ids, as the query returns them: NodeID-…, P-avax1…, CB58 tx ids
   if (typeof v === "string") {
@@ -74,15 +83,36 @@ export function doorFor(col: string, v: unknown, base: string): string | null {
   }
   if (typeof v === "number" && Number.isInteger(v) && c === "block_height") return `${base}/block/${v}`;
   if (isAddress(v)) return `${base}/address/${v}`;
-  if (isHash(v)) return c.includes("block") ? null : `${base}/tx/${v}`;
+  if (isHash(v)) return TX_COLUMN.test(c) ? `${base}/tx/${v}` : null;
   if (typeof v === "number" && Number.isInteger(v) && (c === "block_number" || c === "block" || c.endsWith("_block"))) return `${base}/block/${v}`;
   return null;
+}
+
+/** a note as the page draws it: an address or a hash the writer named in full reads short, as readings
+    write it, and an address opens its own page; a hash stays text, since a note has no column to say it is a transaction */
+export function NoteText({ text, base }: { text: string; base: string }) {
+  return (
+    <>
+      {noteParts(text).map((p, i) => {
+        const door = p.hex ? doorFor("", p.hex, base) : null;
+        return door ? (
+          <Link key={i} href={door} title={p.hex} className={cn("font-mono text-[0.92em]", idInk, "hover:text-[#E6212F]")}>
+            {p.text}
+          </Link>
+        ) : (
+          p.text
+        );
+      })}
+    </>
+  );
 }
 
 export function fillTitle(template: string, row: Row, names: Names): string {
   return template.replace(/\{\{\s*([A-Za-z_]\w*)\s*(?::(?:bytes|raw))?\s*\}\}/g, (_m, col: string) => {
     const v = row[col];
     if (v === undefined || v === null) return "?";
+    // a time with a clock reads to the minute, in UTC: "the hour from 2026-09-29 15:00 UTC", not "15:00:00"
+    if (isTime(v) && v.length > 10) return `${v.replace("T", " ").replace(/( \d{2}:\d{2}):00$/, "$1")} UTC`;
     return nameFor(names, col, v) ?? (isAddress(v) || isHash(v) ? truncate(v, 6) : String(v));
   });
 }
@@ -94,11 +124,6 @@ export function duration(secs: number): string {
   if (secs < 5400) return `${Math.round(secs / 60)} min`;
   if (secs < 172800) return `${(secs / 3600).toFixed(1)} h`;
   return `${Math.round(secs / 86400)} days`;
-}
-
-export function ago(unix: number): string {
-  const s = Math.max(0, Math.floor(Date.now() / 1000) - unix);
-  return s < 60 ? `${s}s` : s < 3600 ? `${Math.floor(s / 60)}m` : s < 86400 ? `${Math.floor(s / 3600)}h` : `${Math.floor(s / 86400)}d`;
 }
 
 /* ------------------------------------------------------------------ */
@@ -118,6 +143,7 @@ export function ResultTable({
   lead,
   hoverKey,
   onHoverKey,
+  onHoverRow,
   step,
   hist = false,
 }: {
@@ -135,6 +161,8 @@ export function ResultTable({
   lead?: { x: string; col: string; max: number } | null;
   hoverKey?: unknown;
   onHoverKey?: (k: unknown) => void;
+  /** the row under the pointer, and null when it leaves */
+  onHoverRow?: (row: Row | null) => void;
   /** show this many rows, then this many more on each ask; unset, the first 200 */
   step?: number;
   /** a small histogram of each numeric or time column in its header */
@@ -166,8 +194,14 @@ export function ResultTable({
             onKeyDown={(e) => {
               if (onPick && e.key === "Enter" && e.target === e.currentTarget) onPick(r, i);
             }}
-            onMouseEnter={() => lead && onHoverKey?.(r[lead.x])}
-            onMouseLeave={() => lead && onHoverKey?.(undefined)}
+            onMouseEnter={() => {
+              if (lead) onHoverKey?.(r[lead.x]);
+              onHoverRow?.(r);
+            }}
+            onMouseLeave={() => {
+              if (lead) onHoverKey?.(undefined);
+              onHoverRow?.(null);
+            }}
             className={cn(
               ROW,
               "grid items-center",
@@ -189,7 +223,7 @@ export function ResultTable({
             {columns.map((c) => {
               const v = r[c.name];
               const name = nameFor(names, c.name, v);
-              const door = doorFor(c.name, v, base);
+              const door = doorFor(c.name, v, base, r);
               if (numeric.has(c.name)) {
                 const f = formatOf(c.name, visual);
                 return (
@@ -266,163 +300,81 @@ export function MiniHist({ rows, column, numeric }: { rows: Row[]; column: strin
   );
 }
 
-/* transactions, drawn as the explorer draws them everywhere else. The
-   columns follow what the query returned: the standard ones where they
-   exist, then whatever else it carried (an amount, a value, a token),
-   so the figure the question was about is never dropped. */
+/** the columns a list of transactions carries as standard; anything else is the query's own figure */
 export const LEDGER_KNOWN = new Set(["t", "tx_hash", "method_id", "from_address", "to_address", "block_number", "gas_charged", "fee_avax", "status"]);
 
-export function TxLedger({
+/** where one row of an answer opens: its transaction, for a list of
+    transactions, else the page of the thing a chart's axis names (a
+    contract, a validator, a block); null when it names nothing */
+export function rowDoor(row: Row, columns: ColumnMeta[], visual: VisualSpec | null, base: string): string | null {
+  const own = rowBase(base, row);
+  if (own && isTxList(columns) && isHash(row.tx_hash)) return `${own}/tx/${row.tx_hash}`;
+  for (const p of visual?.panels ?? []) {
+    const door = p.x ? doorFor(p.x, row[p.x], base, row) : null;
+    if (door) return door;
+  }
+  return null;
+}
+
+/* a table the designer laid out: its columns, in its order, the first
+   rows in place and the rest a click away. Hashes, addresses and blocks
+   are links; a row opens what it is about. */
+export function PanelRows({
+  panel,
   columns,
   rows,
   names,
   visual,
   base,
   sym,
-  hoverTx,
-  onHoverTx,
+  onPick,
+  onAll,
+  onHover,
+  limit = 10,
 }: {
+  panel: Panel;
   columns: ColumnMeta[];
   rows: Row[];
   names: Names;
   visual: VisualSpec | null;
   base: string;
   sym: string;
-  hoverTx?: string | null;
-  onHoverTx?: (h: string | null) => void;
+  onPick?: (row: Row) => void;
+  /** the row under the pointer, and null when it leaves */
+  onHover?: (row: Row | null) => void;
+  /** every row, in the sheet */
+  onAll?: () => void;
+  limit?: number;
 }) {
-  const has = new Set(columns.map((c) => c.name));
-  const extras = columns.filter((c) => !LEDGER_KNOWN.has(c.name));
-  const numericExtra = (c: ColumnMeta) => /Int|Float|Decimal/.test(c.type);
-  const cols: { key: string; head: string; width: string; right?: boolean }[] = [
-    { key: "status", head: "", width: "0.75rem" },
-    { key: "tx_hash", head: "Hash", width: "minmax(0,1.1fr)" },
-    ...(has.has("method_id") ? [{ key: "method_id", head: "Method", width: "minmax(0,1fr)" }] : []),
-    { key: "from_to", head: "From → To", width: "minmax(0,1.7fr)" },
-    ...extras.map((c) => ({ key: c.name, head: header(c.name), width: numericExtra(c) ? "8.5rem" : "minmax(0,1fr)", right: numericExtra(c) })),
-    ...(has.has("block_number") ? [{ key: "block_number", head: "Block", width: "6.5rem", right: true }] : []),
-    ...(has.has("gas_charged") ? [{ key: "gas_charged", head: "Gas charged", width: "6.5rem", right: true }] : []),
-    // fee = gas charged x price per gas: show the price so a row can be checked
-    ...(has.has("fee_avax") && has.has("gas_charged") ? [{ key: "__price", head: "nAVAX / gas", width: "6.5rem", right: true }] : []),
-    ...(has.has("fee_avax") ? [{ key: "fee_avax", head: "Fee", width: "minmax(0,7rem)", right: true }] : []),
-    ...(has.has("t") ? [{ key: "t", head: "Time (UTC)", width: "5rem", right: true }] : []),
-  ];
-  const tpl = { gridTemplateColumns: cols.map((c) => c.width).join(" ") };
-  // price per gas in nAVAX, and the list's median to spot tips far above it
-  const priceOf = (r: Row) => (typeof r.fee_avax === "number" && typeof r.gas_charged === "number" && r.gas_charged > 0 ? (r.fee_avax / r.gas_charged) * 1e9 : null);
-  const prices = rows.map(priceOf).filter((v): v is number => v !== null).sort((a, b) => a - b);
-  const median = prices.length ? prices[Math.floor(prices.length / 2)] : null;
-  const who = (col: string, v: unknown) => nameFor(names, col, v) ?? (isAddress(v) ? truncate(v, 6) : "");
-
-  const cell = (key: string, r: Row) => {
-    const v = r[key];
-    switch (key) {
-      case "status":
-        return <span className="flex h-3 w-3 items-center justify-center">{(v === 0 || v === "0") && <X className="h-3 w-3 text-[#E6212F]" strokeWidth={2.5} aria-label="reverted" />}</span>;
-      case "tx_hash":
-        return <span className={cn("min-w-0 truncate font-mono text-[12.5px]", idInk)}>{truncate(String(v), 6)}</span>;
-      case "method_id": {
-        const mName = nameFor(names, "method_id", v);
-        return (
-          <span className={cn("block min-w-0 truncate font-mono text-[12px]", mName ? fnInk : "text-zinc-400 dark:text-zinc-500")} title={String(v ?? "")}>
-            {mName ?? (v && v !== "0x" ? String(v).toLowerCase() : "transfer")}
-          </span>
-        );
-      }
-      case "from_to":
-        return (
-          <span className="flex min-w-0 items-center gap-1.5 font-mono text-[12px] text-zinc-500 dark:text-zinc-400">
-            <Link href={`${base}/address/${String(r.from_address)}`} className="truncate hover:text-[#E6212F]" title={String(r.from_address)}>
-              {who("from_address", r.from_address)}
-            </Link>
-            <span className="shrink-0 text-zinc-300 dark:text-zinc-700">→</span>
-            <Link href={`${base}/address/${String(r.to_address)}`} className="truncate hover:text-[#E6212F]" title={String(r.to_address)}>
-              {who("to_address", r.to_address)}
-            </Link>
-          </span>
-        );
-      case "block_number":
-        return (
-          <Link href={`${base}/block/${String(v)}`} className={cn("text-right font-mono text-[12px] tabular-nums hover:text-[#E6212F]", idInk)}>
-            {typeof v === "number" ? formatNumber(v) : String(v ?? "")}
-          </Link>
-        );
-      case "gas_charged":
-        return <span className="text-right font-mono text-[12px] tabular-nums text-zinc-500 dark:text-zinc-400">{typeof v === "number" ? formatNumber(v) : ""}</span>;
-      case "__price": {
-        const p = priceOf(r);
-        if (p === null) return <span />;
-        const over = median !== null && median > 0 && p > median * 20;
-        return (
-          <span
-            className={cn("text-right font-mono text-[12px] tabular-nums", over ? "text-amber-600 dark:text-amber-400" : "text-zinc-500 dark:text-zinc-400")}
-            title={over ? `${Math.round(p / median!)}x the list's median price: a priority tip far above the base fee` : "effective price per gas, fee / gas charged"}
-          >
-            {p >= 100 ? formatNumber(Math.round(p)) : p >= 1 ? p.toFixed(2) : p.toFixed(3)}
-          </span>
-        );
-      }
-      case "fee_avax":
-        return <span className="text-right font-mono text-[12px] tabular-nums text-zinc-900 dark:text-zinc-50">{typeof v === "number" ? fmt(v, "avax", sym) : ""}</span>;
-      case "t":
-        return (
-          <span className="text-right font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400" title={isTime(v) ? `${ago(toUnix(v))} ago` : undefined}>
-            {isTime(v) ? v.replace("T", " ").slice(11, 19) : ""}
-          </span>
-        );
-      default: {
-        // the query's own figures: an amount in a token, a value, a label
-        const name = nameFor(names, key, v);
-        if (typeof v === "number") return <span className="text-right font-mono text-[12.5px] tabular-nums text-zinc-900 dark:text-zinc-50">{fmt(v, formatOf(key, visual), sym)}</span>;
-        if (isAddress(v))
-          return (
-            <Link href={`${base}/address/${v}`} className={cn("min-w-0 truncate font-mono text-[12px] hover:text-[#E6212F]", name ? "text-zinc-900 dark:text-zinc-50" : idInk)} title={v}>
-              {name ?? truncate(v, 6)}
-            </Link>
-          );
-        return <span className="min-w-0 truncate font-mono text-[12px] text-zinc-600 dark:text-zinc-300">{name ?? String(v ?? "")}</span>;
-      }
-    }
-  };
-
+  const named = panel.series.map((s) => columns.find((c) => c.name === s.column)).filter((c): c is ColumnMeta => !!c);
+  const cols = named.length ? named : columns;
+  const when = cols.find((c) => isTime(rows[0]?.[c.name]))?.name;
+  const span = when ? spanOf(rows.map((r) => r[when])) : "other";
+  if (!rows.length) return <p className="py-6 font-mono text-[12px] text-zinc-400 dark:text-zinc-500">No rows in this selection.</p>;
   return (
-    <div className="overflow-x-auto">
-      <div className="min-w-[48rem] divide-y divide-zinc-200 dark:divide-zinc-800">
-        <div className={cn(HEAD, "grid")} style={tpl}>
-          {cols.map((c) => (
-            <span key={c.key} className={cn("truncate", c.right && "text-right")}>
-              {c.head}
-            </span>
-          ))}
-        </div>
-        {rows.map((r, i) => {
-          const hash = String(r.tx_hash);
-          return (
-            <RowDoor
-              key={`${hash}-${i}`}
-              id={`rec-${hash}`}
-              href={`${base}/tx/${hash}`}
-              onMouseEnter={() => onHoverTx?.(hash)}
-              onMouseLeave={() => onHoverTx?.(null)}
-              style={tpl}
-              className={cn(ROW, "grid items-center", hoverTx === hash && "bg-zinc-50 dark:bg-zinc-900")}
-            >
-              {cols.map((c) => (
-                <span key={c.key} className={cn("min-w-0", c.right && "text-right")}>
-                  {cell(c.key, r)}
-                </span>
-              ))}
-            </RowDoor>
-          );
-        })}
+    <div className="flex flex-col">
+      <div className="-mx-4 sm:-mx-5">
+        <ResultTable columns={cols} rows={rows.slice(0, limit)} names={names} visual={visual} base={base} sym={sym} span={span} picked={null} onPick={onPick ? (r) => onPick(r) : undefined} onHoverRow={onHover} />
       </div>
+      {rows.length > limit && onAll && (
+        <button
+          type="button"
+          onClick={onAll}
+          className="self-start rounded-full px-3 py-1.5 font-mono text-[11px] text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-900 -ml-3 mt-1 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-zinc-50"
+        >
+          All {formatNumber(rows.length)} rows
+        </button>
+      )}
     </div>
   );
 }
 
 /* the records themselves, as a chart: one dot per transaction, placed
    by when it landed and what it cost, red where it reverted. Hover a dot
-   and its row lights; click it and the transaction opens. */
+   and its row lights; click it and the transaction opens. Records a LIMIT
+   cut from a bigger population stand over that population's strip, so a
+   burst of the day's largest fees reads as a burst, not as the rest of
+   the day missing. */
 export function RecordPlot({
   rows,
   names,
@@ -430,6 +382,10 @@ export function RecordPlot({
   sym,
   hoverTx,
   onHoverTx,
+  span,
+  cut,
+  whole,
+  profile,
 }: {
   rows: Row[];
   names: Names;
@@ -437,31 +393,85 @@ export function RecordPlot({
   sym: string;
   hoverTx: string | null;
   onHoverTx: (h: string | null) => void;
+  /** the bucket the records stand in, in unix seconds: the opened mark's day, hour or five minutes */
+  span?: [number, number] | null;
+  /** the records' cut when a LIMIT ends them: "the 50 largest fees", "the 50 latest" */
+  cut?: DrillCut | null;
+  /** the records are all the bucket holds: no LIMIT cut any */
+  whole?: boolean;
+  /** a ranked cut's whole population over the bucket, in bins */
+  profile?: DrillProfile | null;
 }) {
   const router = useRouter();
+  const [now] = useState(() => Date.now() / 1000);
   // plot the figure that actually varies: a run of calls all charged the
   // half-limit floor is a flat line in gas and still spreads in fee
   const spread = (k: string) => new Set(rows.map((r) => r[k]).filter((v) => typeof v === "number")).size;
-  // the query's own figure (an amount) first, then gas, then fee
+  // the figure the rows are ranked by first (the 50 largest fees plot their fees), then the query's own figure (an
+  // amount), then gas, then fee
+  const ranked = cut && !cut.byTime && typeof rows[0]?.[cut.col] === "number" && spread(cut.col) > 1 ? cut.col : undefined;
   const own = Object.keys(rows[0] ?? {}).find((k) => !LEDGER_KNOWN.has(k) && typeof rows[0][k] === "number" && spread(k) > 1);
-  const yCol = own ?? (spread("gas_charged") > 1 ? "gas_charged" : spread("fee_avax") > 0 ? "fee_avax" : spread("gas_charged") > 0 ? "gas_charged" : null);
+  const yCol = ranked ?? own ?? (spread("gas_charged") > 1 ? "gas_charged" : spread("fee_avax") > 0 ? "fee_avax" : spread("gas_charged") > 0 ? "gas_charged" : null);
   const timed = rows.every((r) => isTime(r.t));
   if (!yCol || rows.length < 2) return null;
-  const pts = rows.map((r, i) => ({
-    x: timed ? toUnix(String(r.t)) : i,
-    y: r[yCol] as number,
-    hash: String(r.tx_hash),
-    failed: r.status === 0 || r.status === "0",
-    method: nameFor(names, "method_id", r.method_id) ?? (r.method_id && r.method_id !== "0x" ? String(r.method_id).toLowerCase() : "transfer"),
-    from: nameFor(names, "from_address", r.from_address) ?? (isAddress(r.from_address) ? truncate(r.from_address, 5) : ""),
-    row: r,
-  }));
+  const pts = rows
+    .map((r, i) => ({
+      x: timed ? toUnix(String(r.t)) : i,
+      y: r[yCol] as number,
+      hash: String(r.tx_hash),
+      failed: r.status === 0 || r.status === "0",
+      method: nameFor(names, "method_id", r.method_id) ?? (r.method_id && r.method_id !== "0x" ? String(r.method_id).toLowerCase() : "transfer"),
+      from: nameFor(names, "from_address", r.from_address) ?? (isAddress(r.from_address) ? truncate(r.from_address, 5) : ""),
+      row: r,
+    }))
+    // reverted dots draw last, over the rest
+    .sort((p, q) => Number(p.failed) - Number(q.failed));
   const clock = (u: number) => new Date(u * 1000).toISOString().slice(11, 19);
+  // records that all fall in the opened mark's bucket stand across all of it: the 50 largest fees of a day are the
+  // burst they are, not a gap in the day. The 50 latest are no sample of the bucket but its last seconds: they plot
+  // across the seconds they cover, not in a corner of the bucket
+  const within = timed && span && !cut?.byTime && pts.every((p) => p.x >= span[0] && p.x <= span[1]) ? span : null;
+  const len = within ? within[1] - within[0] : 0;
+  // round ticks: 6 h across a day, 15 min across an hour, a minute across five minutes, a day across a week
+  const tickStep = [60, 300, 900, 3600, 21_600, 86_400, 7 * 86_400].find((t) => len / t <= 7) ?? len / 4;
+  const ticks = within ? Array.from({ length: Math.floor(len / tickStep) + 1 }, (_, i) => within[0] + i * tickStep) : undefined;
+  // a time as the bucket reads it: with its day past a day, to the minute from an hour, else to the second
+  const short = len > 86_400 ? (u: number) => new Date(u * 1000).toISOString().slice(5, 16).replace("T", " ") : len >= 3600 ? (u: number) => clock(u).slice(0, 5) : clock;
+  const tickText = (v: number) => {
+    if (!timed) return `#${v + 1}`;
+    if (!within) return clock(v);
+    if (len > 86_400) return new Date(v * 1000).toISOString().slice(5, 10);
+    // a day ends at 24:00, not at the next day's 00:00
+    if (v === within[1] && len === 86_400) return "24:00";
+    return clock(v).slice(0, 5);
+  };
   const yFmt: Format = yCol === "fee_avax" ? "avax" : yCol === "gas_charged" ? "gas" : "compact";
+  const noun = rows.some((r) => "amount" in r) ? "transfers" : "transactions";
+  const strip = within && cut && !cut.byTime && profile?.bins.length ? profile : null;
+  const total = strip ? strip.bins.reduce((n, b) => n + b.n, 0) : 0;
+  // a bucket still running ends at now: its rest is time to come, not a gap
+  const running = within && now < within[1] ? Math.max(now, within[0]) : null;
+  // the records of a ranked cut that bunch in under half the bucket (the part of it gone by) say where they landed
+  const xs = pts.map((p) => p.x);
+  const [first, last] = [Math.min(...xs), Math.max(...xs)];
+  const bunched = within && cut && !cut.byTime && last - first < ((running ?? within[1]) - within[0]) / 2;
+  const landed = short(first) === short(last) ? `at ${short(first)}` : `${short(first)} to ${short(last)}`;
+  const figure = (v: number) => (yFmt === "avax" && strip?.col === yCol ? `${fmt(v, "avax", sym)} in fees` : `${strip?.agg === "max" ? "largest" : "total"} ${header(strip?.col ?? yCol).toLowerCase()} ${fmt(v, formatOf(strip?.col ?? yCol, null), sym)}`);
   return (
     <div className="flex flex-col gap-2 border-b border-zinc-200 px-5 pb-3 pt-4 md:px-6 dark:border-zinc-800">
       <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1 font-mono text-[10px] text-zinc-500 dark:text-zinc-400">
-        <span className="font-bold uppercase tracking-[0.18em]">{yCol === "fee_avax" ? "Fee" : yCol === "gas_charged" ? "Gas charged" : header(yCol)} per transaction</span>
+        <span className="font-bold uppercase tracking-[0.18em]">
+          {yCol === "fee_avax" ? "Fee" : yCol === "gas_charged" ? "Gas charged" : header(yCol)} per transaction{yFmt === "avax" ? ` (${sym})` : ""}
+        </span>
+        {cut ? (
+          <span>
+            {cut.words}
+            {total ? ` of ${formatNumber(total)} ${noun}` : ""}
+            {bunched ? `, all ${pts.length} landed ${landed} UTC` : ""}
+          </span>
+        ) : (
+          whole && <span>all {formatNumber(rows.length)} {noun}</span>
+        )}
         <span className="flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full bg-zinc-900 dark:bg-zinc-100" />
           succeeded
@@ -471,13 +481,15 @@ export function RecordPlot({
           reverted
         </span>
       </div>
-      <div className="h-44 cursor-pointer text-zinc-900 dark:text-zinc-100">
+      <div className={cn("cursor-pointer text-zinc-900 dark:text-zinc-100", strip ? "h-36" : "h-44")}>
         <ResponsiveContainer width="100%" height="100%">
-          <ScatterChart margin={{ top: 6, right: 12, left: 0, bottom: 0 }}>
+          {/* the hidden x axis leaves the 0 tick no room below the plot: give it some */}
+          <ScatterChart margin={{ top: 6, right: RIGHT, left: 0, bottom: strip ? 6 : 0 }}>
             <CartesianGrid stroke="rgba(161,161,170,0.18)" />
-            <XAxis type="number" dataKey="x" domain={["dataMin", "dataMax"]} tickFormatter={(v) => (timed ? clock(v) : `#${v + 1}`)} tick={{ fontSize: 10, fontFamily: "var(--font-geist-mono)" }} tickLine={false} axisLine={false} />
-            <YAxis type="number" dataKey="y" tickFormatter={(v) => fmt(v, yFmt, sym, true)} tick={{ fontSize: 10, fontFamily: "var(--font-geist-mono)" }} tickLine={false} axisLine={false} width={56} />
+            <XAxis type="number" dataKey="x" hide={!!strip} domain={within ?? ["dataMin", "dataMax"]} ticks={ticks} allowDecimals={false} tickFormatter={tickText} tick={{ fontSize: 10, fontFamily: "var(--font-geist-mono)" }} tickLine={false} axisLine={false} />
+            <YAxis type="number" dataKey="y" interval={0} tickFormatter={(v) => fmt(v, yFmt, sym, true)} tick={{ fontSize: 10, fontFamily: "var(--font-geist-mono)" }} tickLine={false} axisLine={false} width={GUTTER} />
             <ZAxis range={[36, 36]} />
+            {running && within && <ReferenceArea x1={running} x2={within[1]} fill="rgba(161,161,170,0.1)" stroke="none" ifOverflow="hidden" />}
             <RechartsTooltip
               cursor={{ stroke: "rgba(161,161,170,0.4)" }}
               content={({ active, payload }) => {
@@ -504,7 +516,10 @@ export function RecordPlot({
               isAnimationActive={false}
               onMouseEnter={(d: { payload?: { hash: string } }) => onHoverTx(d?.payload?.hash ?? null)}
               onMouseLeave={() => onHoverTx(null)}
-              onClick={(d: { payload?: { hash: string } }) => d?.payload?.hash && router.push(`${base}/tx/${d.payload.hash}`)}
+              onClick={(d: { payload?: { hash: string; row: Row } }) => {
+                const own = d?.payload?.hash ? rowBase(base, d.payload.row) : null;
+                if (own) router.push(`${own}/tx/${d.payload!.hash}`);
+              }}
             >
               {pts.map((p, i) => (
                 <Cell
@@ -520,6 +535,7 @@ export function RecordPlot({
           </ScatterChart>
         </ResponsiveContainer>
       </div>
+      {strip && within && ticks && <DrillStrip profile={strip} total={total} within={within} ticks={ticks} tickText={tickText} clock={short} noun={noun} figure={figure} />}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { utils } from "@avalabs/avalanchejs";
+import { utils } from "@avalanche-sdk/client/utils";
 import { fromBytes } from "viem";
 
 // Parses a NodeID- string to a hex string without the prefix and last 8 bytes

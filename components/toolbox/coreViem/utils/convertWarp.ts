@@ -1,7 +1,7 @@
 // FIXME: this is a quick hack solution until AvalancheJS supports this
 // Please don't copy this code to other projects!
 import { sha256 } from '@noble/hashes/sha256';
-import { utils } from '@avalabs/avalanchejs';
+import { utils } from '@avalanche-sdk/client/utils';
 // Assuming Buffer is available via avalanchejs or node polyfill
 
 // Helper function to convert Uint8Array to Buffer for hex encoding if needed

@@ -1,7 +1,7 @@
 import type { AuditorRequestView } from "@/server/services/audits/visibility";
 import { CARD, MONO_LABEL_SM } from "@/components/audits/shared/classes";
 import { StatusBadge } from "@/components/audits/shared/StatusBadge";
-import { formatIsoDate, formatUsd, weeksLabel } from "@/components/audits/shared/format";
+import { durationLabel, formatIsoDate, formatUsd } from "@/components/audits/shared/format";
 
 type OwnQuote = NonNullable<AuditorRequestView["own_quote"]>;
 
@@ -10,6 +10,20 @@ const FOOT_BY_STATUS: Record<string, string> = {
   not_selected: "The project chose another provider. Your quote stays private; new requests keep arriving in your inbox.",
 };
 
+function footLine(quote: OwnQuote, pickBy: Date | string | null): string {
+  const settled = FOOT_BY_STATUS[quote.status];
+  if (settled) return settled;
+  // Dated, never "a week after the window": under the release grace that
+  // would be false.
+  if (pickBy && quote.display_status === "expired") {
+    return `The project picked no quote by ${formatIsoDate(pickBy)}. Your quote has expired.`;
+  }
+  if (pickBy && quote.display_status === "submitted") {
+    return `The project picks a quote by ${formatIsoDate(pickBy)}. If it picks none, your quote expires.`;
+  }
+  return "Quotes can no longer be edited. The project and program admins still see it.";
+}
+
 /**
  * Read-only state of the composer once the request is decided or the window
  * closed: the numbers stay visible, nothing is editable, no CTA.
@@ -17,21 +31,25 @@ const FOOT_BY_STATUS: Record<string, string> = {
 export function QuoteSummary({
   quote,
   subsidy,
+  pickBy = null,
 }: {
   quote: OwnQuote;
   /** Set only on a won request with an approved subsidy. */
   subsidy?: AuditorRequestView["subsidy"];
+  /** The project's pick-by date, once the window has closed on a request
+      still collecting; null otherwise. */
+  pickBy?: Date | string | null;
 }) {
   return (
     <div className={`${CARD} p-5`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className={MONO_LABEL_SM}>Your quote · window closed</p>
-        <StatusBadge kind="quote" status={quote.status} />
+        <StatusBadge kind="quote" status={quote.display_status} />
       </div>
       <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <p className="font-mono text-2xl font-bold">{formatUsd(quote.price_usd)}</p>
         <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-zinc-500 dark:text-zinc-400">
-          {weeksLabel(quote.duration_weeks)} · starts {formatIsoDate(quote.earliest_start)}
+          {durationLabel(quote.duration, quote.duration_unit)} · starts {formatIsoDate(quote.earliest_start)}
         </p>
       </div>
       {quote.deal_doc_url ? (
@@ -66,8 +84,7 @@ export function QuoteSummary({
         </div>
       ) : null}
       <p className="mt-4 border-t border-zinc-200 pt-3 text-xs text-zinc-500 dark:border-white/10 dark:text-zinc-400">
-        {FOOT_BY_STATUS[quote.status] ??
-          "Quotes can no longer be edited. The project and program admins still see it."}
+        {footLine(quote, pickBy)}
       </p>
     </div>
   );

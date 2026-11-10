@@ -12,7 +12,7 @@ import { CB58ToHex } from '@avalanche-sdk/client/utils';
 import { useIcttBridgeStore } from '@/components/toolbox/stores/iccttBridgeStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useL1ByChainId } from '@/components/toolbox/stores/l1ListStore';
-import { BaseError, ContractFunctionRevertedError, encodeFunctionData, parseEventLogs } from 'viem';
+import { BaseError, ContractFunctionRevertedError, parseEventLogs } from 'viem';
 import TeleporterMessengerAbi from '@/contracts/icm-contracts/compiled/TeleporterMessenger.json';
 import { truncateAddress } from '../utils/explorer-url';
 import type { Address, Bridge, Remote } from '../types';
@@ -51,7 +51,6 @@ export function useSendTokens({ bridge, remote }: UseSendTokensOptions) {
   const updateActivity = useIcttBridgeStore((s) => s.updateActivity);
   const walletChainId = useWalletStore((s) => s.walletChainId);
   const walletEVMAddress = useWalletStore((s) => s.walletEVMAddress);
-  const isTestnet = useWalletStore((s) => s.isTestnet);
   const homeL1 = useL1ByChainId(bridge?.homeL1Id ?? '');
   const [stage, setStage] = useState<'idle' | 'approving' | 'confirming' | 'sending' | 'submitted' | 'error'>('idle');
   const [error, setError] = useState<Error | null>(null);
@@ -177,51 +176,6 @@ export function useSendTokens({ bridge, remote }: UseSendTokensOptions) {
           }
         } catch (simErr) {
           const decoded = decodeSimulateRevert(simErr);
-          // On Fuji, fall back to `debug_traceCall` for richer revert context.
-          // `decodeSimulateRevert` only knows the errors in TokenHome's ABI, so
-          // bubbled-up errors like `ERC20InsufficientAllowance` from the
-          // underlying token can't be named here. The trace returns the actual
-          // revert reason from any depth in the call stack.
-          if (isTestnet) {
-            try {
-              const homeAbi = bridge.kind === 'native-home' ? NativeTokenHomeAbi.abi : ERC20TokenHomeAbi.abi;
-              const callData = encodeFunctionData({
-                abi: homeAbi,
-                functionName: 'send',
-                args: [input, params.amount],
-              });
-              const traceResp = await fetch('/api/debug-rpc', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  method: 'debug_traceCall',
-                  params: [
-                    {
-                      from: walletEVMAddress,
-                      to: bridge.homeAddress,
-                      data: callData,
-                      ...(bridge.kind === 'native-home' ? { value: `0x${params.amount.toString(16)}` } : {}),
-                    },
-                    'latest',
-                    { tracer: 'callTracer' },
-                  ],
-                }),
-              });
-              if (traceResp.ok) {
-                const traceData = await traceResp.json();
-                const reason: string | undefined = traceData?.result?.revertReason || traceData?.result?.error;
-                if (reason && (!decoded || !decoded.includes(reason))) {
-                  throw new Error(decoded ? `${decoded} (trace: ${reason})` : `Send simulation reverted: ${reason}`);
-                }
-              }
-            } catch (traceErr) {
-              // Re-throw if the trace produced our enhanced error; otherwise
-              // fall through and surface the plain decoded message below.
-              if (traceErr instanceof Error && traceErr.message.startsWith('Send simulation')) {
-                throw traceErr;
-              }
-            }
-          }
           throw new Error(decoded ?? 'Send simulation reverted with no decoded reason.');
         }
       }

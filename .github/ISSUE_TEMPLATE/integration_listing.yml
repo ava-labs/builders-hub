@@ -1,0 +1,163 @@
+name: Integration listing
+description: Ask us to add your integration to the integrations page, or to change your listing.
+title: "[Integration]: "
+labels: ["Integrations"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form to ask for a new listing on the [integrations page](https://build.avax.network/integrations), or for a change to a listing. The Ava Labs team makes the page from your answers.
+
+        This issue is public. Do not write private information in it.
+  - type: dropdown
+    id: request-type
+    attributes:
+      label: Request type
+      options:
+        - Add a listing
+        - Change a listing
+    validations:
+      required: true
+  - type: input
+    id: listing-url
+    attributes:
+      label: Current listing URL
+      description: Use this field only for a change. Give the URL of your current listing.
+      placeholder: https://build.avax.network/integrations/example-protocol
+  - type: input
+    id: name
+    attributes:
+      label: Integration name
+      description: Give the name to show on the page.
+      placeholder: Example Protocol
+    validations:
+      required: true
+  - type: input
+    id: developer
+    attributes:
+      label: Company or developer
+      placeholder: Example Labs
+    validations:
+      required: true
+  - type: input
+    id: website
+    attributes:
+      label: Website URL
+      placeholder: https://example.com
+    validations:
+      required: true
+  - type: input
+    id: documentation
+    attributes:
+      label: Documentation URL
+      description: If you have no public documentation, do not complete this field.
+      placeholder: https://docs.example.com
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      description: Select the category that fits best. If no category fits, select "Other" and write the category in the next field.
+      options:
+        - Analytics & Data
+        - Assets
+        - Audit Firms
+        - Blockchain as a Service
+        - Chain Abstraction
+        - Crosschain Solutions
+        - Custody
+        - Data Feeds
+        - DeFi
+        - Developer Tooling
+        - Development Infrastructure
+        - Enterprise Solutions
+        - Explorers
+        - Fiat On-Ramp
+        - Hardware Wallets
+        - Indexers
+        - KYC / Identity Verification
+        - Mini-Apps
+        - Oracles
+        - Orchestrators
+        - Payments
+        - Privacy
+        - RPC Endpoints
+        - Security Audits
+        - Security Tooling
+        - Stablecoins as a Service
+        - Token Aggregators
+        - Tokenization Platforms
+        - Validator Infrastructure
+        - Validator Marketplace
+        - VRF
+        - Wallets and Account Abstraction
+        - x402
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: other-category
+    attributes:
+      label: Other category
+      description: Use this field only if you selected "Other".
+  - type: checkboxes
+    id: chains
+    attributes:
+      label: Supported chains
+      description: Select each chain that your integration supports.
+      options:
+        - label: C-Chain
+        - label: All Avalanche L1s
+        - label: P-Chain
+        - label: X-Chain
+  - type: textarea
+    id: l1s
+    attributes:
+      label: Supported L1s
+      description: If your integration supports specific Avalanche L1s, give the name and the chain ID of each L1.
+      placeholder: Example L1 (chain ID 12345)
+  - type: input
+    id: description
+    attributes:
+      label: Short description
+      description: Write one sentence. The integrations page shows it on your card and at the top of your page.
+      placeholder: Example Protocol gives lending and borrowing markets on the Avalanche C-Chain.
+    validations:
+      required: true
+  - type: textarea
+    id: content
+    attributes:
+      label: Page content
+      description: "Write the text for your page in Markdown. Use these sections: Overview, Features, Getting Started, Use Cases, Documentation. Write technical facts. Do not use marketing language."
+      placeholder: |
+        ## Overview
+
+        ## Features
+
+        ## Getting Started
+
+        ## Use Cases
+
+        ## Documentation
+    validations:
+      required: true
+  - type: textarea
+    id: logo
+    attributes:
+      label: Logo
+      description: Drag your logo file into this box. Use a square PNG or SVG file, 200 x 200 px or larger, with a transparent or solid background.
+    validations:
+      required: true
+  - type: input
+    id: contact
+    attributes:
+      label: Contact
+      description: Give an email address, a Telegram handle or a GitHub handle. We use it for questions about this request. Other people can see it.
+    validations:
+      required: true
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Confirmation
+      options:
+        - label: The information in this request is correct, and my team has the right to publish the logo.
+          required: true

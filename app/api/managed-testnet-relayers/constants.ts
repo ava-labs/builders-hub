@@ -1,22 +1,22 @@
-// Reuse the same base URLs as managed testnet nodes
-export let MANAGED_TESTNET_RELAYERS_SERVICE_URL = process.env.MANAGED_NODES_OVERRIDE ||
-  (process.env.VERCEL_ENV === "production"
-    ? 'https://nodes-prod.43.207.73.245.sslip.io'
-    : 'https://nodes-staging.35.74.237.34.sslip.io');
+// Same service as managed testnet nodes — see its constants.ts.
+export let MANAGED_TESTNET_RELAYERS_SERVICE_URL =
+  process.env.MANAGED_NODES_OVERRIDE || 'https://managed-nodes.avax.network';
 
 if (MANAGED_TESTNET_RELAYERS_SERVICE_URL.endsWith('/')) {
   MANAGED_TESTNET_RELAYERS_SERVICE_URL = MANAGED_TESTNET_RELAYERS_SERVICE_URL.slice(0, -1);
 }
 
+// The admin password goes in the x-admin-password header, not the URL, so it
+// stays out of request logs.
 export const RelayerServiceURLs = {
-  list: (password: string) => 
-    `${MANAGED_TESTNET_RELAYERS_SERVICE_URL}/node_admin/relayers?password=${password}`,
-  create: (password: string) => 
-    `${MANAGED_TESTNET_RELAYERS_SERVICE_URL}/node_admin/relayers?password=${password}`,
-  delete: (relayerId: string, password: string) => 
-    `${MANAGED_TESTNET_RELAYERS_SERVICE_URL}/node_admin/relayers/${relayerId}?password=${password}`,
-  restart: (relayerId: string, password: string) => 
-    `${MANAGED_TESTNET_RELAYERS_SERVICE_URL}/node_admin/relayers/${relayerId}/restart?password=${password}`,
+  list: () =>
+    `${MANAGED_TESTNET_RELAYERS_SERVICE_URL}/node_admin/relayers`,
+  create: () =>
+    `${MANAGED_TESTNET_RELAYERS_SERVICE_URL}/node_admin/relayers`,
+  delete: (relayerId: string) =>
+    `${MANAGED_TESTNET_RELAYERS_SERVICE_URL}/node_admin/relayers/${relayerId}`,
+  restart: (relayerId: string) =>
+    `${MANAGED_TESTNET_RELAYERS_SERVICE_URL}/node_admin/relayers/${relayerId}/restart`,
 };
 
 export const RELAYER_TTL_MS = 3 * 24 * 60 * 60 * 1000; // 3 days

@@ -4,7 +4,7 @@
 // services chips; do not fork these lists locally. "AI security scan" was
 // added for v1.1 (Joey's ask 3, 2026-09); it is not in the design package.
 
-import type { DeploymentTarget, UrgencyOption } from "@/lib/audits/status";
+import type { DeploymentTarget, QuoteDurationUnit, UrgencyOption } from "@/lib/audits/status";
 
 export const AUDIT_PROJECT_TYPES = [
   "DeFi protocol",
@@ -57,9 +57,18 @@ export const URGENCY_LABELS: Record<UrgencyOption, string> = {
 
 // Verbatim helper copy the designs repeat; kept here so screens cannot drift.
 export const QUOTE_DEADLINE_DEFAULT_DAYS = 10;
-/** A quote's duration ceiling: one year. Shared so the composer's message and
-    the schema's cap can never drift apart. */
-export const MAX_QUOTE_WEEKS = 52;
+/** Days a project has to accept a quote once its quote window closes (Joey,
+    2026-10-13). Past that pick-by date the quotes expire and the project starts
+    again from a copy. */
+export const DECISION_WINDOW_DAYS = 7;
+/** No decision window counts from before this day: a request whose quote window
+    closed earlier gets its week from here, so no project loses its quotes
+    overnight at release (Federico, 2026-10-16). A later date only adds grace;
+    if the merge lands after it, move it to the release day first. */
+export const DECISION_LIMIT_START = new Date("2026-10-23T00:00:00Z");
+/** A quote's duration ceiling: one year, in whichever unit the firm quotes.
+    Shared so the composer's message and the schema's cap can never drift apart. */
+export const MAX_QUOTE_DURATION: Record<QuoteDurationUnit, number> = { weeks: 52, days: 365 };
 /** Approved teammate addresses per firm, on top of the quote email. Bounds the
     invite blast radius of one mistaken add, admin or firm; raise here if a firm
     needs more. */
@@ -68,4 +77,10 @@ export const AUDITOR_MEMBER_LIMIT = 10;
     whitelist outgrows it (16 firms today). */
 export const SHORTLIST_LIMIT = 50;
 export const QUOTE_DEADLINE_HELPER_COPY =
-  "Defaulted to +10 days · the recommended window for competitive quotes.";
+  "Closes at 23:59 UTC that day · defaulted to +10 days, the recommended window.";
+/** Said the same way in the approval email and on the request page's GitHub
+    card (FDE-249 step 2). */
+export const GITHUB_PROFILE_WARNING =
+  "Open each profile before you invite it: each person types their own username, and a typo would give a stranger access.";
+export const GITHUB_ACCESS_LIMITS =
+  "On a repository owned by your personal account, GitHub gives every collaborator write access. Read-only access needs a repository owned by an organization, where each outside collaborator takes a paid seat unless the organization is on the free plan. Invitations expire after 7 days.";

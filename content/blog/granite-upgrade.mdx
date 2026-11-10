@@ -140,7 +140,7 @@ Two new headers have been introduced as part of ACP-226 for dynamic block time m
 1. **`timestampMilliseconds`** (uint64) - Timestamp in milliseconds for more precise block timing
 2. **`minDelayExcess`** (uint64) - Tracks the excess delay for dynamic block time adjustments
 
-See the [full changelog](https://github.com/ava-labs/avalanchego/blob/master/graft/coreth/RELEASES.md#pending-release) for implementation details.
+See the [AvalancheGo v1.14.0 release notes](https://github.com/ava-labs/avalanchego/releases/tag/v1.14.0) for implementation details.
 
 #### For L1s
 
@@ -181,7 +181,7 @@ Three new API methods have been added to support the Granite upgrade features:
 
 #### For L1 Operators
 
-Add the `--min-delay-target` parameter to your [subnet-evm chain config](https://build.avax.network/docs/nodes/chain-configs/subnet-evm) to enable sub-second minimum block times:
+Add the `--min-delay-target` parameter to your [subnet-evm chain config](https://build.avax.network/docs/nodes/chain-configs/avalanche-l1s/subnet-evm) to enable sub-second minimum block times:
 
 ```json
 {

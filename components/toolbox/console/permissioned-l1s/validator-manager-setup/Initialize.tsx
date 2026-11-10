@@ -2,11 +2,13 @@
 
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { Button } from '@/components/toolbox/components/Button';
 import { AbiEvent } from 'viem';
 import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
 import SelectSubnetId from '@/components/toolbox/components/SelectSubnetId';
+import { PRIMARY_NETWORK_SUBNET_ID } from '@/components/toolbox/components/InputSubnetId';
+import { VmcChainSwitchBanner } from '@/components/toolbox/console/add-validator/VmcChainSwitchBanner';
 import { CB58ToHex } from '@avalanche-sdk/client/utils';
 import { initializeValidatorManager } from '@avalanche-sdk/interchain/validator-manager';
 import { useViemChainStore, useToolboxStore } from '@/components/toolbox/stores/toolboxStore';
@@ -22,9 +24,10 @@ import {
 import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
-import { utils } from '@avalabs/avalanchejs';
+import { utils } from '@avalanche-sdk/client/utils';
 import { ContractFunctionViewer } from '@/components/console/contract-function-viewer';
 import { Alert } from '@/components/toolbox/components/Alert';
+import { Success } from '@/components/toolbox/components/Success';
 import { Check, RefreshCw, AlertCircle } from 'lucide-react';
 import versions from '@/scripts/versions.json';
 import { readInitializedState } from './initializedState';
@@ -48,6 +51,9 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
   const [churnPeriodSeconds, setChurnPeriodSeconds] = useState('0');
   const [maximumChurnPercentage, setMaximumChurnPercentage] = useState('20');
   const [adminAddress, setAdminAddress] = useState('');
+  // The initialize() call this visit made, by manager address
+  const [initTx, setInitTx] = useState<{ manager: string; hash: string } | null>(null);
+  const fieldId = useId();
   const viemChain = useViemChainStore();
 
   const chainPublicClient = useChainPublicClient();
@@ -78,13 +84,16 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
     }
   }, [walletEVMAddress, adminAddress]);
 
+  // A wallet on the L1 names the subnet. The create flow's subnet stands in
+  // only when the wallet is on the C-Chain (a manager hosted there): the
+  // persisted value can come from an older run, and initialize() binds the
+  // manager to its subnet for good.
+  const walletSubnetId =
+    selectedL1?.subnetId && selectedL1.subnetId !== PRIMARY_NETWORK_SUBNET_ID ? selectedL1.subnetId : '';
   useEffect(() => {
-    if (createChainStoreSubnetId && !subnetId) {
-      setSubnetId(createChainStoreSubnetId);
-    } else if (selectedL1?.subnetId && selectedL1.subnetId !== '11111111111111111111111111111111LpoYY' && !subnetId) {
-      setSubnetId(selectedL1.subnetId);
-    }
-  }, [createChainStoreSubnetId, selectedL1, subnetId]);
+    const next = walletSubnetId || createChainStoreSubnetId;
+    if (next) setSubnetId(next);
+  }, [walletSubnetId, createChainStoreSubnetId]);
 
   // Auto-check initialization status when manager address is available
   // (e.g. carried over from a previous step in the flow)
@@ -130,14 +139,15 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
         // owner() unreadable (not a contract, RPC hiccup): fall through to the event scan below
       }
 
+      // The public C-Chain RPC answers eth_getLogs for at most 100 blocks, both ends counted, and rejects a wider range
       const latestBlock = await chainPublicClient.getBlockNumber();
-      const fromBlock = latestBlock > 2000n ? latestBlock - 2000n : 0n;
+      const fromBlock = latestBlock > 99n ? latestBlock - 99n : 0n;
 
       const logs = await chainPublicClient.getLogs({
         address: managerAddress as `0x${string}`,
         event: initializedEvent as AbiEvent,
         fromBlock: fromBlock,
-        toBlock: 'latest',
+        toBlock: latestBlock,
       });
 
       setIsInitialized(logs.length > 0);
@@ -171,7 +181,8 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
     notify({ type: 'call', name: 'Initialize Validator Manager' }, initPromise, viemChain ?? undefined);
 
     try {
-      await initPromise;
+      const hash = await initPromise;
+      setInitTx({ manager: managerAddress, hash });
       setError(null);
       await checkIfInitialized();
       onSuccess?.();
@@ -183,7 +194,9 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
     }
   }
 
-  const canInitialize = managerAddress && subnetId && adminAddress && isInitialized === false;
+  // A converted subnet's manager lives on one chain; a call from any other chain reaches another account.
+  const canInitialize = managerAddress && subnetId && adminAddress && isInitialized === false && !vmcData.chainMismatch;
+  const initializedHere = isInitialized === true && initTx?.manager === managerAddress;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -191,6 +204,7 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
       <div className="flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
         <div className="p-4 space-y-3">
           {error && <Alert variant="error">{error}</Alert>}
+          {vmcData.chainMismatch && <VmcChainSwitchBanner mismatch={vmcData.chainMismatch} />}
           {/* Step 1: Select Manager */}
           <div
             className={`p-3 rounded-xl border transition-colors ${
@@ -210,13 +224,16 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
                 {managerAddress && isInitialized !== null ? <Check className="w-3 h-3" /> : '1'}
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">ValidatorManager Address</h3>
+                <h3 id={`${fieldId}-manager`} className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                  ValidatorManager Address
+                </h3>
                 <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
                   The ValidatorManager contract address (or proxy)
                 </p>
                 <div className="mt-2 flex gap-2 items-end">
                   <input
                     type="text"
+                    aria-labelledby={`${fieldId}-manager`}
                     value={managerAddress}
                     onChange={(e) => setManagerAddress(e.target.value)}
                     className="flex-1 px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-mono"
@@ -227,15 +244,34 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
                     disabled={isChecking || !managerAddress}
                     className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50"
                     title="Check status"
+                    aria-label="Check status"
                   >
                     <RefreshCw className={`w-3.5 h-3.5 text-zinc-500 ${isChecking ? 'animate-spin' : ''}`} />
                   </button>
                 </div>
+                {vmcData.validatorManagerAddress &&
+                  managerAddress &&
+                  vmcData.validatorManagerAddress.toLowerCase() !== managerAddress.toLowerCase() && (
+                    <div className="mt-2 p-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                      <p className="text-xs text-amber-700 dark:text-amber-400">
+                        The conversion of this L1 records the Validator Manager at{' '}
+                        <span className="font-mono break-all">{vmcData.validatorManagerAddress}</span>. Initializing{' '}
+                        <span className="font-mono break-all">{managerAddress}</span> stores settings at a different
+                        address, and initializing the validator set against the recorded manager will fail. Use the
+                        recorded address unless you know why they differ.
+                      </p>
+                    </div>
+                  )}
                 {isInitialized !== null && (
                   <div
-                    className={`mt-2 text-xs flex items-center gap-1 ${isInitialized ? 'text-amber-600' : 'text-green-600'}`}
+                    className={`mt-2 text-xs flex items-center gap-1 ${isInitialized && !initializedHere ? 'text-amber-600' : 'text-green-600'}`}
                   >
-                    {isInitialized ? (
+                    {initializedHere ? (
+                      <>
+                        <Check className="w-3 h-3" />
+                        Initialized
+                      </>
+                    ) : isInitialized ? (
                       <>
                         <AlertCircle className="w-3 h-3" />
                         Already initialized
@@ -252,14 +288,14 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
             </div>
           </div>
 
-          {/* Step 2: Select Subnet */}
+          {/* Step 2: Select L1 */}
           <div className="p-3 rounded-xl border transition-colors bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700">
             <div className="flex items-start gap-3">
               <div className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300">
                 2
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Select L1/Subnet</h3>
+                <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Select L1</h3>
                 <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">The Subnet ID this manager will control</p>
                 <div className="mt-2">
                   <SelectSubnetId value={subnetId} onChange={setSubnetId} hidePrimaryNetwork={true} />
@@ -283,10 +319,14 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
                 <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Configuration</h3>
 
                 <div>
-                  <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-1">
+                  <label
+                    htmlFor={`${fieldId}-admin`}
+                    className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-1"
+                  >
                     Admin Address
                   </label>
                   <input
+                    id={`${fieldId}-admin`}
                     type="text"
                     value={adminAddress}
                     onChange={(e) => setAdminAddress(e.target.value)}
@@ -297,10 +337,14 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-1">
+                    <label
+                      htmlFor={`${fieldId}-churn-period`}
+                      className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-1"
+                    >
                       Churn Period (sec)
                     </label>
                     <input
+                      id={`${fieldId}-churn-period`}
                       type="number"
                       value={churnPeriodSeconds}
                       onChange={(e) => setChurnPeriodSeconds(e.target.value)}
@@ -308,10 +352,14 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-1">
+                    <label
+                      htmlFor={`${fieldId}-max-churn`}
+                      className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-1"
+                    >
                       Max Churn %
                     </label>
                     <input
+                      id={`${fieldId}-max-churn`}
                       type="number"
                       value={maximumChurnPercentage}
                       onChange={(e) => setMaximumChurnPercentage(e.target.value)}
@@ -320,7 +368,9 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
                   </div>
                 </div>
 
-                {isInitialized === true ? (
+                {initTx && initializedHere ? (
+                  <Success label="Contract initialized. Transaction hash:" value={initTx.hash} confirmed />
+                ) : isInitialized === true ? (
                   <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 text-xs">
                     <AlertCircle className="w-3.5 h-3.5" />
                     Contract already initialized

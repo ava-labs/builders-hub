@@ -2,7 +2,10 @@
 
 import { useState, useEffect, useCallback } from "react";
 
-const STORAGE_KEY = "console-sidebar-collapsed-sections";
+// v2: every visitor's v1 value held the old default (Primary Network
+// collapsed), so a new key is the only way the open default reaches them.
+const STORAGE_KEY = "console-sidebar-collapsed-sections-v2";
+const LEGACY_STORAGE_KEY = "console-sidebar-collapsed-sections";
 
 interface SidebarStateHook {
   collapsedSections: Set<string>;
@@ -23,6 +26,7 @@ export function useSidebarState(defaultCollapsed: string[] = []): SidebarStateHo
   // Load from localStorage on mount
   useEffect(() => {
     try {
+      localStorage.removeItem(LEGACY_STORAGE_KEY);
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);

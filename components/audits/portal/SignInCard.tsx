@@ -39,7 +39,9 @@ export function SignInCard({ initialEmail = "" }: { initialEmail?: string }) {
         body: JSON.stringify({ email: normalized }),
       });
       if (!res.ok) {
-        toast.error("We couldn't send a code. Check the address and try again.");
+        // A 429 carries the wait time for the user.
+        const { error } = res.status === 429 ? await res.json().catch(() => ({})) : {};
+        toast.error(typeof error === "string" ? error : "We couldn't send a code. Check the address and try again.");
         return;
       }
       setStep("code");
@@ -58,7 +60,11 @@ export function SignInCard({ initialEmail = "" }: { initialEmail?: string }) {
         redirect: false,
       });
       if (!result?.ok) {
-        toast.error("Invalid or expired code.");
+        toast.error(
+          result?.error === "TOO_MANY_ATTEMPTS"
+            ? "Too many incorrect codes. Try again later."
+            : "Invalid or expired code."
+        );
         setCode("");
         return;
       }

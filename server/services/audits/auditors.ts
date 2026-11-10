@@ -135,6 +135,43 @@ export async function updateAuditor(
   return { success: true, auditor };
 }
 
+export type SetGithubUsernameResult =
+  | { success: true; github_username: string | null }
+  | { success: false; code: "not_found" };
+
+/**
+ * A person sets or clears their own GitHub username: the quote-email person's
+ * lands on the firm row, a teammate's on that teammate's row. Both writes are
+ * pinned to the signed-in address, so nobody can write anyone else's, and an
+ * address removed from the firm meanwhile matches no row.
+ */
+export async function setOwnGithubUsername(
+  auditor: Pick<Auditor, "id" | "firm_name" | "quote_email">,
+  actorEmail: string,
+  githubUsername: string | null,
+): Promise<SetGithubUsernameResult> {
+  const data = { github_username: githubUsername };
+  const { count } =
+    actorEmail === auditor.quote_email
+      ? await prisma.auditor.updateMany({
+          where: { id: auditor.id, quote_email: actorEmail },
+          data,
+        })
+      : await prisma.auditorMember.updateMany({
+          where: { auditor_id: auditor.id, email: actorEmail },
+          data,
+        });
+  if (count === 0) return { success: false, code: "not_found" };
+
+  await logAuditEvent(prisma, {
+    actor_type: "auditor",
+    actor_id: auditor.id,
+    action: "auditor_updated",
+    meta: { firm_name: auditor.firm_name, fields: ["github_username"], actor_email: actorEmail },
+  });
+  return { success: true, github_username: githubUsername };
+}
+
 export type ResendInviteResult =
   | { success: true; inviteSent: boolean }
   | { success: false; code: "not_found" };

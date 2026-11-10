@@ -252,6 +252,7 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
                           setValidatorManagerAddress('');
                           setCreateChainManagerAddress('');
                         }}
+                        aria-label="Redeploy library"
                         className="px-2 py-1 text-xs font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 border border-zinc-200 dark:border-zinc-700 rounded-md hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors"
                       >
                         Redeploy
@@ -260,7 +261,8 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
                     <ManualAddressInput
                       value={validatorMessagesLibAddress}
                       onChange={setValidatorMessagesLibAddress}
-                      label="Or enter existing address"
+                      label="Or enter an existing library address"
+                      inputLabel="ValidatorMessages library address"
                     />
                   </div>
                 ) : (
@@ -276,7 +278,8 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
                     <ManualAddressInput
                       value={validatorMessagesLibAddress}
                       onChange={setValidatorMessagesLibAddress}
-                      label="Already deployed? Enter the address"
+                      label="Already deployed the library? Enter its address"
+                      inputLabel="ValidatorMessages library address"
                     />
                   </div>
                 )}
@@ -348,6 +351,7 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
                           setValidatorManagerAddress('');
                           setCreateChainManagerAddress('');
                         }}
+                        aria-label="Redeploy manager"
                         className="px-2 py-1 text-xs font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 border border-zinc-200 dark:border-zinc-700 rounded-md hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors"
                       >
                         Redeploy
@@ -359,7 +363,8 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
                         setValidatorManagerAddress(addr);
                         setCreateChainManagerAddress(addr);
                       }}
-                      label="Or enter existing address"
+                      label="Or enter an existing manager address"
+                      inputLabel="ValidatorManager address"
                     />
                   </div>
                 ) : (
@@ -378,7 +383,8 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
                         setValidatorManagerAddress(addr);
                         setCreateChainManagerAddress(addr);
                       }}
-                      label="Already deployed? Enter the address"
+                      label="Already deployed the manager? Enter its address"
+                      inputLabel="ValidatorManager address"
                     />
                   </div>
                 )}
@@ -387,7 +393,10 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
           </div>
 
           {deployError && (
-            <div className="rounded-lg border border-red-500/30 bg-red-500/5 px-3 py-2 text-xs text-red-600 dark:text-red-400 break-words">
+            <div
+              role="alert"
+              className="rounded-lg border border-red-500/30 bg-red-500/5 px-3 py-2 text-xs text-red-600 dark:text-red-400 break-words"
+            >
               {deployError}
             </div>
           )}

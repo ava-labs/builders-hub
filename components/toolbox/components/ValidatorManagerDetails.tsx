@@ -111,17 +111,21 @@ export function ValidatorManagerDetails({
   const ownerTypeLabel = isDetectingOwnerType ? 'detecting...' : ownerType || null;
 
   return (
-    <div className="mt-4 rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+    <div className="mt-4 overflow-hidden border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
       <button
         onClick={handleToggleExpanded}
-        className="w-full px-4 py-3 flex items-center justify-between text-left bg-zinc-50 dark:bg-zinc-800/50 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+        className="group/hdr flex w-full items-center justify-between bg-zinc-50/60 px-4 py-3 text-left transition-colors dark:bg-zinc-900/40"
       >
-        <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Validator Manager Details</span>
-        <span className="text-xs text-zinc-400 dark:text-zinc-500 select-none">{currentIsExpanded ? '−' : '+'}</span>
+        <span className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 transition-colors group-hover/hdr:text-zinc-900 dark:text-zinc-400 dark:group-hover/hdr:text-zinc-100">
+          Validator Manager Details
+        </span>
+        <span className="select-none font-mono text-[13px] text-zinc-400 transition-colors group-hover/hdr:text-[#E6212F] dark:text-zinc-500">
+          {currentIsExpanded ? '−' : '+'}
+        </span>
       </button>
 
       {currentIsExpanded && (
-        <div className="px-4 py-3 space-y-3 text-sm border-t border-zinc-200 dark:border-zinc-800">
+        <div className="space-y-3 border-t border-zinc-200 px-4 py-3 text-[13px] dark:border-zinc-800">
           <Row label="Contract Address" value={validatorManagerAddress} mono copyable />
 
           <Row
@@ -159,7 +163,7 @@ export function ValidatorManagerDetails({
           {staking && !staking.isLoading && staking.stakingType && staking.settings && (
             <>
               <div className="border-t border-zinc-200 dark:border-zinc-800 pt-3 mt-3">
-                <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                <span className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
                   Staking — {staking.stakingType === 'native' ? 'Native Token' : 'ERC20 Token'}
                 </span>
               </div>
@@ -205,7 +209,7 @@ export function ValidatorManagerDetails({
           )}
 
           {staking?.isLoading && (
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 animate-pulse">Loading staking details...</p>
+            <p className="animate-pulse text-[12px] text-zinc-500 dark:text-zinc-400">Loading staking details...</p>
           )}
         </div>
       )}
@@ -223,9 +227,11 @@ function formatDuration(seconds: number): string {
 
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="px-2.5 py-1.5 rounded bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/50 dark:border-zinc-700/50">
-      <p className="text-[10px] text-zinc-400 dark:text-zinc-500">{label}</p>
-      <p className="text-xs font-mono text-zinc-800 dark:text-zinc-200 truncate">{value}</p>
+    <div className="border border-zinc-200 bg-zinc-50/60 px-2.5 py-1.5 dark:border-zinc-800 dark:bg-zinc-900/40">
+      <p className="font-mono text-[9.5px] font-bold uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">
+        {label}
+      </p>
+      <p className="truncate font-mono text-[12px] text-zinc-900 dark:text-zinc-100">{value}</p>
     </div>
   );
 }
@@ -259,9 +265,11 @@ function Row({
   return (
     <div className="space-y-1">
       <div className="flex items-center gap-2">
-        <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">{label}</span>
+        <span className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+          {label}
+        </span>
         {badge && (
-          <span className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">
+          <span className="border border-zinc-200 px-1.5 py-0.5 font-mono text-[9.5px] font-bold uppercase tracking-[0.12em] text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
             {badge}
           </span>
         )}
@@ -270,20 +278,20 @@ function Row({
         type="button"
         onClick={handleCopy}
         disabled={!copyable}
-        className={`group/copy w-full flex items-center justify-between gap-2 text-xs px-3 py-2 rounded border break-all text-left ${
+        className={`group/copy flex w-full items-center justify-between gap-2 break-all border px-3 py-2 text-left text-[12px] ${
           error
-            ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800/50'
-            : 'text-zinc-800 dark:text-zinc-200 bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700/50'
+            ? 'border-red-200 bg-red-50/60 text-red-700 dark:border-red-900/60 dark:bg-red-950/20 dark:text-red-400'
+            : 'border-zinc-200 bg-zinc-50/60 text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-100'
         } ${mono ? 'font-mono' : ''} ${loading ? 'animate-pulse' : ''} ${
           copyable
-            ? 'cursor-pointer hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors'
+            ? 'cursor-pointer transition-colors hover:border-zinc-400 dark:hover:border-zinc-600'
             : 'cursor-default'
         }`}
       >
         <span>{value}</span>
         {copyable &&
           (copied ? (
-            <Check className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
+            <Check className="h-3.5 w-3.5 flex-shrink-0 text-emerald-600 dark:text-emerald-400" />
           ) : (
             <Copy className="h-3.5 w-3.5 text-zinc-400 opacity-0 group-hover/copy:opacity-100 flex-shrink-0 transition-opacity" />
           ))}

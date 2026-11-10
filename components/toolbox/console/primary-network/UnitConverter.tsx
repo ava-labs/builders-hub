@@ -15,11 +15,11 @@ const metadata: ConsoleToolMetadata = {
   description: (
     <>
       Convert between{' '}
-      <Link href="/docs/rpcs/c-chain/api" className="text-primary hover:underline">
+      <Link href="/docs/rpcs/c-chain" className="text-primary hover:underline">
         C-Chain
       </Link>{' '}
       wei (10<sup>-18</sup>),{' '}
-      <Link href="/docs/rpcs/p-chain/api" className="text-primary hover:underline">
+      <Link href="/docs/rpcs/p-chain" className="text-primary hover:underline">
         P-Chain
       </Link>{' '}
       nAVAX (10<sup>-9</sup>), and AVAX. Type in any field to convert.
@@ -120,6 +120,7 @@ function UnitConverterInner(_props: BaseConsoleToolProps) {
                     }
                   }}
                   placeholder="0"
+                  aria-label={`${unit.label} amount`}
                   className="flex-1 bg-transparent px-3 py-2.5 text-sm font-mono text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-300 dark:placeholder:text-zinc-600 focus:outline-none min-w-0"
                 />
                 <button

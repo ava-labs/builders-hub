@@ -8,6 +8,7 @@ import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/Native
 import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
 import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
 import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
+import { WALLET_REJECTED_TEXT, failureText } from '@/components/toolbox/lib/walletRejection';
 
 type TokenType = 'native' | 'erc20';
 
@@ -204,11 +205,11 @@ const InitiateDelegatorRemoval: React.FC<InitiateDelegatorRemovalProps> = ({
       let message = err instanceof Error ? err.message : String(err);
 
       if (message.includes('User rejected')) {
-        message = 'Transaction was rejected by user';
+        message = WALLET_REJECTED_TEXT;
       }
 
-      setErrorState(`Failed to initiate delegator removal: ${message}`);
-      onError(`Failed to initiate delegator removal: ${message}`);
+      setErrorState(failureText('Failed to initiate delegator removal: ', message));
+      onError(failureText('Failed to initiate delegator removal: ', message));
     } finally {
       setIsProcessing(false);
     }

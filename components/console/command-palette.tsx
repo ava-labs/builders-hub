@@ -1,26 +1,22 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { useRouter } from "next/navigation";
+import * as React from 'react';
+import { useRouter } from 'next/navigation';
+import { Clock, Home, Search, type LucideIcon } from 'lucide-react';
+import { defaultFilter, useCommandState } from 'cmdk';
 import {
-  Clock,
-  Home,
-  Search,
-  type LucideIcon,
-} from "lucide-react";
-import {
-  CommandDialog,
+  Command,
   CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
   CommandList,
   CommandSeparator,
-  CommandShortcut,
-} from "@/components/ui/command";
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
-import { TOOLS as ALL_CONSOLE_TOOLS } from "@/components/toolbox/console/toolbox/tools";
+} from '@/components/ui/command';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import { TOOLS as ALL_CONSOLE_TOOLS } from '@/components/toolbox/console/toolbox/tools';
 
 // Navigation items matching console-sidebar.tsx
 interface NavigationItem {
@@ -32,18 +28,55 @@ interface NavigationItem {
 }
 
 // Static items that aren't tools (e.g. the console home dashboard) and so
-// don't appear in `ALL_CONSOLE_TOOLS`. Everything else is derived from the
-// canonical tools registry below — that's the same source the sidebar
-// search uses, so palette + sidebar stay in sync automatically.
+// don't appear in `ALL_CONSOLE_TOOLS`. Everything else comes from the
+// canonical tools registry, the same source that the sidebar search uses,
+// so palette and sidebar stay in sync automatically.
 const STATIC_NAV_ITEMS: NavigationItem[] = [
   {
-    title: "Home",
-    url: "/console",
+    title: 'Home',
+    url: '/console',
     icon: Home,
-    keywords: ["dashboard", "start", "main"],
-    group: "Navigation",
+    keywords: ['dashboard', 'start', 'main'],
+    group: 'Navigation',
   },
 ];
+
+// The canonical nav list, from the same `TOOLS` registry that the sidebar
+// search uses. Externals are removed (router.push can't open https:// URLs),
+// and the static entries (Home) come first. Mapping the shape:
+//   ToolCard.name        -> NavigationItem.title
+//   ToolCard.path        -> NavigationItem.url
+//   ToolCard.category    -> NavigationItem.group
+//   ToolCard.icon        -> NavigationItem.icon
+//   ToolCard.description -> NavigationItem.keywords (one keyword per word)
+// The title is the cmdk item value, so each title must be unique.
+export const PALETTE_ITEMS: NavigationItem[] = [
+  ...STATIC_NAV_ITEMS,
+  ...ALL_CONSOLE_TOOLS.filter((t) => !t.external).map((t) => ({
+    title: t.name,
+    url: t.path,
+    icon: t.icon,
+    group: t.category,
+    keywords: t.description
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((w) => w.length > 2),
+  })),
+];
+
+/**
+ * Ranks a palette item for cmdk. The item value is the title, and the
+ * keywords are the words of the description. cmdk's default filter scores
+ * the value and the keywords as one string, so a description word can put a
+ * tool above the tool whose title matches. Here a title match scores in
+ * (0.5, 1] and a keyword-only match scores in (0, 0.5], so title matches
+ * always come first.
+ */
+export function paletteFilter(value: string, search: string, keywords?: string[]): number {
+  const titleScore = defaultFilter(value, search);
+  if (titleScore > 0) return 0.5 + titleScore / 2;
+  return defaultFilter(value, search, keywords) / 2;
+}
 
 // Recent pages store
 interface RecentPagesStore {
@@ -68,9 +101,9 @@ export const useRecentPagesStore = create<RecentPagesStore>()(
       },
     }),
     {
-      name: "console-recent-pages",
-    }
-  )
+      name: 'console-recent-pages',
+    },
+  ),
 );
 
 // Command palette open state
@@ -86,23 +119,115 @@ export const useCommandPaletteStore = create<CommandPaletteStore>((set) => ({
   toggle: () => set((state) => ({ isOpen: !state.isOpen })),
 }));
 
+type PaletteGroup = [heading: string, items: NavigationItem[]];
+
+// Group navigation items by group
+export const PALETTE_GROUPS: PaletteGroup[] = Object.entries(
+  PALETTE_ITEMS.reduce<Record<string, NavigationItem[]>>((groups, item) => {
+    const group = item.group || 'Other';
+    (groups[group] ??= []).push(item);
+    return groups;
+  }, {}),
+);
+
+/**
+ * The groups and their items in display order. While a search runs, the group
+ * with the best match comes first, and each group lists its best match first,
+ * so the first item (the one that cmdk selects) is the best match. cmdk 1.1.1
+ * does not move the groups: it looks a group up by its id, and the group
+ * element holds its heading. It sorts the items of a group once per search
+ * change, but an item that a new search shows again mounts later, in render
+ * order (for example after a paste over another search). So the render order
+ * is the score order too. The sorts are stable: equal scores keep their order.
+ */
+export function orderPaletteGroups(groups: PaletteGroup[], search: string): PaletteGroup[] {
+  if (!search) return groups;
+  return groups
+    .map(([heading, items]) => {
+      const scored = items
+        .map((item) => ({ item, score: paletteFilter(item.title, search, item.keywords) }))
+        .sort((a, b) => b.score - a.score);
+      return { group: [heading, scored.map(({ item }) => item)] as PaletteGroup, score: scored[0]?.score ?? 0 };
+    })
+    .sort((a, b) => b.score - a.score)
+    .map(({ group }) => group);
+}
+
+/** The tool groups, ordered by the current search. */
+function NavigationGroups({ onSelect }: { onSelect: (item: NavigationItem) => void }) {
+  const search = useCommandState((state) => state.search);
+  const groups = React.useMemo(() => orderPaletteGroups(PALETTE_GROUPS, search), [search]);
+  return groups.map(([group, items]) => (
+    <CommandGroup key={group} heading={group}>
+      {items.map((item) => (
+        <CommandItem
+          // Two tools can share a URL (Add Validator and the Stake tools), so the unique title is the key.
+          key={item.title}
+          value={item.title}
+          keywords={item.keywords}
+          onSelect={() => onSelect(item)}
+          className="cursor-pointer"
+        >
+          <item.icon className="mr-2 h-4 w-4" />
+          <span>{item.title}</span>
+        </CommandItem>
+      ))}
+    </CommandGroup>
+  ));
+}
+
+/**
+ * The recent pages, shown only while the search is empty. Their values are
+ * URLs, so a search would match URL text instead of page names.
+ */
+function RecentPagesGroup({ onSelect }: { onSelect: (url: string) => void }) {
+  const search = useCommandState((state) => state.search);
+  const recentPages = useRecentPagesStore((s) => s.recentPages);
+  if (search || recentPages.length === 0) return null;
+  return (
+    <>
+      <CommandGroup heading="Recent">
+        {recentPages.map((page) => (
+          <CommandItem
+            key={page.url}
+            value={`recent-${page.url}`}
+            onSelect={() => onSelect(page.url)}
+            className="cursor-pointer"
+          >
+            <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
+            <span>{page.title}</span>
+          </CommandItem>
+        ))}
+      </CommandGroup>
+      <CommandSeparator />
+    </>
+  );
+}
+
 export function CommandPalette() {
   const router = useRouter();
-  const { isOpen, setIsOpen } = useCommandPaletteStore();
-  const { recentPages, addRecentPage } = useRecentPagesStore();
+  const isOpen = useCommandPaletteStore((s) => s.isOpen);
+  const setIsOpen = useCommandPaletteStore((s) => s.setIsOpen);
+  const toggle = useCommandPaletteStore((s) => s.toggle);
+  const addRecentPage = useRecentPagesStore((s) => s.addRecentPage);
 
-  // Keyboard shortcut handler
+  // Keyboard shortcut handler. The fumadocs docs search (RootProvider wraps
+  // every route) listens for the same Cmd/Ctrl+K on window in the bubble
+  // phase. This listener runs first, in the capture phase on document, and
+  // stops the event, so only the palette opens on Console pages. Other
+  // pages do not mount the palette, so Cmd/Ctrl+K there opens the docs search.
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
-        setIsOpen(!isOpen);
+        e.stopPropagation();
+        toggle();
       }
     };
 
-    document.addEventListener("keydown", down);
-    return () => document.removeEventListener("keydown", down);
-  }, [isOpen, setIsOpen]);
+    document.addEventListener('keydown', down, true);
+    return () => document.removeEventListener('keydown', down, true);
+  }, [toggle]);
 
   const handleSelect = (item: NavigationItem) => {
     addRecentPage(item.url, item.title);
@@ -115,119 +240,62 @@ export function CommandPalette() {
     setIsOpen(false);
   };
 
-  // Build the canonical nav list from the same `TOOLS` registry the sidebar
-  // search uses. We strip externals (router.push can't open https:// URLs)
-  // and concat the static entries (Home) at the front. Mapping the shape:
-  //   ToolCard.name        -> NavigationItem.title
-  //   ToolCard.path        -> NavigationItem.url
-  //   ToolCard.category    -> NavigationItem.group
-  //   ToolCard.icon        -> NavigationItem.icon
-  //   ToolCard.description -> NavigationItem.keywords (split into tokens for
-  //                           cmdk's substring matcher)
-  const navigationItems = React.useMemo<NavigationItem[]>(() => {
-    const fromTools = ALL_CONSOLE_TOOLS.filter((t) => !t.external).map(
-      (t) => ({
-        title: t.name,
-        url: t.path,
-        icon: t.icon,
-        group: t.category,
-        keywords: t.description
-          .toLowerCase()
-          .split(/\s+/)
-          .filter((w) => w.length > 2),
-      }),
-    );
-    return [...STATIC_NAV_ITEMS, ...fromTools];
-  }, []);
-
-  // Group navigation items by group
-  const groupedItems = React.useMemo(() => {
-    const groups: Record<string, NavigationItem[]> = {};
-    navigationItems.forEach((item) => {
-      const group = item.group || "Other";
-      if (!groups[group]) {
-        groups[group] = [];
-      }
-      groups[group].push(item);
-    });
-    return groups;
-  }, [navigationItems]);
-
   return (
-    <CommandDialog open={isOpen} onOpenChange={setIsOpen}>
-      <CommandInput placeholder="Search console pages..." />
-      <CommandList>
-        <CommandEmpty>
-          <div className="flex flex-col items-center gap-2 py-4">
-            <Search className="h-8 w-8 text-muted-foreground" />
-            <p>No results found.</p>
-            <p className="text-sm text-muted-foreground">Try searching for "faucet", "validator", or "bridge"</p>
-          </div>
-        </CommandEmpty>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogContent className="overflow-hidden p-0">
+        <DialogHeader className="sr-only">
+          <DialogTitle>Command Palette</DialogTitle>
+          <DialogDescription>Search for a command to run...</DialogDescription>
+        </DialogHeader>
+        <Command
+          filter={paletteFilter}
+          className="[&_[cmdk-group-heading]]:text-muted-foreground **:data-[slot=command-input-wrapper]:h-12 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5"
+        >
+          <CommandInput placeholder="Search console pages..." />
+          <CommandList>
+            <CommandEmpty>
+              <div className="flex flex-col items-center gap-2 py-4">
+                <Search className="h-8 w-8 text-muted-foreground" />
+                <p>No results found.</p>
+                <p className="text-sm text-muted-foreground">Try searching for "faucet", "validator", or "bridge"</p>
+              </div>
+            </CommandEmpty>
 
-        {/* Recent Pages */}
-        {recentPages.length > 0 && (
-          <>
-            <CommandGroup heading="Recent">
-              {recentPages.map((page) => (
-                <CommandItem
-                  key={page.url}
-                  value={`recent-${page.url}`}
-                  onSelect={() => handleSelectRecent(page.url)}
-                  className="cursor-pointer"
-                >
-                  <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
-                  <span>{page.title}</span>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-            <CommandSeparator />
-          </>
-        )}
+            <RecentPagesGroup onSelect={handleSelectRecent} />
 
-        {/* Grouped Navigation Items */}
-        {Object.entries(groupedItems).map(([group, items]) => (
-          <CommandGroup key={group} heading={group}>
-            {items.map((item) => (
-              <CommandItem
-                key={item.url}
-                value={`${item.title} ${item.keywords?.join(" ") || ""}`}
-                onSelect={() => handleSelect(item)}
-                className="cursor-pointer"
-              >
-                <item.icon className="mr-2 h-4 w-4" />
-                <span>{item.title}</span>
-              </CommandItem>
-            ))}
-          </CommandGroup>
-        ))}
-      </CommandList>
+            {/* Grouped Navigation Items */}
+            <NavigationGroups onSelect={handleSelect} />
+          </CommandList>
 
-      <div className="border-t p-2">
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <kbd className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium">
-              <span className="text-xs">
-                {typeof navigator !== 'undefined' && navigator.platform?.toLowerCase().includes('mac') ? '\u2318' : 'Ctrl'}
-              </span>
-            </kbd>
-            <kbd className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium">K</kbd>
-            <span>to open</span>
+          <div className="border-t p-2">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <kbd className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium">
+                  <span className="text-xs">
+                    {typeof navigator !== 'undefined' && navigator.platform?.toLowerCase().includes('mac')
+                      ? '⌘'
+                      : 'Ctrl'}
+                  </span>
+                </kbd>
+                <kbd className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium">K</kbd>
+                <span>to open</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <kbd className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium">
+                  <span className="text-xs">{'↑'}</span>
+                </kbd>
+                <kbd className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium">
+                  <span className="text-xs">{'↓'}</span>
+                </kbd>
+                <span>to navigate</span>
+                <kbd className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium">Enter</kbd>
+                <span>to select</span>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <kbd className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium">
-              <span className="text-xs">\u2191</span>
-            </kbd>
-            <kbd className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium">
-              <span className="text-xs">\u2193</span>
-            </kbd>
-            <span>to navigate</span>
-            <kbd className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium">Enter</kbd>
-            <span>to select</span>
-          </div>
-        </div>
-      </div>
-    </CommandDialog>
+        </Command>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -248,7 +316,7 @@ export function CommandPaletteTrigger() {
       <Search className="h-4 w-4" />
       <span className="hidden sm:inline">Search...</span>
       <kbd className="hidden sm:inline-flex h-5 items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium">
-        {isMac ? "\u2318" : "Ctrl"}K
+        {isMac ? '⌘' : 'Ctrl'}K
       </kbd>
     </button>
   );

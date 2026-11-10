@@ -24,8 +24,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function QueryPage({ params }: PageProps) {
   const { network, chain: chainSlug } = await params;
-  // whether the database holds this chain, read once an hour; the page says so when it does not
+  // whether the database holds this chain, read once an hour; the page says so when it does not.
+  // Streamed, not awaited: the page goes out at once and the read follows it
   const target = queryTarget(network, chainSlug);
-  const index = target ? await indexState(target.chainId) : null;
+  const index = target ? indexState(target.chainId) : null;
   return <QueryPageClient network={network} index={index} />;
 }

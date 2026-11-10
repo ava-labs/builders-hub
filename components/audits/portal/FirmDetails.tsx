@@ -18,23 +18,28 @@ import {
   type LogoUploadResult,
 } from "@/components/audits/shared/LogoControl";
 import { DeactivatedBanner } from "@/components/audits/portal/DeactivatedBanner";
+import { GithubUsername } from "@/components/audits/shared/GithubUsername";
 
 type Member = OwnFirm["members"][number];
 
 /**
  * The firm's own self-service page (spec 7.4.3). Any active identity edits
- * services and website; only the quote-email identity manages teammates. Firm
- * name, quote email and active status stay admin-only. Follows the admin
- * panel's write pattern: fetch, toast, optimistic member list, router.refresh.
+ * services and website; only the quote-email identity manages teammates. Each
+ * person (viewerEmail, the signed-in address) edits only their own GitHub
+ * username. Firm name, quote email and active status stay admin-only. Follows
+ * the admin panel's write pattern: fetch, toast, optimistic member list,
+ * router.refresh.
  */
 export function FirmDetails({
   firm,
   isOwner,
   readOnly,
+  viewerEmail,
 }: {
   firm: OwnFirm;
   isOwner: boolean;
   readOnly: boolean;
+  viewerEmail: string;
 }) {
   const router = useRouter();
   const [services, setServices] = useState<string[]>(firm.services);
@@ -137,6 +142,25 @@ export function FirmDetails({
     }
   };
 
+  // The route picks the row from the session, so the body names only the value.
+  const saveGithub = async (github_username: string): Promise<string | null> => {
+    const res = await fetch("/api/audits/portal/me/github", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ github_username }),
+    });
+    const body = await res.json().catch(() => null);
+    if (!res.ok || !body?.success) {
+      throw new Error(body?.message ?? "That didn't work. Try again.");
+    }
+    router.refresh();
+    return body.github_username ?? null;
+  };
+  // Only the signed-in person's own entry is editable, and never on a
+  // deactivated firm.
+  const githubSaveFor = (email: string) =>
+    !readOnly && email === viewerEmail ? saveGithub : undefined;
+
   const removeMember = async (member: Member) => {
     setBusy(true);
     try {
@@ -181,6 +205,10 @@ export function FirmDetails({
               <p className="truncate font-mono text-xs text-zinc-500 dark:text-zinc-400">
                 {firm.quote_email}
               </p>
+              <GithubUsername
+                value={firm.github_username}
+                onSave={githubSaveFor(firm.quote_email)}
+              />
               {logoUrl && !readOnly ? (
                 <button
                   type="button"
@@ -256,6 +284,10 @@ export function FirmDetails({
               Teammates receive every request this firm receives and can read its full history,
               including project contacts on won requests.
             </p>
+            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+              Each person adds their own GitHub username. Projects whose requests reach your firm
+              see it, so they can add you to their private repos before you quote.
+            </p>
           </div>
           <ul className="divide-y divide-zinc-200 rounded-[10px] border border-zinc-200 dark:divide-white/[0.08] dark:border-white/10">
             {members.length === 0 ? (
@@ -265,9 +297,13 @@ export function FirmDetails({
             ) : (
               members.map((member) => (
                 <li key={member.id} className="flex items-center gap-3 px-3.5 py-2.5 text-sm">
-                  <span className="min-w-0 flex-1 truncate font-mono text-[13px]">
-                    {member.email}
-                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-mono text-[13px]">{member.email}</p>
+                    <GithubUsername
+                      value={member.github_username}
+                      onSave={githubSaveFor(member.email)}
+                    />
+                  </div>
                   <span className="shrink-0 text-xs text-zinc-500 dark:text-zinc-400">
                     {member.first_login_at ? "active" : `invited ${formatIsoDate(member.invited_at)}`}
                   </span>

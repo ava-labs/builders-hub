@@ -8,8 +8,9 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import type { AdminRequestDetail } from "@/server/services/audits/visibility";
+import { formatUtcDeadline } from "@/lib/audits/status";
 import { CARD, MONO_LABEL_SM } from "@/components/audits/shared/classes";
-import { formatIsoDate, formatUsd } from "@/components/audits/shared/format";
+import { durationLabel, formatIsoDate, formatUsd } from "@/components/audits/shared/format";
 import { QuoteDocLink } from "@/components/audits/quotes/QuoteDocLink";
 
 /* zinc row hairlines + hover (ledger L-8): the ui/table defaults inject
@@ -52,7 +53,7 @@ export function QuoteComparison({
         ...(submittedAt ? [`fan-out ${formatIsoDate(submittedAt)}`] : []),
         ...(quoteDeadline
           ? [
-              `window ${displayStatus === "collecting" ? "closes" : "closed"} ${formatIsoDate(quoteDeadline)}`,
+              `window ${displayStatus === "collecting" ? "closes" : "closed"} ${formatUtcDeadline(quoteDeadline)}`,
             ]
           : []),
       ].join(" · ");
@@ -95,7 +96,7 @@ export function QuoteComparison({
               <TableHead className={cn(MONO_LABEL_SM, "px-4")}>Auditor</TableHead>
               <TableHead className={MONO_LABEL_SM}>Price ↑</TableHead>
               <TableHead className={cn(MONO_LABEL_SM, "min-w-28")}>Vs highest</TableHead>
-              <TableHead className={MONO_LABEL_SM}>Weeks</TableHead>
+              <TableHead className={MONO_LABEL_SM}>Duration</TableHead>
               <TableHead className={MONO_LABEL_SM}>Start</TableHead>
               <TableHead className={MONO_LABEL_SM}>Note</TableHead>
             </TableRow>
@@ -131,7 +132,9 @@ export function QuoteComparison({
                       />
                     </div>
                   </TableCell>
-                  <TableCell className="font-mono text-sm">{quote.duration_weeks}</TableCell>
+                  <TableCell className="font-mono text-sm">
+                    {durationLabel(quote.duration, quote.duration_unit)}
+                  </TableCell>
                   <TableCell
                     className={cn(
                       "font-mono text-sm",

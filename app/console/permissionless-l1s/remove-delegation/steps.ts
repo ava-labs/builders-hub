@@ -6,7 +6,7 @@ import CompleteDelegatorRemovalStep from "@/components/toolbox/console/permissio
 import VerifyValidatorSetStep from "@/components/toolbox/console/permissioned-l1s/shared/VerifyValidatorSetStep";
 
 export const steps: StepDefinition[] = [
-    { type: "single", key: "select-l1", title: "Select L1 Subnet", component: SelectL1DelegationStep },
+    { type: "single", key: "select-l1", title: "Select L1", component: SelectL1DelegationStep },
     { type: "single", key: "initiate-removal", title: "Initiate Delegator Removal", component: InitiateDelegatorRemovalStep },
     { type: "single", key: "pchain-weight-update", title: "P-Chain Weight Update", component: PChainDelegationWeightUpdateStep },
     { type: "single", key: "complete-removal", title: "Complete Delegator Removal", component: CompleteDelegatorRemovalStep },

@@ -38,15 +38,35 @@ type ValidatorFacts = {
   stakeAvax: string | null;
 };
 
-async function fetchValidatorFacts(network: string, nodeId: string): Promise<ValidatorFacts | null> {
+/** The P2P observatory's uptime (mainnet only): the figure the node page and
+ *  the validators list show, so the card agrees with them. */
+async function fetchFleetUptime(network: string, nodeId: string): Promise<number | null> {
+  if (network !== 'mainnet') return null;
   try {
-    const res = await fetch(`${EXPLORER_API_BASE}/api/${network}/node/${nodeId}`, {
+    const res = await fetch(`${EXPLORER_API_BASE}/api/mainnet/fleet/validators/${nodeId}`, {
       headers: { accept: 'application/json' },
       signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
     });
     if (!res.ok) return null;
+    const p50 = (await res.json())?.current_p50_uptime;
+    return typeof p50 === 'number' && Number.isFinite(p50) ? p50 : null;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchValidatorFacts(network: string, nodeId: string): Promise<ValidatorFacts | null> {
+  try {
+    const [res, fleetUptime] = await Promise.all([
+      fetch(`${EXPLORER_API_BASE}/api/${network}/node/${nodeId}`, {
+        headers: { accept: 'application/json' },
+        signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
+      }),
+      fetchFleetUptime(network, nodeId),
+    ]);
+    if (!res.ok) return null;
     const doc = await res.json();
-    const p50 = doc?.uptime?.currentP50;
+    const p50 = fleetUptime ?? doc?.uptime?.currentP50;
     const connected = doc?.validator?.connected;
     const stakeNavax = doc?.validator?.totalStake ?? doc?.validator?.weight;
     return {

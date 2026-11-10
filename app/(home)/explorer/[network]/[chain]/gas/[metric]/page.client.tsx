@@ -26,8 +26,6 @@ export function ChainGasMetricPageClient({
       chainSlug={chain.chainSlug}
       themeColor={chain.themeColor}
       chainLogoURI={chain.chainLogoURI}
-      website={chain.website}
-      socials={chain.socials}
       rpcUrl={chain.rpcUrl}
       // the sheet carries its own title and breadcrumb; the chain identity
       // stays in the subnav's switcher

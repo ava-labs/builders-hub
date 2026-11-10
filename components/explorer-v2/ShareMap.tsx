@@ -70,6 +70,7 @@ export function ShareMap({
   const rest = toned.slice(legend);
   const restValue = rest.reduce((s, p) => s + p.value, 0);
   const hp = hover ? toned.find((p) => p.key === hover) : undefined;
+  // a part's share of the whole: whole from 10%, one place down to 1%, then <1%
   const pct = (v: number) => {
     const x = (v / total) * 100;
     return x >= 10 ? `${x.toFixed(0)}%` : x >= 1 ? `${x.toFixed(1)}%` : x > 0 ? "<1%" : "0%";

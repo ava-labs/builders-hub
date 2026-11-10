@@ -127,12 +127,15 @@ export function ChatBubble() {
 
   // The audits wizard (below md) and the auditor quote composer (below lg)
   // pin a full-width action bar to the bottom edge; lift the bubble above it
-  // so it never covers the primary button at thumb reach.
+  // so it never covers the primary button at thumb reach. The profile save
+  // bar reaches the bubble below xl.
   const liftForActionBar = pathname.startsWith('/audits/new')
     ? 'max-md:bottom-24'
     : pathname.startsWith('/audits/portal/requests/')
       ? 'max-lg:bottom-24'
-      : null;
+      : pathname.startsWith('/profile')
+        ? 'max-xl:bottom-24'
+        : null;
 
   const handleBubbleClick = () => {
     if (state === 'collapsed') {

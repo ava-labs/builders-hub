@@ -12,7 +12,7 @@ Removing a validator in a PoS setup returns the staked tokens **plus any earned 
 
 ### Phase 1: Initiation (L1)
 
-The validator owner calls [`initiateValidatorRemoval(validationID)`](https://github.com/ava-labs/icm-services/blob/main/icm-contracts/avalanche/validator-manager/StakingManager.sol) on the Staking Manager contract.
+The validator owner calls [`initiateValidatorRemoval(validationID, includeUptimeProof, messageIndex)`](https://github.com/ava-labs/icm-services/blob/main/icm-contracts/avalanche/validator-manager/StakingManager.sol) on the Staking Manager contract.
 
 Under the hood, the contract:
 - Verifies the caller is the validation period owner
@@ -23,7 +23,7 @@ Under the hood, the contract:
 - Sends a Warp message to the P-Chain
 
 <Callout type="info">
-**Uptime Proof**: When initiating removal, the contract can accept an uptime proof from the P-Chain. If provided, it is used to calculate rewards. If no proof is provided, the latest known uptime will be used. Higher uptime = higher rewards.
+**Uptime Proof**: When you initiate removal, you can include a `ValidationUptimeMessage` as an uptime proof. The L1's own validators sign this message. The P-Chain does not track the uptime of L1 validators. If you do not include a proof, the contract uses the last uptime that it stored. With `ExampleRewardCalculator`, a validator with less than 80% uptime gets no reward, and `initiateValidatorRemoval` reverts. Use `forceInitiateValidatorRemoval` to exit without rewards. At 80% uptime or more, the reward does not change with uptime.
 </Callout>
 
 ### Phase 2: P-Chain Processing
@@ -39,7 +39,7 @@ The weight update message (weight = 0) is signed and submitted to the P-Chain as
 Call [`completeValidatorRemoval(messageIndex)`](https://github.com/ava-labs/icm-services/blob/main/icm-contracts/avalanche/validator-manager/ValidatorManager.sol#L573) with the P-Chain's signed response:
 
 - Verifies the Warp message and `valid == false`
-- Calculates staking rewards based on uptime
+- Uses the staking reward that `initiateValidatorRemoval` calculated. It does not calculate the reward again.
 - **Returns the staked tokens** to the validator owner
 - **Distributes validator rewards** (minted via Native Minter precompile for native token staking)
 - Sets the status to Completed
@@ -90,7 +90,7 @@ sequenceDiagram
 
     StakingManager->>StakingManager: Verify Warp message + valid == false
 
-    StakingManager->>StakingManager: Calculate rewards based on uptime
+    StakingManager->>StakingManager: Load reward stored at initiation
 
     StakingManager->>StakingManager: Return staked tokens to owner
 

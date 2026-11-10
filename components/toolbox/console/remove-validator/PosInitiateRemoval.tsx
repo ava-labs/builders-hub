@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { hexToBytes } from 'viem';
-import { ChevronDown, Shield, ShieldOff, Loader2 } from 'lucide-react';
+import { ArrowRight, ChevronDown, Shield, ShieldOff, Loader2 } from 'lucide-react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { Button } from '@/components/toolbox/components/Button';
@@ -15,6 +15,7 @@ import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/com
 import { useUptimeProof, probeValidatorUptime } from '@/components/toolbox/hooks/useUptimeProof';
 import { packWarpIntoAccessList } from '@avalanche-sdk/interchain/warp';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import { WALLET_REJECTED_TEXT } from '@/components/toolbox/lib/walletRejection';
 
 type TokenType = 'native' | 'erc20';
 
@@ -85,12 +86,12 @@ export function PosInitiateRemoval({
   const [error, setErrorState] = useState<string | null>(null);
 
   // Re-probe whenever the actual inputs change. Drive directly from the primitive
-  // string deps rather than from a useCallback identity — that avoids a render
+  // string deps rather than from a useCallback identity. That avoids a render
   // loop if the probe function reference is ever unstable (it isn't anymore,
   // but the effect is the safer place to encode the invariant).
   //
   // The cancelled flag handles the case where the user switches validators
-  // mid-probe — the stale fetch resolves last and would otherwise overwrite the
+  // mid-probe: the stale fetch resolves last and would otherwise overwrite the
   // new validator's state.
   useEffect(() => {
     if (!validationID || !rpcUrl) {
@@ -112,7 +113,7 @@ export function PosInitiateRemoval({
     };
   }, [validationID, rpcUrl, customValidatorsUrl]);
 
-  // Retry button — read latest customValidatorsUrl from state but doesn't need
+  // Retry button: read latest customValidatorsUrl from state but doesn't need
   // to participate in the effect's dep chain.
   const runProbe = useCallback(() => {
     if (!validationID || !rpcUrl) {
@@ -151,7 +152,7 @@ export function PosInitiateRemoval({
       if (useUptime) {
         // Uptime path: aggregate signatures, pack into access list, call with
         // includeUptimeProof=true. The contract validates and reverts with
-        // ValidatorIneligibleForRewards if the uptime isn't enough — we catch
+        // ValidatorIneligibleForRewards if the uptime isn't enough. We catch
         // that and transition to force mode rather than just dumping the
         // revert reason into the error banner.
         const uptimeProofPromise = createAndSignUptimeProof(
@@ -192,9 +193,9 @@ export function PosInitiateRemoval({
       let message = err instanceof Error ? err.message : String(err);
 
       if (message.includes('User rejected')) {
-        message = 'Transaction was rejected by user';
+        message = WALLET_REJECTED_TEXT;
       } else if (message.includes('ValidatorIneligibleForRewards') || message.includes('ineligible for rewards')) {
-        // The contract said "this validator hasn't earned rewards" — transition
+        // The contract said "this validator hasn't earned rewards": transition
         // to force mode so the user's next click does the no-rewards removal.
         setProbe({ kind: 'uptime-unavailable', reason: 'rewards-ineligible' });
         message = 'Validator is ineligible for staking rewards. Switch to Force Remove to proceed without them.';
@@ -210,7 +211,7 @@ export function PosInitiateRemoval({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4">
       {error && <Alert variant="error">{error}</Alert>}
 
       {validationID && <ValidatorPreflightChecklist preflight={preflight} currentFlow="initiate-removal" />}
@@ -245,10 +246,10 @@ function ProbeBanner({ probe, onRetry }: { probe: ProbeState; onRetry: () => voi
 
   if (probe.kind === 'probing') {
     return (
-      <div className="flex items-center gap-3 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 px-4 py-3">
-        <Loader2 className="h-4 w-4 text-zinc-400 animate-spin shrink-0" />
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          Probing the L1 node's <code className="text-xs">/validators</code> endpoint…
+      <div className="flex items-center gap-3 border border-zinc-200 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950">
+        <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-zinc-400" />
+        <p className="font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
+          Probing the L1 node&apos;s /validators endpoint…
         </p>
       </div>
     );
@@ -257,15 +258,15 @@ function ProbeBanner({ probe, onRetry }: { probe: ProbeState; onRetry: () => voi
   if (probe.kind === 'uptime-available') {
     const hours = Number(probe.uptimeSeconds) / 3600;
     return (
-      <div className="flex items-start gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 dark:bg-emerald-500/10 px-4 py-3">
-        <div className="h-7 w-7 shrink-0 flex items-center justify-center rounded-xl bg-emerald-500/15">
-          <Shield className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-        </div>
-        <div className="flex-1 min-w-0 space-y-0.5">
-          <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Removal will preserve staking rewards</p>
-          <p className="text-xs text-zinc-600 dark:text-zinc-400">
-            L1 reported {hours.toFixed(1)} hours of uptime. We'll aggregate a signed proof and include it in the removal
-            transaction.
+      <div className="flex items-start gap-3 border border-emerald-300 bg-white px-4 py-3 dark:border-emerald-900/70 dark:bg-zinc-950">
+        <Shield className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <p className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-emerald-700 dark:text-emerald-400">
+            Keeps staking rewards
+          </p>
+          <p className="text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-400">
+            The L1 reports <span className="font-mono text-zinc-900 dark:text-zinc-100">{hours.toFixed(1)} h</span> of
+            uptime. A signed uptime proof goes into the removal transaction.
           </p>
         </div>
       </div>
@@ -281,25 +282,24 @@ function ProbeBanner({ probe, onRetry }: { probe: ProbeState; onRetry: () => voi
         : "The L1 node's /validators endpoint is unreachable.";
 
   return (
-    <div className="flex items-start gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/5 dark:bg-amber-500/10 px-4 py-3">
-      <div className="h-7 w-7 shrink-0 flex items-center justify-center rounded-xl bg-amber-500/15">
-        <ShieldOff className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-      </div>
-      <div className="flex-1 min-w-0 space-y-1">
-        <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-          Removal will <span className="text-amber-700 dark:text-amber-400">forfeit staking rewards</span>
+    <div className="flex items-start gap-3 border border-amber-300 bg-white px-4 py-3 dark:border-amber-900/70 dark:bg-zinc-950">
+      <ShieldOff className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <p className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-amber-700 dark:text-amber-400">
+          Forfeits staking rewards
         </p>
-        <p className="text-xs text-zinc-600 dark:text-zinc-400">
-          {reasonText} Force removal skips the uptime proof and proceeds without rewards. Add a custom Validators API
-          URL below to retry the uptime path against a different node.
+        <p className="text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-400">
+          {reasonText} Force removal skips the uptime proof and goes ahead without rewards. To retry the uptime path
+          against another node, add a custom Validators API URL below.
         </p>
         {probe.reason !== 'rewards-ineligible' && (
           <button
             type="button"
             onClick={onRetry}
-            className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline"
+            className="group/retry mt-1 inline-flex w-fit items-center gap-1 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-900 underline-offset-4 hover:underline dark:text-zinc-100"
           >
             Retry uptime probe
+            <ArrowRight className="h-3 w-3 -translate-x-0.5 text-[#E6212F] transition-transform group-hover/retry:translate-x-0.5" />
           </button>
         )}
       </div>
@@ -323,17 +323,20 @@ function CustomUrlDetails({
   disabled: boolean;
 }) {
   return (
-    <div className="rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
+    <div className="border border-zinc-200 bg-white transition-colors hover:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-zinc-600">
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-center justify-between px-4 py-3 text-left text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 transition-colors"
+        aria-expanded={open}
+        className="flex w-full items-center justify-between gap-4 px-4 py-3 text-left"
       >
-        <span>Custom Validators API URL (optional)</span>
-        <ChevronDown className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`} />
+        <span className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+          Custom Validators API URL · optional
+        </span>
+        <ChevronDown className={`h-4 w-4 shrink-0 text-zinc-400 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
-        <div className="px-4 pb-4 border-t border-zinc-200/80 dark:border-zinc-800">
+        <div className="border-t border-zinc-200 px-4 pb-4 dark:border-zinc-800">
           <Input
             label=""
             value={value}
@@ -374,7 +377,7 @@ function RemoveButton({
           ? 'Remove Validator (preserves rewards)'
           : 'Force Remove Validator (forfeits rewards)';
 
-  // Button stays primary blue across both probe states — the risk narrative is
+  // Button stays primary blue across both probe states. The risk narrative is
   // carried by the banner + the inline "forfeits rewards" label text, not by
   // the button color. Variant flipping read as visual noise.
   return (
@@ -382,6 +385,7 @@ function RemoveButton({
       onClick={onClick}
       disabled={disabled || isProcessing}
       loading={isProcessing || isSigningUptime}
+      loadingText={label}
       variant="primary"
     >
       {label}

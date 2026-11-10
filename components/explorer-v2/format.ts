@@ -20,6 +20,19 @@ export function formatNumber(n: number | undefined): string {
   return n === undefined || n === null ? "—" : n.toLocaleString("en-US");
 }
 
+const COMPACT = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 });
+const COMPACT_2 = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 2 });
+
+/** "622.2M", "48K": a figure in its thousands, millions or billions, to one place */
+export function compact(v: number): string {
+  return COMPACT.format(v);
+}
+
+/** "1.69B", "48.25K": the same to two places */
+export function compact2(v: number): string {
+  return COMPACT_2.format(v);
+}
+
 /** nAVAX + a USD/AVAX rate → "$1,234.56". Returns undefined when there is no
  *  rate to apply, so callers can omit the line entirely rather than render a
  *  confident "$0.00" for a price we simply do not have. */
@@ -36,6 +49,43 @@ export function formatUsd(nAvax: string | number | undefined, avaxUsd: number | 
   return `$${usd.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+/** "5.000 nAVAX" → { value: "5.000", unit: "nAVAX" }: a figure and its unit, for big type */
+export function unitParts(text: string): { value: string; unit?: string } {
+  const cut = text.lastIndexOf(" ");
+  return cut < 0 ? { value: text } : { value: text.slice(0, cut), unit: text.slice(cut + 1) };
+}
+
+/** a gas price in wei → "5.043 nAVAX", "0.15 nAVAX" or "150 wei": the
+ *  chain's nano unit from a thousandth of a nano up (three places, whole
+ *  from 100), and plain wei under that, where a tip of a few hundred wei
+ *  would otherwise read as zero */
+export function formatPricePerGas(wei: string | number | bigint | undefined | null, symbol = "AVAX"): string {
+  if (wei === undefined || wei === null || wei === "") return "—";
+  let v: bigint;
+  try {
+    v = BigInt(typeof wei === "number" ? Math.trunc(wei) : wei);
+  } catch {
+    return "—";
+  }
+  if (v < 0n) return "—";
+  if (v < 1_000_000n) return `${v.toLocaleString("en-US")} wei`;
+  const n = Number(v) / 1e9;
+  const unit = `n${symbol}`;
+  if (n >= 100) return `${Math.round(n).toLocaleString("en-US")} ${unit}`;
+  if (n >= 1) return `${n.toFixed(3)} ${unit}`;
+  return `${Number(n.toPrecision(3))} ${unit}`;
+}
+
+/** a dollar amount at the precision fees need: "$12.34", "$0.012", and
+ *  under a cent three significant digits ("$0.00133") instead of "<$0.01" */
+export function formatDollars(usd: number): string {
+  if (usd >= 1) return `$${usd.toFixed(2)}`;
+  if (usd >= 0.01) return `$${usd.toFixed(3)}`;
+  if (usd <= 0) return "$0.00";
+  const decimals = Math.min(12, Math.ceil(-Math.log10(usd)) + 2);
+  return `$${usd.toFixed(decimals).replace(/0$/, "")}`;
+}
+
 export function timeAgo(unixSecs: number | undefined): string {
   if (!unixSecs) return "—";
   const s = Math.floor(Date.now() / 1000 - unixSecs);
@@ -44,6 +94,21 @@ export function timeAgo(unixSecs: number | undefined): string {
   if (s < 3600) return `${Math.floor(s / 60)}m ago`;
   if (s < 86400) return `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m ago`;
   return `${Math.floor(s / 86400)}d ago`;
+}
+
+/** "13 secs ago", "3 hrs ago", "1 yr 351 days ago": an age in words, in
+ *  the largest unit and, past a year, the days beyond it */
+export function ageWords(unixSecs: number | undefined, now = Date.now() / 1000): string {
+  if (!unixSecs) return "n/a";
+  const s = Math.max(0, Math.floor(now - unixSecs));
+  const n = (v: number, unit: string) => `${v} ${unit}${v === 1 ? "" : "s"}`;
+  if (s < 60) return `${n(s, "sec")} ago`;
+  if (s < 3600) return `${n(Math.floor(s / 60), "min")} ago`;
+  if (s < 86400) return `${n(Math.floor(s / 3600), "hr")} ago`;
+  const days = Math.floor(s / 86400);
+  if (days < 365) return `${n(days, "day")} ago`;
+  const rest = days % 365;
+  return `${n(Math.floor(days / 365), "yr")}${rest ? ` ${n(rest, "day")}` : ""} ago`;
 }
 
 export function formatTime(unixSecs: number | undefined): string {
@@ -109,4 +174,41 @@ export function hourLong(d: string | number): string {
   if (Number.isNaN(t.getTime())) return String(d);
   const day = t.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
   return `${day} · ${String(t.getUTCHours()).padStart(2, "0")}:00 UTC`;
+}
+
+/* An hourly series reads in the viewer's time zone: named in UTC, a western
+   viewer's evening reads as tomorrow. `timeZone` is for tests; unset, the
+   browser's own zone applies. */
+
+/** "Oct 5": an axis tick for an hour, in the viewer's time zone */
+export function localDayShort(d: string | number, timeZone?: string): string {
+  const t = asDate(d);
+  return Number.isNaN(t.getTime()) ? String(d) : t.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone });
+}
+
+/** "Mon, Oct 5 · 20:00 EDT": a tooltip's hour, in the viewer's time zone */
+export function localHourLong(d: string | number, timeZone?: string): string {
+  const t = asDate(d);
+  if (Number.isNaN(t.getTime())) return String(d);
+  const day = t.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone });
+  const time = t.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone, timeZoneName: "short" });
+  return `${day} · ${time}`;
+}
+
+const STAMPS = new Map<string, Intl.DateTimeFormat>();
+
+/** "2026-10-05 20:00:00": a unix time's wall clock in the viewer's time zone, written as a query's rows write theirs */
+export function zoneStamp(unix: number, timeZone?: string): string {
+  let f = STAMPS.get(timeZone ?? "");
+  if (!f) {
+    f = new Intl.DateTimeFormat("en-US", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23", timeZone });
+    STAMPS.set(timeZone ?? "", f);
+  }
+  const p = Object.fromEntries(f.formatToParts(new Date(unix * 1000)).map((x) => [x.type, x.value]));
+  return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}:${p.second}`;
+}
+
+/** "EDT", "UTC", "GMT+5:30": the viewer's time zone at a unix time, by its short name */
+export function zoneName(unix: number, timeZone?: string): string {
+  return new Intl.DateTimeFormat("en-US", { timeZone, timeZoneName: "short" }).formatToParts(new Date(unix * 1000)).find((x) => x.type === "timeZoneName")?.value ?? "";
 }

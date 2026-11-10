@@ -81,7 +81,7 @@ function NativeMinter({ onSuccess }: BaseConsoleToolProps) {
       }
     } catch (err) {
       // useContractActions already runs the message through
-      // parseContractError (and adds a debug-trace tail on Fuji), so
+      // parseContractError, so
       // we just surface the message verbatim — adding the role hint
       // for the common revert case.
       const msg = err instanceof Error ? err.message : 'Mint failed';

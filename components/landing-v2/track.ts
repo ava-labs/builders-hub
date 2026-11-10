@@ -5,7 +5,7 @@ import posthog from "posthog-js";
 // stable home_* schema:
 //   home_section_viewed  { section }
 //   home_cta_clicked     { section, label, href }
-//   home_pillar_selected { pillar }
+//   home_pillar_selected { pillar, via: "click" | "swipe" }
 //   home_playbook_selected { playbook }
 //   home_chain_clicked   { chain }
 export function track(event: string, props?: Record<string, unknown>): void {

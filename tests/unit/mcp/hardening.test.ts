@@ -17,7 +17,7 @@ describe('MCP request admission', () => {
     expect(getMCPRequestCost([
       { method: 'ping' },
       { method: 'tools/call', params: { name: 'docs_search' } },
-      { method: 'tools/call', params: { name: 'onchain_query' } },
+      { method: 'tools/call', params: { name: 'chain_stats' } },
     ])).toBe(7)
   })
 
@@ -92,10 +92,11 @@ describe('action output safety and links', () => {
     expect(textOf(manager)).toContain('/permissionless-l1s/native-staking-manager-setup')
 
     const kit = await actionTools.handlers.console_link({ flow: 'interchain-kit-local' })
-    expect(textOf(kit)).toContain('/docs/tooling/avalanche-sdk/interchain-kit')
+    expect(textOf(kit)).toContain('https://github.com/ava-labs/interchain-kit')
 
     const listed = await consoleTools.handlers.console_flow({})
     expect(textOf(listed)).toContain('/console/ictt/setup')
+    expect(textOf(listed)).toContain('https://github.com/ava-labs/interchain-kit')
     expect(textOf(listed)).toContain('/console/primary-network/c-p-bridge')
   })
 })

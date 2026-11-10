@@ -22,7 +22,7 @@ You can take these numbers below as a benchmark:
         "blockGasCostStep": 200000
       },
         
-"gasLimit": 0xe4e1c0,
+"gasLimit": "0xe4e1c0",
 ```
 
 ## Choose Your Own Values
@@ -37,7 +37,7 @@ Your choice of `gasLimit` values should depend on the specific use case and comp
 
 **Heavy Transactions:** Transactions that involve deploying large contracts or executing complex operations tend to consume more gas. If your application involves such operations, ensure that your `gasLimit` accommodates the full execution of these heavy transactions or contract deployments.
 
-Be cautious with setting excessively high `gasLimit` values. Larger computational allowances per block can translate to increased hardware requirements for your blockchain. Therefore, align the `gasLimit` with your use case and infrastructure requirements for validators. Avoid setting an unusually large value "just in case." For reference, consider that a typical native token transaction costs around 21,000 gas units, and the C-Chain `gasLimit` is set to 15,000,000.
+Be cautious with setting excessively high `gasLimit` values. Larger computational allowances per block can translate to increased hardware requirements for your blockchain. Therefore, align the `gasLimit` with your use case and infrastructure requirements for validators. Avoid setting an unusually large value "just in case." For reference, consider that a typical native token transaction costs around 21,000 gas units, and the C-Chain block gas limit was 80,000,000 on Mainnet on 2026-10-03. The C-Chain does not use `feeConfig`: its block gas limit is 20 times the gas target per second that validators vote on.
 
 ### Gas Price Parameters
 
@@ -48,7 +48,7 @@ The following parameters affect the gas pricing and dynamic adjustments in your 
 - **`baseFeeChangeDenominator`**: Controls how quickly the base fee adjusts in response to fluctuations in gas usage. A smaller denominator allows for faster adjustments.
 - **`minBlockGasCost`**: Specifies the minimum gas cost for producing a block.
 - **`maxBlockGasCost`**: Sets the maximum gas cost for producing a block.
-- **`targetBlockRate`**: Determines the desired block production rate in seconds. Choose this based on your expected block issuance frequency.
-- **`blockGasCostStep`**: Adjusts the block gas cost based on the deviation from the target block rate. A higher step value increases the block gas cost more rapidly with deviations.
+- **`targetBlockRate`**: The target time between blocks, in seconds. Since the Granite upgrade, this value has no effect, but the field is still required and must be greater than 0. To control the block rate, use the ACP-226 minimum block delay. Set its start value with `initialMinDelayMS` in the `config` object of the genesis (this works only if Granite is active at the genesis timestamp). Each validator votes on the delay with the `min-delay-target` option in its chain config file.
+- **`blockGasCostStep`**: Adjusts the block gas cost based on the deviation from the target block rate. A higher step value increases the block gas cost more rapidly with deviations. Since the Granite upgrade, the block gas cost is always 0, so `minBlockGasCost`, `maxBlockGasCost` and `blockGasCostStep` have no effect. The fields are still required.
 
 These parameters should be selected based on the stability of gas usage in your network. Since gas fees are crucial for protecting against spam and abuse, carefully consider how these parameters will adapt to changes in network activity. The goal is to dynamically adjust transaction costs during irregular activity periods while maintaining stability under normal conditions.

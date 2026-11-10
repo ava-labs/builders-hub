@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { rpcBatch } from "./useHeadStream";
+import { ethBalanceCall, hasMulticall3, multicall3 } from "@/lib/explorer-rpc";
 import { ERC20_TRANSFER_TOPIC, type Erc20TransferLog } from "@/lib/token-list";
 
 /* ERC-20 and balance reads straight from the RPC: what a token IS
@@ -19,6 +20,13 @@ const SEL = {
 } as const;
 
 const pad = (addr: string) => addr.slice(2).toLowerCase().padStart(64, "0");
+
+/** eth_calls in request order, null where a call failed: one aggregate3
+ *  per chunk where Multicall3 is deployed, a plain eth_call batch elsewhere */
+function ethCalls(rpcUrl: string, calls: { to: string; data: string }[], signal: AbortSignal): Promise<(string | null)[]> {
+  if (hasMulticall3(rpcUrl)) return multicall3(rpcUrl, calls, signal);
+  return rpcBatch<string>(rpcUrl, calls.map((c) => ({ method: "eth_call", params: [c, "latest"] })), signal);
+}
 
 /** ABI-decode a single string return (dynamic offset + length + bytes) */
 function decodeString(hex: string | null): string | null {
@@ -63,8 +71,8 @@ export function useErc20Meta(rpcUrl: string | undefined, token: string | undefin
     setMeta(null);
     if (!rpcUrl || !token) return;
     const controller = new AbortController();
-    const call = (data: string) => ({ method: "eth_call", params: [{ to: token, data }, "latest"] });
-    rpcBatch<string>(rpcUrl, [call(SEL.name), call(SEL.symbol), call(SEL.decimals), call(SEL.totalSupply)], controller.signal)
+    const call = (data: string) => ({ to: token, data });
+    ethCalls(rpcUrl, [call(SEL.name), call(SEL.symbol), call(SEL.decimals), call(SEL.totalSupply)], controller.signal)
       .then(([name, symbol, decimals, supply]) => {
         if (controller.signal.aborted) return;
         const dec = decodeUint(decimals);
@@ -165,52 +173,126 @@ export function useTokenTransfers(
   return { rows, loading, span };
 }
 
-/** native balance in wei; null while loading or without an RPC */
-export function useNativeBalance(rpcUrl: string | undefined, address: string | undefined): bigint | null {
-  const [wei, setWei] = useState<bigint | null>(null);
-  useEffect(() => {
-    setWei(null);
-    if (!rpcUrl || !address) return;
-    const controller = new AbortController();
-    rpcBatch<string>(rpcUrl, [{ method: "eth_getBalance", params: [address, "latest"] }], controller.signal)
-      .then(([hex]) => !controller.signal.aborted && setWei(decodeUint(hex)))
-      .catch(() => {});
-    return () => controller.abort();
-  }, [rpcUrl, address]);
-  return wei;
+/* Where Multicall3 is deployed, the native balance waits this long for a
+   token set to ride with, so the first read is one aggregate3 for both. */
+const NATIVE_WAIT_MS = 1_000;
+
+interface BalanceScan {
+  scope: string;
+  controller: AbortController;
+  native: bigint | null;
+  nativeAsked: boolean;
+  /** tokens in flight or answered; a failed read leaves the set */
+  asked: Set<string>;
+  answered: Set<string>;
+  balances: Map<string, bigint>;
+  timer?: ReturnType<typeof setTimeout>;
 }
 
-/** balanceOf(address) across a candidate token set, nonzero only; the
- *  key is the sorted set so a re-render with the same tokens costs nothing */
-export function useTokenBalances(
+const newScan = (scope: string): BalanceScan => ({
+  scope,
+  controller: new AbortController(),
+  native: null,
+  nativeAsked: false,
+  asked: new Set(),
+  answered: new Set(),
+  balances: new Map(),
+});
+
+/** An address's native balance in wei (null while loading) and its nonzero
+ *  balanceOf across a candidate token set. When the set grows, only the new
+ *  tokens are read. On the C-Chain and Fuji the native balance and the
+ *  tokens go through Multicall3 together. */
+export function useAddressBalances(
   rpcUrl: string | undefined,
   address: string | undefined,
   tokens: string[],
-): { balances: Map<string, bigint>; ready: boolean } {
+): { nativeWei: bigint | null; balances: Map<string, bigint>; ready: boolean } {
   const key = [...new Set(tokens.map((t) => t.toLowerCase()))].sort().join(",");
-  const [state, setState] = useState<{ key: string; balances: Map<string, bigint> }>({ key: "", balances: new Map() });
+  const scope = rpcUrl && address ? `${rpcUrl}|${address.toLowerCase()}` : "";
+  const scan = useRef<BalanceScan>(newScan(""));
+  const [version, setVersion] = useState(0);
+
+  // a new address or RPC starts a new scan; the old one's reads are dropped
   useEffect(() => {
-    if (!rpcUrl || !address || !key) return;
-    const list = key.split(",");
-    const controller = new AbortController();
-    rpcBatch<string>(
-      rpcUrl,
-      list.map((t) => ({ method: "eth_call", params: [{ to: t, data: `${SEL.balanceOf}${pad(address)}` }, "latest"] })),
-      controller.signal,
-    )
-      .then((out) => {
-        if (controller.signal.aborted) return;
-        const balances = new Map<string, bigint>();
-        out.forEach((hex, i) => {
-          const v = decodeUint(hex);
-          if (v && v > 0n) balances.set(list[i], v);
+    const s = newScan(scope);
+    scan.current = s;
+    setVersion((v) => v + 1);
+    if (scope && !hasMulticall3(rpcUrl)) {
+      s.nativeAsked = true;
+      rpcBatch<string>(rpcUrl!, [{ method: "eth_getBalance", params: [address, "latest"] }], s.controller.signal)
+        .then(([hex]) => {
+          if (s.controller.signal.aborted) return;
+          s.native = decodeUint(hex);
+          setVersion((v) => v + 1);
+        })
+        .catch(() => {});
+    }
+    return () => {
+      s.controller.abort();
+      if (s.timer) clearTimeout(s.timer);
+    };
+  }, [scope, rpcUrl, address]);
+
+  useEffect(() => {
+    const s = scan.current;
+    if (!scope || s.scope !== scope || !rpcUrl || !address) return;
+    const todo = key ? key.split(",").filter((t) => !s.asked.has(t)) : [];
+    const mc = hasMulticall3(rpcUrl);
+    const withNative = mc && !s.nativeAsked;
+    if (!todo.length && !withNative) return;
+
+    const read = () => {
+      if (s.controller.signal.aborted) return;
+      if (s.timer) clearTimeout(s.timer);
+      s.timer = undefined;
+      const native = mc && !s.nativeAsked;
+      if (native) s.nativeAsked = true;
+      const list = [...todo.filter((t) => !s.asked.has(t))];
+      list.forEach((t) => s.asked.add(t));
+      const calls = list.map((t) => ({ to: t, data: `${SEL.balanceOf}${pad(address)}` }));
+      if (native) calls.unshift(ethBalanceCall(address));
+      if (!calls.length) return;
+      ethCalls(rpcUrl, calls, s.controller.signal)
+        .then((out) => {
+          if (s.controller.signal.aborted) return;
+          const tokenOut = native ? out.slice(1) : out;
+          if (native) s.native = decodeUint(out[0]);
+          tokenOut.forEach((hex, i) => {
+            const v = decodeUint(hex);
+            if (v && v > 0n) s.balances.set(list[i], v);
+            s.answered.add(list[i]);
+          });
+          setVersion((v) => v + 1);
+        })
+        .catch(() => {
+          if (native) s.nativeAsked = false;
+          list.forEach((t) => s.asked.delete(t));
         });
-        setState({ key, balances });
-      })
-      .catch(() => {});
-    return () => controller.abort();
-  }, [rpcUrl, address, key]);
-  return { balances: state.key === key ? state.balances : new Map(), ready: state.key === key && key !== "" };
+    };
+
+    // no tokens yet: give the candidate set a moment so the native balance rides with it
+    if (!todo.length) {
+      if (!s.timer) s.timer = setTimeout(read, NATIVE_WAIT_MS);
+      return;
+    }
+    read();
+  }, [scope, rpcUrl, address, key]);
+
+  const current = scan.current.scope === scope ? scan.current : null;
+  const balances = useMemo(() => {
+    const out = new Map<string, bigint>();
+    if (!current || !key) return out;
+    for (const t of key.split(",")) {
+      const v = current.balances.get(t);
+      if (v !== undefined) out.set(t, v);
+    }
+    return out;
+    // version marks a new answer in the scan
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current, key, version]);
+  const ready = !!current && key !== "" && key.split(",").every((t) => current.answered.has(t));
+  return { nativeWei: current?.native ?? null, balances, ready };
 }
 
 /** symbol and decimals for tokens the list does not carry, one batch per
@@ -224,13 +306,15 @@ export function useUnlistedTokenMeta(rpcUrl: string | undefined, addrs: string[]
     if (!todo.length) return;
     const controller = new AbortController();
     const calls = todo.flatMap((to) => [
-      { method: "eth_call", params: [{ to, data: SEL.symbol }, "latest"] },
-      { method: "eth_call", params: [{ to, data: SEL.decimals }, "latest"] },
+      { to, data: SEL.symbol },
+      { to, data: SEL.decimals },
     ]);
-    // the public RPC refuses big batches, so ask twenty calls at a time
+    // the public RPC refuses big batches, so ask twenty calls at a time;
+    // where Multicall3 is deployed the whole set is one aggregate3 per hundred calls
     const chunks: (typeof calls)[] = [];
-    for (let i = 0; i < calls.length; i += 20) chunks.push(calls.slice(i, i + 20));
-    Promise.all(chunks.map((ch) => rpcBatch<string>(rpcUrl, ch, controller.signal)))
+    if (hasMulticall3(rpcUrl)) chunks.push(calls);
+    else for (let i = 0; i < calls.length; i += 20) chunks.push(calls.slice(i, i + 20));
+    Promise.all(chunks.map((ch) => ethCalls(rpcUrl, ch, controller.signal)))
       .then((parts) => parts.flat())
       .then((out) => {
         if (controller.signal.aborted) return;

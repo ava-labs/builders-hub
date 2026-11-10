@@ -2,7 +2,6 @@
 
 import { ReactNode, useEffect, useState, createContext, useContext } from "react";
 import { ExplorerProvider } from "@/components/explorer/ExplorerContext";
-import { ExplorerLayout } from "@/components/explorer/ExplorerLayout";
 import { L1Chain } from "@/types/stats";
 import { getL1ListStore, L1ListItem } from "@/components/toolbox/stores/l1ListStore";
 import { convertL1ListItemToL1Chain, findCustomChainBySlug } from "@/components/explorer/utils/chainConverter";
@@ -21,6 +20,8 @@ interface ChainContextValue {
   rpcUrl?: string;
   socials?: { twitter?: string; linkedin?: string };
   sourcifySupport?: boolean;
+  /** the chain's token has a market price (a CoinGecko id), so its price cells keep their place while it loads */
+  priced?: boolean;
 }
 
 const ChainContext = createContext<ChainContextValue | null>(null);
@@ -47,6 +48,7 @@ interface StaticChainProps {
   blockchainId?: string;
   socials?: { twitter?: string; linkedin?: string };
   sourcifySupport?: boolean;
+  priced?: boolean;
   isCustomChain?: false;
   children: ReactNode;
 }
@@ -76,6 +78,7 @@ export function ChainExplorerLayoutClient(props: ChainExplorerLayoutClientProps)
       blockchainId,
       socials,
       sourcifySupport,
+      priced,
       children,
     } = props;
     
@@ -91,6 +94,7 @@ export function ChainExplorerLayoutClient(props: ChainExplorerLayoutClientProps)
       rpcUrl,
       socials,
       sourcifySupport,
+      priced,
     };
 
     return (

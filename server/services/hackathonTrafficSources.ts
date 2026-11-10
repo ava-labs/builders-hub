@@ -1,9 +1,8 @@
-import { runHogQL } from "@/lib/posthog-query";
-
-const POSTHOG_BUILDER_HUB_PROJECT_ID = process.env.POSTHOG_PROJECT_ID;
-
-const HOGQL_HOST_FILTER =
-  "properties.$host IN ('build.avax.network', 'www.build.avax.network')";
+import {
+  BUILDER_HUB_PROJECT_ID,
+  HOGQL_HOST_FILTER,
+  runHogQL,
+} from "@/lib/posthog-query";
 
 /**
  * HogQL expression that buckets every pageview into a single `source` string.
@@ -130,7 +129,7 @@ export async function getTopHackathonTrafficSourcesBatch(
   `.trim();
 
   const rows = await runHogQL<BatchRow>({
-    projectId: POSTHOG_BUILDER_HUB_PROJECT_ID,
+    projectId: BUILDER_HUB_PROJECT_ID,
     query,
   });
 

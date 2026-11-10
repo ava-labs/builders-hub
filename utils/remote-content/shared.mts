@@ -1,6 +1,7 @@
 import axios from 'axios';
 import * as fs from 'fs';
 import * as path from 'path';
+import { rewriteMovedLinks } from './moved-links.mts';
 // Intentionally no global MDX fixer; section parsers handle transformations
 
 export interface FileConfig {
@@ -62,24 +63,25 @@ export function replaceRelativeLinks(content: string, sourceBaseUrl: string): st
     linkRegex,
     (match, text, markdownLink, imgAttrs, imgSrc, imgRest) => {
       if (markdownLink) {
+        // CommonMark allows the destination in angle brackets, so that it can hold spaces: ![a](<my chart.png>).
+        // Unwrap it, or new URL() encodes the brackets into the path (%3Cmy%20chart.png%3E).
+        const destination: string = markdownLink.match(/^<([^<>\n]*)>$/)?.[1] ?? markdownLink;
+        const isImage = /\.(png|jpe?g|gif|svg)$/i.test(destination);
         if (
-          markdownLink.startsWith("http") ||
-          markdownLink.startsWith("#") ||
-          markdownLink.startsWith("mailto:")
+          destination.startsWith("http") ||
+          destination.startsWith("#") ||
+          destination.startsWith("mailto:")
         ) {
           // Convert GitHub blob URLs to raw URLs for images
-          if (markdownLink.includes('github.com') && markdownLink.includes('/blob/') && 
-              (markdownLink.toLowerCase().endsWith('.png') || 
-               markdownLink.toLowerCase().endsWith('.jpg') || 
-               markdownLink.toLowerCase().endsWith('.jpeg') || 
-               markdownLink.toLowerCase().endsWith('.gif') || 
-               markdownLink.toLowerCase().endsWith('.svg'))) {
-            return `[${text}](${convertGitHubBlobToRaw(markdownLink)})`;
+          if (destination.includes('github.com') && destination.includes('/blob/') && isImage) {
+            return `[${text}](${convertGitHubBlobToRaw(destination)})`;
           }
           return match;
         }
-        // Convert markdown-style relative link to absolute link
-        return `[${text}](${new URL(markdownLink, sourceBaseUrl).href})`;
+        // Convert markdown-style relative link to absolute link. A blob URL serves an HTML page, so an image
+        // gets the raw URL.
+        const absoluteUrl = new URL(destination, sourceBaseUrl).href;
+        return `[${text}](${isImage ? convertGitHubBlobToRaw(absoluteUrl) : absoluteUrl})`;
       } else if (imgSrc) {
         // Remove quotes if they exist
         let cleanSrc = imgSrc.replace(/^['"]|['"]$/g, '');
@@ -203,7 +205,8 @@ export async function processFile(fileConfig: FileConfig, parser?: SectionParser
     const outputDir = path.dirname(fileConfig.outputPath);
     fs.mkdirSync(outputDir, { recursive: true });
 
-    fs.writeFileSync(fileConfig.outputPath, transformedContent);
+    // Every remote file gets the dead-link rewrites, also the generated release notes that skip the parser.
+    fs.writeFileSync(fileConfig.outputPath, rewriteMovedLinks(transformedContent));
     console.log(`Processed and saved: ${fileConfig.outputPath}`);
   }
 } 

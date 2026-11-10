@@ -13,9 +13,9 @@ This install script assumes:
 Environment Considerations
 -----------------------------------------------------------------------------------
 
-If you run a different flavor of Linux, the script might not work as intended. It assumes `systemd` is used to run system services. Other Linux flavors might use something else, or might have files in different places than is assumed by the script. It will probably work on any distribution that uses `systemd` but it has been developed for and tested on Ubuntu.
+If you run a different flavor of Linux, the script might not work as intended. It assumes `systemd` is used to run system services. Other Linux flavors might use something else, or might have files in different places than is assumed by the script. The script runs only on Linux distributions of the Debian family (with `apt-get`) or the RHEL family (with `yum` and `dnf`), on amd64 or arm64. On other systems, it stops with an error. It was developed for and tested on Ubuntu.
 
-If you have a node already running on the computer, stop it before running the script. Script won't touch the node working directory so you won't need to bootstrap the node again.
+If you have a node already running on the computer, stop it before running the script. The script keeps the node database and staking keys, so you do not need to bootstrap the node again. It overwrites `~/.avalanchego/configs/node.json` and `~/.avalanchego/configs/chains/C/config.json`.
 
 ### Node Running from Terminal
 
@@ -38,7 +38,7 @@ Look for line that doesn't have `grep` on it. In this example, that is the secon
 
 ### Node Working Files
 
-If you previously ran an AvalancheGo node on this computer, you will have local node files stored in `$HOME/.avalanchego` directory. Those files will not be disturbed, and node set up by the script will continue operation with the same identity and state it had before. That being said, for your node's security, back up `staker.crt` and `staker.key` files, found in `$HOME/.avalanchego/staking` and store them somewhere secure. You can use those files to recreate your node on a different computer if you ever need to. Check out this [tutorial](/docs/nodes/maintain/backup-restore) for backup and restore procedure.
+If you previously ran an AvalancheGo node on this computer, you will have local node files stored in `$HOME/.avalanchego` directory. The script keeps the database and the staking keys, so the node continues with the same identity and state it had before. It overwrites `configs/node.json` and `configs/chains/C/config.json`. For your node's security, back up the `staker.crt`, `staker.key` and `signer.key` files in `$HOME/.avalanchego/staking`, and store them somewhere secure. `signer.key` is the BLS key that a validator registers on the P-Chain. You can use those files to recreate your node on a different computer if you ever need to. Check out this [tutorial](/docs/nodes/maintain/backup-restore) for backup and restore procedure.
 
 Networking Considerations
 ---------------------------------------------------------------------------------

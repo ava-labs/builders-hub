@@ -52,7 +52,13 @@ interface ChainMetrics {
 // Cache storage
 const cachedData = new Map<string, { data: ChainMetrics; timestamp: number; icmTimeRange: string }>();
 const revalidatingKeys = new Set<string>();
-const pendingRequests = new Map<string, Promise<ChainMetrics | null>>();
+const pendingRequests = new Map<string, Promise<Fresh | null>>();
+
+/* a metric the stats API did not answer: the same empty series as a real empty one, but this one array, so the
+   response can name it as missing and no cache keeps it (a timeout once stood as an empty metric for a day) */
+const FAILED: TimeSeriesDataPoint[] = [];
+/** a fresh read: the metrics that came in, and the ones that did not */
+type Fresh = { data: ChainMetrics; failed: string[] };
 
 // Timeout wrapper for fetch requests
 async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = REQUEST_TIMEOUT_MS): Promise<Response> {
@@ -143,7 +149,7 @@ async function getTimeSeriesData(
       }));
   } catch (error) {
     console.warn(`[getTimeSeriesData] Failed for ${metricType} on chain ${chainId}:`, error);
-    return [];
+    return FAILED;
   }
 }
 
@@ -184,7 +190,7 @@ async function getActiveAddressesData(
       }));
   } catch (error) {
     console.warn(`[getActiveAddressesData] Failed for chain ${chainId} (${interval}):`, error);
-    return [];
+    return FAILED;
   }
 }
 
@@ -509,6 +515,7 @@ async function getICMData(
       days = getDaysFromTimeRange(timeRange);
     }
 
+    // "all" reads mainnet's messages, "fuji" Fuji's, any other ID one chain's
     let result = await getChainICMData(chainId, days);
 
     if (startTimestamp !== undefined && endTimestamp !== undefined) {
@@ -552,7 +559,7 @@ async function fetchFreshDataInternal(
   startTimestamp?: number,
   endTimestamp?: number,
   isSpecificMetricsMode: boolean = false
-): Promise<ChainMetrics | null> {
+): Promise<Fresh | null> {
   try {
     const config = STATS_CONFIG.TIME_RANGES[timeRange as keyof typeof STATS_CONFIG.TIME_RANGES] || STATS_CONFIG.TIME_RANGES['30d'];
     const { pageSize, fetchAllPages } = config;
@@ -617,13 +624,15 @@ async function fetchFreshDataInternal(
     fetchKeys.forEach((key, index) => {
       results[key] = fetchResults[index];
     });
+    // the metrics the stats API did not answer; an address window that failed takes its whole metric
+    const failed = [...new Set(fetchKeys.filter((k) => results[k] === FAILED).map((k) => (k.endsWith('ActiveAddresses') ? 'activeAddresses' : k)))];
 
     // Build metrics object
     const metrics: Partial<ChainMetrics> & { activeAddresses?: any } = {
       last_updated: Date.now()
     };
     
-    if (requestedMetrics.includes('activeAddresses')) {
+    if (requestedMetrics.includes('activeAddresses') && !failed.includes('activeAddresses')) {
       if (isSpecificMetricsMode) {
         metrics.activeAddresses = createTimeSeriesMetric(results['dailyActiveAddresses'] as TimeSeriesDataPoint[]);
       } else {
@@ -656,7 +665,7 @@ async function fetchFreshDataInternal(
     ];
     
     for (const mapping of metricMappings) {
-      if (requestedMetrics.includes(mapping.key) && results[mapping.resultKey]) {
+      if (requestedMetrics.includes(mapping.key) && results[mapping.resultKey] && results[mapping.resultKey] !== FAILED) {
         (metrics as any)[mapping.key] = createTimeSeriesMetric(results[mapping.resultKey] as TimeSeriesDataPoint[]);
       }
     }
@@ -715,7 +724,7 @@ async function fetchFreshDataInternal(
       }
     }
 
-    return metrics as ChainMetrics;
+    return { data: metrics as ChainMetrics, failed };
   } catch (error) {
     console.error(`[fetchFreshData] Failed for chain ${chainId}:`, error);
     return null;
@@ -731,13 +740,16 @@ function createResponse(
     cacheAge?: number; 
     fetchTime?: number; 
     metrics?: string;
+    /** the metrics missing from a fresh read: the response names them, and no cache on the way keeps it */
+    partial?: string[];
   },
   status = 200
 ) {
   const headers: Record<string, string> = { 
-    'Cache-Control': CACHE_CONTROL_HEADER, 
+    'Cache-Control': meta.partial?.length ? 'no-store' : CACHE_CONTROL_HEADER, 
     'X-Data-Source': meta.source 
   };
+  if (meta.partial?.length) headers['X-Partial-Metrics'] = meta.partial.join(',');
   if (meta.chainId) headers['X-Chain-Id'] = meta.chainId;
   if (meta.timeRange) headers['X-Time-Range'] = meta.timeRange;
   if (meta.cacheAge !== undefined) headers['X-Cache-Age'] = `${Math.round(meta.cacheAge / 1000)}s`;
@@ -814,13 +826,14 @@ export async function GET(
       // Background refresh
       (async () => {
         try {
-          const freshData = await fetchFreshDataInternal(
+          const fresh = await fetchFreshDataInternal(
             chainId, timeRange, requestedMetrics, 
             startTimestamp, endTimestamp, isSpecificMetricsMode
           );
-          if (freshData) {
+          // a read with a metric missing leaves the stale entry standing, so the next request tries again
+          if (fresh && fresh.failed.length === 0) {
             cachedData.set(cacheKey, { 
-              data: freshData, 
+              data: fresh.data, 
               timestamp: Date.now(), 
               icmTimeRange: timeRange 
             });
@@ -881,9 +894,9 @@ export async function GET(
     }
     
     const startTime = Date.now();
-    const freshData = await pendingPromise;
+    const fresh = await pendingPromise;
     
-    if (!freshData) {
+    if (!fresh) {
       // Fallback to any available cached data
       const fallbackCacheKey = `${chainId}-30d-${metricsKey}`;
       const fallbackCached = cachedData.get(fallbackCacheKey);
@@ -901,22 +914,25 @@ export async function GET(
       return createResponse({ error: 'Failed to fetch chain metrics' }, { source: 'error', chainId }, 500);
     }
     
-    // Cache fresh data
-    cachedData.set(cacheKey, { 
-      data: freshData, 
-      timestamp: Date.now(), 
-      icmTimeRange: timeRange 
-    });
+    // Cache fresh data, only whole: a read with a metric missing is sent as it is and kept nowhere
+    if (fresh.failed.length === 0) {
+      cachedData.set(cacheKey, { 
+        data: fresh.data, 
+        timestamp: Date.now(), 
+        icmTimeRange: timeRange 
+      });
+    }
     
     const fetchTime = Date.now() - startTime;
-    console.log(`[GET /api/chain-stats/${chainId}] TimeRange: ${timeRange}, Source: fresh, fetchTime: ${fetchTime}ms`);
+    console.log(`[GET /api/chain-stats/${chainId}] TimeRange: ${timeRange}, Source: fresh, fetchTime: ${fetchTime}ms${fresh.failed.length ? `, missing: ${fresh.failed.join(',')}` : ''}`);
 
-    return createResponse(freshData, { 
+    return createResponse(fresh.data, { 
       source: 'fresh', 
       chainId,
       timeRange, 
       fetchTime,
-      metrics: metricsKey
+      metrics: metricsKey,
+      partial: fresh.failed
     });
   } catch (error) {
     const resolvedParams = await params;

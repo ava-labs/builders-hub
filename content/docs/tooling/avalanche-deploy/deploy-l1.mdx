@@ -65,7 +65,7 @@ flowchart TB
 
 | Type | APIs | Pruning | State-Sync | Use Case |
 |------|------|---------|------------|----------|
-| Archive | Full (incl. `debug_*`, `trace_*`) | Disabled | Disabled | Block explorer, debugging, historical queries |
+| Archive | Full (incl. `debug_*` tracing methods such as `debug_traceTransaction`) | Disabled | Disabled | Block explorer, debugging, historical queries |
 | Pruned | Standard (`eth`, `net`, `web3`) | Enabled | Enabled | Transaction submission, latest state queries |
 
 <Callout type="info">
@@ -136,7 +136,7 @@ make status    # Wait for "P:OK" on all nodes
 
 This runs playbook `l1/deploy-nodes.yml`, which:
 - Installs AvalancheGo on all nodes
-- Starts syncing with the Primary Network using `partial-sync-primary-network: true` (syncs only P-Chain headers — much faster than a full sync)
+- Starts syncing with the Primary Network using `partial-sync-primary-network: true` (the node syncs only the P-Chain and does not run the X-Chain or the C-Chain, so the sync is much faster than a full sync)
 - Collects NodeIDs and saves them to `ansible/node_ids.txt`
 - Backs up initial staking keys to S3 (if configured)
 
@@ -150,10 +150,10 @@ Before creating the L1, prepare your genesis file at `configs/l1/genesis/genesis
 Use the [Genesis Builder](https://build.avax.network/tools/l1-toolbox/create-chain) to generate this visually, or edit the included template.
 
 Key settings:
-- **`chainId`** — Unique EVM chain ID ([check availability](https://chainlist.org/))
-- **`feeConfig`** — Gas limits and base fees
-- **`warpConfig`** — Cross-chain messaging with `quorumNumerator: 67`
-- **`alloc`** — Pre-funded addresses and pre-deployed contracts
+- **`chainId`**: Unique EVM chain ID ([check availability](https://chainlist.org/))
+- **`feeConfig`**: Gas limits and base fees
+- **`warpConfig`**: Cross-chain messaging with `quorumNumerator: 67`
+- **`alloc`**: Pre-funded addresses and pre-deployed contracts
 
 </Step>
 <Step>
@@ -176,9 +176,9 @@ make create-l1
 ```
 
 The `create-l1` tool executes three P-Chain transactions:
-1. **`CreateSubnetTx`** — Creates a new Subnet (returns `SUBNET_ID`)
-2. **`CreateChainTx`** — Creates the EVM chain with your genesis (returns `CHAIN_ID`)
-3. **`ConvertSubnetToL1Tx`** — Converts the Subnet to an L1, registering all validators with their BLS keys
+1. **`CreateSubnetTx`**: Creates a new Subnet (returns `SUBNET_ID`)
+2. **`CreateChainTx`**: Creates the EVM chain with your genesis (returns `CHAIN_ID`)
+3. **`ConvertSubnetToL1Tx`**: Converts the Subnet to an L1, registering all validators with their BLS keys
 
 The output `l1.env` file contains `SUBNET_ID`, `CHAIN_ID`, `CONVERSION_TX`, and `EVM_CHAIN_ID`.
 
@@ -244,12 +244,12 @@ make initialize-validator-manager \
 | Archive RPC (c6a.xlarge) | 1 | ~$120 |
 | Pruned RPC (c6a.large) | 1 | ~$65 |
 | Monitoring (t3.small) | 1 | ~$15 |
-| S3 + KMS | — | ~$1 |
+| S3 + KMS | N/A | ~$1 |
 | **Total** | | **~$651/mo** |
 
 ## Next Steps
 
-- [Deploy on Kubernetes instead](/docs/tooling/avalanche-deploy/deploy-l1-kubernetes) — Container-native alternative using Helm charts
-- [Deploy add-ons](/docs/tooling/avalanche-deploy/add-ons) — Blockscout, faucet, The Graph, ICM Relayer, Safe multisig
-- [Operations guide](/docs/tooling/avalanche-deploy/operations) — Upgrades, monitoring, health checks, backups
-- [Troubleshooting](/docs/tooling/avalanche-deploy/troubleshooting) — Common issues and solutions
+- [Deploy on Kubernetes instead](/docs/tooling/avalanche-deploy/deploy-l1-kubernetes): Container-native alternative using Helm charts
+- [Deploy add-ons](/docs/tooling/avalanche-deploy/add-ons): Blockscout, faucet, The Graph, ICM Relayer, Safe multisig
+- [Operations guide](/docs/tooling/avalanche-deploy/operations): Upgrades, monitoring, health checks, backups
+- [Troubleshooting](/docs/tooling/avalanche-deploy/troubleshooting): Common issues and solutions

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Area,
   Bar,
@@ -48,6 +48,7 @@ import {
   type Lens,
 } from "./PrimaryStaking";
 import { STAKING_METRICS, type StakingMetricKey } from "./staking-metrics";
+import { RateCurvesChart, RateCurvesLegend, rateCurveSeries } from "./rate-curves";
 
 /* The per-metric detail sheets behind the Primary Network Staking page —
    the gas family's contract, applied to the staking economy: one figure
@@ -184,7 +185,7 @@ function TotalStakeSheet({ base, network }: { base: string; network: string }) {
           <Stat label="Delegated">
             {delegated !== null ? `${fmtCompact(delegated / NANO)} AVAX` : <StatDash />}
           </Stat>
-          <Stat label="Of Supply" sub={supply ? `${fmtCompact(supply)} AVAX circulating` : undefined}>
+          <Stat label="Of P-Chain Supply" sub={supply ? `${fmtCompact(supply)} AVAX, before burns` : undefined}>
             {ofSupply !== null ? `${ofSupply.toFixed(1)}%` : <StatDash />}
           </Stat>
         </SheetStrip>
@@ -256,7 +257,7 @@ function TotalStakeSheet({ base, network }: { base: string; network: string }) {
               {range < 7 ? "Staking Ratio · 7 days" : "Staking Ratio"}
             </p>
             <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-              staked share of circulating supply
+              of P-Chain supply, before burns
             </span>
           </div>
           {ratioSeries.length ? (
@@ -282,7 +283,7 @@ function TotalStakeSheet({ base, network }: { base: string; network: string }) {
                         <TipPlate>
                           <p className="text-[10px] text-zinc-500">{d.day}</p>
                           <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                            {d.pct.toFixed(1)}% of supply staked
+                            {d.pct.toFixed(1)}% of P-Chain supply staked
                           </p>
                           <p className="text-[10px] tabular-nums text-zinc-500">
                             {fmtCompact(d.staked)} of {fmtCompact(d.supply)} AVAX
@@ -304,7 +305,7 @@ function TotalStakeSheet({ base, network }: { base: string; network: string }) {
             <ChartEmpty failed={failed} />
           )}
           <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-            Total stake read against the circulating supply the emission feed reports for the same
+            Total stake read against the P-Chain supply, before burns, that the emission feed reports for the same
             day. The axis floats to magnify the drift — the range across the whole history is only
             a few points, and the drift is the signal.
           </p>
@@ -369,28 +370,29 @@ function ApySheet({ base, network }: { base: string; network: string }) {
   const range = RANGE_DAYS[clock];
   const { data: apy, failed } = useStakingApy();
 
-  const series = useMemo(() => {
-    if (!apy?.data) return [];
-    const sorted = [...apy.data]
-      .sort((a, b) => a.timestamp - b.timestamp)
-      .map((p) => ({ day: p.date, maxAPY: p.maxAPY, minAPY: p.minAPY }));
-    return thin(windowSeries(sorted, chartWindow(range)), 400);
-  }, [apy, range]);
+  const series = useMemo(() => rateCurveSeries(apy, chartWindow(range), 400), [apy, range]);
+  const now = apy?.current;
+  const twoDay = now?.twoDayAPY ?? null;
 
   return (
     <MetricFrame base={base} metric="apy">
       <div className="flex flex-col gap-10">
-        <SheetStrip label="Reward Rate" chip="Live estimate" cols={3}>
-          {/* the two figures differ by TERM LENGTH, not by role — the
-              consumption rate interpolates 10% → 12% across durations */}
+        <SheetStrip label="Reward Rate" chip="Live estimate" cols={twoDay !== null ? 4 : 3}>
+          {/* the figures differ by TERM LENGTH, not by role: the
+              consumption rate interpolates from its floor to 12% across durations */}
           <Stat label="1-Year Term · Est" sub="maximum duration rate">
-            {apy?.current ? `${apy.current.maxAPY.toFixed(2)}%` : <StatDash />}
+            {now ? `${now.maxAPY.toFixed(2)}%` : <StatDash />}
           </Stat>
-          <Stat label="2-Week Term · Est" sub="minimum duration rate">
-            {apy?.current ? `${apy.current.minAPY.toFixed(2)}%` : <StatDash />}
+          <Stat label="2-Week Term · Est" sub={twoDay !== null ? "the pre-Helicon minimum" : "minimum duration rate"}>
+            {now ? `${(now.twoWeekAPY ?? now.minAPY).toFixed(2)}%` : <StatDash />}
           </Stat>
-          <Stat label="Supply" sub="AVAX circulating">
-            {apy?.current?.supply ? fmtCompact(apy.current.supply) : <StatDash />}
+          {twoDay !== null && (
+            <Stat label="2-Day Term · Est" sub="minimum duration rate">
+              {`${twoDay.toFixed(2)}%`}
+            </Stat>
+          )}
+          <Stat label="P-Chain Supply" sub="AVAX, before burns">
+            {now?.supply ? fmtCompact(now.supply) : <StatDash />}
           </Stat>
         </SheetStrip>
 
@@ -399,54 +401,11 @@ function ApySheet({ base, network }: { base: string; network: string }) {
             <p className="font-mono text-[11px] font-bold uppercase tracking-[0.22em] text-zinc-900 dark:text-zinc-100">
               {range < 7 ? "Rate Curves · 7 days" : "Rate Curves"}
             </p>
-            <span className="flex shrink-0 items-center gap-3 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">
-              <span className="flex items-center gap-1.5">
-                <span className="h-0.5 w-4 bg-zinc-900 dark:bg-zinc-100" /> 1-year term
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="h-0.5 w-4 border-b border-dashed border-[#A2AFB2]" /> 2-week
-              </span>
-            </span>
+            <RateCurvesLegend series={series} />
           </div>
           {series.length ? (
             <ChartPlate name="staking-apy">
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={series} margin={{ top: 8, right: 0, left: 0, bottom: 0 }}>
-                  <SheetGrid />
-                  <XAxis dataKey="day" tickLine={false} axisLine={false} minTickGap={48} tick={AXIS_TICK} tickFormatter={dateTick} />
-                  <YAxis
-                    domain={["auto", "auto"]}
-                    width={44}
-                    tickLine={false}
-                    axisLine={false}
-                    tick={AXIS_TICK}
-                    tickFormatter={(v: number) => `${v.toFixed(1)}%`}
-                  />
-                  <RechartsTooltip
-                    cursor={{ stroke: "rgba(161,161,170,0.35)" }}
-                    content={({ active, payload }) => {
-                      if (!active || !payload?.[0]) return null;
-                      const d = payload[0].payload as { day: string; maxAPY: number; minAPY: number };
-                      return (
-                        <TipPlate>
-                          <p className="text-[10px] text-zinc-500">{d.day}</p>
-                          <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                            {d.maxAPY.toFixed(2)}% · 1-year term
-                          </p>
-                          <p className="text-[10px] tabular-nums text-zinc-500">2-week {d.minAPY.toFixed(2)}%</p>
-                        </TipPlate>
-                      );
-                    }}
-                  />
-                  <Line type="monotone" dataKey="maxAPY" stroke="currentColor" strokeWidth={2} dot={false} isAnimationActive={false} />
-                  <Line type="monotone" dataKey="minAPY" stroke={QUIET_BAR} strokeWidth={1.5} strokeDasharray="4 3" dot={false} isAnimationActive={false} />
-                  <Brush dataKey="day" {...BRUSH_PROPS}>
-                    <LineChart>
-                      <Line dataKey="maxAPY" stroke="#A2AFB2" strokeWidth={1} dot={false} isAnimationActive={false} />
-                    </LineChart>
-                  </Brush>
-                </ComposedChart>
-              </ResponsiveContainer>
+              <RateCurvesChart data={series} variant="sheet" />
             </ChartPlate>
           ) : (
             <ChartEmpty failed={failed} />

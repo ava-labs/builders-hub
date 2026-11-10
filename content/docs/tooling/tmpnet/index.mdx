@@ -3,7 +3,7 @@ title: Overview
 description: Create and manage temporary Avalanche networks for local development and testing
 ---
 
-tmpnet creates temporary Avalanche networks on your local machine. You get a complete multi-node network with consensus, P2P communication, and pre-funded test keys—everything you need to test custom VMs, L1s, and applications before deploying to testnet or mainnet.
+tmpnet creates temporary Avalanche networks on your local machine. You get a complete multi-node network with consensus, P2P communication, and pre-funded test keys: everything you need to test custom VMs, L1s, and applications before deploying to testnet or mainnet.
 
 Networks run as native processes (no Docker needed). All configuration lives on disk at `~/.tmpnet/networks/`, making it easy to inspect state, share configs, or debug issues.
 
@@ -31,7 +31,7 @@ Networks run as native processes (no Docker needed). All configuration lives on 
 ## Basic Workflow
 
 ```bash
-# Start a 5-node network
+# Start a 2-node network (the default node count)
 tmpnetctl start-network --avalanchego-path=./bin/avalanchego
 
 # Network is running at ~/.tmpnet/networks/latest

@@ -1,0 +1,380 @@
+{
+  "id": "usdc-gas-l1",
+  "version": 1,
+  "title": "USDC as Gas on Your L1",
+  "summary": "Bridge USDC in as your L1's native token",
+  "description": "Makes USDC the gas token of an Avalanche L1. USDC locked on the C-Chain in an ICTT TokenHome is minted as the L1's native coin by a NativeTokenRemote through the Native Minter precompile, and burned again on the way back.",
+  "category": "interop",
+  "level": "advanced",
+  "tags": ["ictt", "icm", "usdc", "native-minter", "gas-token", "l1"],
+  "prompts": [
+    "Use USDC as the gas token on my L1",
+    "My L1's users should pay fees in stablecoins",
+    "Bridge USDC from the C-Chain as the native coin of my chain"
+  ],
+  "networks": {
+    "home": {
+      "description": "C-Chain, where USDC is locked",
+      "default": "fuji-c-chain",
+      "allowed": ["fuji-c-chain"]
+    },
+    "remote": {
+      "description": "Your L1, with the Native Minter precompile and ICM enabled",
+      "default": "l1",
+      "allowed": ["l1"]
+    }
+  },
+  "params": [
+    {
+      "name": "teleporterManager",
+      "type": "address",
+      "description": "May pause Teleporter versions on both contracts",
+      "default": "$ctx.builder"
+    },
+    {
+      "name": "nativeAssetSymbol",
+      "type": "string",
+      "description": "Symbol of the L1's native coin",
+      "default": "USDC"
+    },
+    {
+      "name": "initialReserveImbalance",
+      "type": "uint",
+      "description": "Native coins that exist on the L1 before the bridge (from genesis), in 18-decimal base units. Must be above 0. Match the genesis allocation for full backing; the default treats genesis coins as unbacked, which suits testnet.",
+      "default": "1"
+    },
+    {
+      "name": "burnedFeesReportingRewardPercentage",
+      "type": "uint",
+      "description": "Share of burned fees paid to whoever reports them back to the home, 0 to 100",
+      "default": 0
+    },
+    {
+      "name": "amount",
+      "type": "uint",
+      "description": "Test transfer in USDC base units (6 decimals); the default is 0.5 USDC",
+      "default": "500000"
+    },
+    {
+      "name": "recipient",
+      "type": "address",
+      "description": "Receives native coins on the L1",
+      "default": "$ctx.builder"
+    },
+    {
+      "name": "requiredGasLimit",
+      "type": "uint",
+      "description": "Gas for the remote to mint on delivery",
+      "default": 250000
+    }
+  ],
+  "prerequisites": [
+    "An L1 with the Native Minter precompile, interoperability, and a relayer to the C-Chain: l1-quickstart with nativeMinter, interoperability and enableManagedRelayer",
+    "The builder is a Native Minter admin on the L1 (l1-quickstart seeds the owner address)",
+    "USDC on Fuji from the Circle faucet listed in the registry, which sends 1 USDC per request",
+    "Native gas on the L1 for the deployer, from the genesis allocation"
+  ],
+  "contracts": [
+    {
+      "name": "ERC20TokenHome",
+      "artifact": "contracts/icm-contracts/compiled/ERC20TokenHome.json",
+      "description": "Locks USDC on the C-Chain"
+    },
+    {
+      "name": "NativeTokenRemote",
+      "artifact": "contracts/icm-contracts/compiled/NativeTokenRemote.json",
+      "description": "Mints and burns the L1's native coin"
+    },
+    {
+      "name": "INativeMinter",
+      "artifact": "contracts/icm-contracts/compiled/INativeMinter.json",
+      "description": "Native Minter precompile interface"
+    },
+    {
+      "name": "ERC20",
+      "artifact": "contracts/icm-contracts/compiled/ExampleERC20.json",
+      "description": "Standard ERC-20 ABI, for USDC approvals"
+    },
+    {
+      "name": "TeleporterMessenger",
+      "artifact": "contracts/icm-contracts/compiled/TeleporterMessenger.json",
+      "description": "Decodes the registration message id"
+    }
+  ],
+  "steps": [
+    {
+      "id": "ensure-relayer",
+      "title": "Make sure a relayer serves both chains",
+      "kind": "offchain",
+      "network": "home",
+      "action": "icm.ensure-relayer",
+      "inputs": {
+        "chains": ["$net.home", "$net.remote"]
+      }
+    },
+    {
+      "id": "deploy-home",
+      "title": "Deploy a USDC TokenHome on the C-Chain",
+      "kind": "deploy",
+      "network": "home",
+      "signer": "deployer",
+      "contract": "ERC20TokenHome",
+      "args": [
+        "$net.home.teleporter.registry",
+        "$param.teleporterManager",
+        1,
+        "$net.home.tokens.USDC.address",
+        "$net.home.tokens.USDC.decimals"
+      ]
+    },
+    {
+      "id": "deploy-remote",
+      "title": "Deploy NativeTokenRemote on the L1",
+      "kind": "deploy",
+      "network": "remote",
+      "signer": "deployer",
+      "contract": "NativeTokenRemote",
+      "args": [
+        {
+          "teleporterRegistryAddress": "$net.remote.teleporter.registry",
+          "teleporterManager": "$param.teleporterManager",
+          "minTeleporterVersion": 1,
+          "tokenHomeBlockchainID": "$net.home.blockchainIdHex",
+          "tokenHomeAddress": "$out.deploy-home.address",
+          "tokenHomeDecimals": "$net.home.tokens.USDC.decimals"
+        },
+        "$param.nativeAssetSymbol",
+        "$param.initialReserveImbalance",
+        "$param.burnedFeesReportingRewardPercentage"
+      ]
+    },
+    {
+      "id": "allow-minting",
+      "title": "Let the remote mint native coins",
+      "kind": "call",
+      "network": "remote",
+      "signer": "admin",
+      "contract": "INativeMinter",
+      "target": "$reg.precompiles.nativeMinter",
+      "function": "setEnabled",
+      "args": ["$out.deploy-remote.address"]
+    },
+    {
+      "id": "register",
+      "title": "Register the remote with its home",
+      "kind": "call",
+      "network": "remote",
+      "signer": "deployer",
+      "contract": "NativeTokenRemote",
+      "target": "$out.deploy-remote.address",
+      "function": "registerWithHome",
+      "args": [
+        {
+          "feeTokenAddress": "0x0000000000000000000000000000000000000000",
+          "amount": 0
+        }
+      ],
+      "outputs": {
+        "messageId": "event:TeleporterMessenger.SendCrossChainMessage.messageID"
+      }
+    },
+    {
+      "id": "wait-register",
+      "title": "Wait for the home to learn about the remote",
+      "kind": "wait",
+      "network": "home",
+      "wait": {
+        "for": "icm-delivery",
+        "id": "$out.register.messageId",
+        "timeoutMinutes": 5
+      }
+    },
+    {
+      "id": "read-collateral",
+      "title": "Read how much USDC collateral the remote needs",
+      "kind": "read",
+      "network": "home",
+      "contract": "ERC20TokenHome",
+      "target": "$out.deploy-home.address",
+      "function": "getRemoteTokenTransferrerSettings",
+      "args": ["$net.remote.blockchainIdHex", "$out.deploy-remote.address"],
+      "outputs": {
+        "collateralNeeded": "return.collateralNeeded"
+      }
+    },
+    {
+      "id": "approve-collateral",
+      "title": "Approve the collateral",
+      "kind": "call",
+      "network": "home",
+      "signer": "builder",
+      "contract": "ERC20",
+      "target": "$net.home.tokens.USDC.address",
+      "function": "approve",
+      "args": ["$out.deploy-home.address", "$out.read-collateral.collateralNeeded"],
+      "skipIf": {
+        "value": "$out.read-collateral.collateralNeeded",
+        "equals": "0"
+      }
+    },
+    {
+      "id": "add-collateral",
+      "title": "Back the L1's pre-existing supply with USDC",
+      "kind": "call",
+      "network": "home",
+      "signer": "builder",
+      "contract": "ERC20TokenHome",
+      "target": "$out.deploy-home.address",
+      "function": "addCollateral",
+      "args": ["$net.remote.blockchainIdHex", "$out.deploy-remote.address", "$out.read-collateral.collateralNeeded"],
+      "skipIf": {
+        "value": "$out.read-collateral.collateralNeeded",
+        "equals": "0"
+      }
+    },
+    {
+      "id": "approve-send",
+      "title": "Approve the test amount",
+      "kind": "call",
+      "network": "home",
+      "signer": "builder",
+      "contract": "ERC20",
+      "target": "$net.home.tokens.USDC.address",
+      "function": "approve",
+      "args": ["$out.deploy-home.address", "$param.amount"]
+    },
+    {
+      "id": "send",
+      "title": "Bridge USDC in as native gas",
+      "kind": "call",
+      "network": "home",
+      "signer": "builder",
+      "contract": "ERC20TokenHome",
+      "target": "$out.deploy-home.address",
+      "function": "send",
+      "args": [
+        {
+          "destinationBlockchainID": "$net.remote.blockchainIdHex",
+          "destinationTokenTransferrerAddress": "$out.deploy-remote.address",
+          "recipient": "$param.recipient",
+          "primaryFeeTokenAddress": "0x0000000000000000000000000000000000000000",
+          "primaryFee": 0,
+          "secondaryFee": 0,
+          "requiredGasLimit": "$param.requiredGasLimit",
+          "multiHopFallback": "0x0000000000000000000000000000000000000000"
+        },
+        "$param.amount"
+      ],
+      "outputs": {
+        "messageId": "event:ERC20TokenHome.TokensSent.teleporterMessageID"
+      }
+    },
+    {
+      "id": "wait-send",
+      "title": "Wait for the native coins to be minted",
+      "kind": "wait",
+      "network": "remote",
+      "wait": {
+        "for": "icm-delivery",
+        "id": "$out.send.messageId",
+        "timeoutMinutes": 5
+      }
+    }
+  ],
+  "checks": [
+    {
+      "description": "The home knows the remote",
+      "after": "wait-register",
+      "network": "home",
+      "contract": "ERC20TokenHome",
+      "target": "$out.deploy-home.address",
+      "function": "getRemoteTokenTransferrerSettings",
+      "args": ["$net.remote.blockchainIdHex", "$out.deploy-remote.address"],
+      "expect": {
+        "equals": true
+      }
+    },
+    {
+      "description": "The remote is collateralized once the first transfer lands",
+      "after": "wait-send",
+      "network": "remote",
+      "contract": "NativeTokenRemote",
+      "target": "$out.deploy-remote.address",
+      "function": "getIsCollateralized",
+      "expect": {
+        "equals": true
+      }
+    },
+    {
+      "description": "Native coins were minted from bridged USDC",
+      "after": "wait-send",
+      "network": "remote",
+      "contract": "NativeTokenRemote",
+      "target": "$out.deploy-remote.address",
+      "function": "getTotalMinted",
+      "expect": {
+        "gt": "0"
+      }
+    }
+  ],
+  "panel": [
+    {
+      "step": "deploy-home",
+      "read": ["getRemoteTokenTransferrerSettings", "getTransferredBalance", "getTokenAddress", "owner"],
+      "write": ["send", "addCollateral"]
+    },
+    {
+      "step": "deploy-remote",
+      "read": [
+        "totalNativeAssetSupply",
+        "getTotalMinted",
+        "getIsCollateralized",
+        "getInitialReserveImbalance",
+        "getTokenHomeAddress"
+      ],
+      "write": ["send", "reportBurnedTxFees", "deposit", "withdraw"]
+    }
+  ],
+  "review": [
+    "The L1's genesis enables contractNativeMinterConfig; without it the NativeTokenRemote constructor reverts.",
+    "initialReserveImbalance is above 0 and matches the genesis supply the builder wants backed; state plainly how much native supply is unbacked.",
+    "tokenHomeDecimals is USDC's 6 from the registry, while the native coin has 18; ICTT scales between them.",
+    "Only the NativeTokenRemote is enabled on the Native Minter; the admin role stays with the builder, not the deployer.",
+    "Collateral steps are skipped when collateralNeeded is 0, because addCollateral reverts in that case."
+  ],
+  "frontend": {
+    "summary": "Top up gas on the L1 with USDC, and turn it back into USDC later.",
+    "audience": ["Users who need gas on the L1 and hold USDC", "Newcomers arriving with USDC only"],
+    "journeys": [
+      "Top up: 'Add 10 USDC of gas', with the USDC balance on the C-Chain and the gas balance on the L1 side by side.",
+      "Follow it to arrival, then the L1 gas balance updates.",
+      "Cash out: turn gas back into USDC on the C-Chain.",
+      "Explain in one line that gas on this L1 is paid in this USDC-backed coin, so users don't need AVAX there."
+    ],
+    "flows": [
+      "Top up: approve TokenHome for the USDC amount, then send(input, amount) with the L1 as destination; show the native balance on the L1 updating after delivery.",
+      "Withdraw: on the L1 call send(input) on NativeTokenRemote with msg.value equal to the amount; USDC returns to the recipient on the C-Chain.",
+      "Show amounts as USDC on both sides: 1 USDC (1000000 base units) becomes 1 native coin (10^18 base units).",
+      "Explain that L1 gas fees are paid in this coin and burned; reportBurnedTxFees syncs burned fees back to the home."
+    ]
+  },
+  "docs": [
+    {
+      "title": "ERC-20 to native bridge (Academy)",
+      "url": "/academy/avalanche-l1/native-token-bridge/01-erc20-to-native/01-overview"
+    },
+    {
+      "title": "Native Minter precompile",
+      "url": "/docs/avalanche-l1s/precompiles/native-minter"
+    },
+    {
+      "title": "ICTT setup in the console",
+      "url": "/console/ictt/setup"
+    },
+    {
+      "title": "Circle testnet faucet",
+      "url": "https://faucet.circle.com"
+    }
+  ],
+  "related": ["l1-quickstart", "ictt-token-bridge", "usdc-checkout"]
+}

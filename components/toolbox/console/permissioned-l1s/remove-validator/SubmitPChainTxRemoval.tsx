@@ -16,6 +16,9 @@ import { StepFlowCard } from '@/components/toolbox/components/StepCard';
 import { parsePChainError } from '@/components/toolbox/hooks/contracts';
 import { CoreWalletTransactionButton } from '@/components/toolbox/components/CoreWalletTransactionButton';
 import { waitForPChainConfirmation } from '@/components/toolbox/utils/pchainConfirmation';
+import { avalancheProvider } from '@/components/toolbox/coreViem';
+import { failureText } from '@/components/toolbox/lib/walletRejection';
+import { NO_L1_SELECTED } from '@/components/toolbox/utils/vmcLookupText';
 
 interface SubmitPChainTxRemovalProps {
   subnetIdL1: string;
@@ -225,7 +228,7 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
     setTxSuccess(null);
 
     if (isCoreWallet && !coreWalletClient) {
-      setErrorState('Core wallet not found');
+      setErrorState('Connect Core or a Console wallet to sign P-Chain transactions.');
       return;
     }
 
@@ -235,8 +238,8 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
       return;
     }
     if (!subnetIdL1) {
-      setErrorState('L1 Subnet ID is required. Please select a subnet first.');
-      onError('L1 Subnet ID is required. Please select a subnet first.');
+      setErrorState(NO_L1_SELECTED);
+      onError(NO_L1_SELECTED);
       return;
     }
     if (!unsignedWarpMessage) {
@@ -250,9 +253,9 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
       return;
     }
     if (isCoreWallet) {
-      if (typeof window === 'undefined' || !window.avalanche) {
-        setErrorState('Core wallet not found. Please ensure Core is installed and active.');
-        onError('Core wallet not found. Please ensure Core is installed and active.');
+      if (!avalancheProvider()) {
+        setErrorState('Connect Core or a Console wallet to sign P-Chain transactions.');
+        onError('Connect Core or a Console wallet to sign P-Chain transactions.');
         return;
       }
       if (!pChainAddress) {
@@ -302,8 +305,8 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
     } catch (err: any) {
       const message = parsePChainError(err);
 
-      setErrorState(`P-Chain transaction failed: ${message}`);
-      onError(`P-Chain transaction failed: ${message}`);
+      setErrorState(failureText('P-Chain transaction failed: ', message));
+      onError(failureText('P-Chain transaction failed: ', message));
     } finally {
       setIsProcessing(false);
     }
@@ -343,7 +346,7 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
 
   // Don't render if no subnet is selected
   if (!subnetIdL1) {
-    return <div className="text-sm text-zinc-500 dark:text-zinc-400">Please select an L1 subnet first.</div>;
+    return <div className="text-sm text-zinc-500 dark:text-zinc-400">{NO_L1_SELECTED}</div>;
   }
 
   const step1Complete = !!unsignedWarpMessage;

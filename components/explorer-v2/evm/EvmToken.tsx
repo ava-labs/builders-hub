@@ -12,7 +12,7 @@ import { FIG, UNIT, Tabs, TxTable, EmptyRow } from "./AddressTables";
 import { useErc20Meta, useTokenTransfers } from "./useErc20";
 import { formatPriceUsd, formatTokenAmount, formatUsd, usdOfToken, usdValue, useTokenList, useTokenPrices, type TokenInfo } from "@/lib/token-list";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
-import type { AddressSummary, TxListResponse } from "@/lib/evm-explorer";
+import { ADDRESS_TX_PAGE, type AddressSummary, type TxListResponse } from "@/lib/evm-explorer";
 import type { SourcifyContract } from "@/lib/sourcify-client";
 import { readRpc } from "@/lib/explorer-rpc";
 
@@ -57,7 +57,7 @@ export function EvmToken({
   const marketValue = supply !== null && price ? usdValue(supply, decimals, price) : null;
 
   const summary = useEvmData<AddressSummary>(c.chainId, `address/${addr}`, undefined, { retry404Ms: 15_000 });
-  const txs = useEvmData<TxListResponse>(c.chainId, `address/${addr}/txs`, { limit: 50 });
+  const txs = useEvmData<TxListResponse>(c.chainId, `address/${addr}/txs`, { limit: ADDRESS_TX_PAGE });
   const transfers = useTokenTransfers(readRpc(c.chainId, c.rpcUrl), addr, { span: 2_000, limit: 50 });
   const tokens = useTokenList(c.chainId);
 
@@ -159,6 +159,8 @@ export function EvmToken({
         ) : tab === "txs" ? (
           <TxTable
             txs={txs.data?.transactions ?? []}
+            total={summary.data?.txCount}
+            rpcUrl={readRpc(c.chainId, c.rpcUrl)}
             self={addr}
             base={base}
             symbol={c.nativeToken ?? "AVAX"}

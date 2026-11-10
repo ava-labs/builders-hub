@@ -1,3 +1,5 @@
+import { WALLET_REJECTED_TEXT } from '@/components/toolbox/lib/walletRejection';
+
 /**
  * Maps known Solidity revert selectors and error names to human-readable messages.
  * Used by contract hooks to provide actionable error messages instead of raw hex.
@@ -9,9 +11,12 @@ const KNOWN_ERRORS: Record<string, string> = {
     'Exceeds the maximum churn rate. The network limits how much weight can change at once (typically 20% of total weight). Try a smaller amount or wait.',
   MaxChurnRateExceeded:
     'Exceeds the maximum churn rate. The network limits how much weight can change at once (typically 20% of total weight). Try a smaller amount or wait.',
-  '0x3e1a7851': 'Invalid total weight. The resulting total weight would be zero or exceed limits.',
-  '0xe8e82e76': 'Invalid total weight. The resulting total weight would be zero or exceed limits.',
-  InvalidTotalWeight: 'Invalid total weight. The resulting total weight would be zero or exceed limits.',
+  '0x3e1a7851':
+    'Invalid total weight. During validator set initialization this means the manager at the called address was never initialized (its churn settings read zero); run Initialize against the manager (proxy) address recorded in the conversion. Otherwise the resulting total weight would exceed limits.',
+  '0xe8e82e76':
+    'Invalid total weight. During validator set initialization this means the manager at the called address was never initialized (its churn settings read zero); run Initialize against the manager (proxy) address recorded in the conversion. Otherwise the resulting total weight would exceed limits.',
+  InvalidTotalWeight:
+    'Invalid total weight. During validator set initialization this means the manager at the called address was never initialized (its churn settings read zero); run Initialize against the manager (proxy) address recorded in the conversion. Otherwise the resulting total weight would exceed limits.',
   '0xdaa3fc0a': 'Maximum weight exceeded. The validator or delegation weight exceeds the allowed limit for this L1.',
   MaxWeightExceeded:
     'Maximum weight exceeded. The validator or delegation weight exceeds the allowed limit for this L1.',
@@ -112,7 +117,7 @@ const KNOWN_ERRORS: Record<string, string> = {
   '0xcaa903f9': 'Invalid reward recipient address. The reward recipient cannot be the zero address.',
   InvalidRewardRecipient: 'Invalid reward recipient address. The reward recipient cannot be the zero address.',
 
-  // ── ERC20 — check BEFORE access control since the raw error message
+  // ── ERC20: check BEFORE access control since the raw error message
   // from viem can contain both the ERC20 error data AND decoded
   // OwnableUnauthorizedAccount text ────────────────────────────────────
   '0xfb8f41b2': 'Insufficient ERC20 token allowance. Click "Approve Tokens" first, then retry.',
@@ -175,6 +180,12 @@ const KNOWN_ERRORS: Record<string, string> = {
     'Reentrancy detected. The contract blocked a reentrant call for safety. Try the operation again.',
 };
 
+// The node's nonce phrases, and the short message of viem's nonce errors. viem maps the node errors 'already known'
+// and 'transaction already imported' to NonceTooLowError, whose message has none of the node phrases. None of these
+// phrases occur in the argument list of an error dump.
+const NONCE_ERROR =
+  /nonce too low|nonce too high|invalid nonce|nonce has already been used|Nonce provided for the transaction/i;
+
 /**
  * Parse a contract error into a human-readable message.
  * Checks for known revert selectors, common patterns, and falls back to the raw message.
@@ -182,9 +193,9 @@ const KNOWN_ERRORS: Record<string, string> = {
 export function parseContractError(err: unknown): string {
   const raw = err instanceof Error ? err.message : String(err);
 
-  // User rejection — pass through quickly
+  // User rejection: pass through quickly
   if (raw.includes('User rejected') || raw.includes('user rejected')) {
-    return 'Transaction was rejected by user';
+    return WALLET_REJECTED_TEXT;
   }
 
   // Insufficient native funds
@@ -192,16 +203,18 @@ export function parseContractError(err: unknown): string {
     return 'Insufficient funds for transaction';
   }
 
-  // Nonce errors
-  if (raw.includes('nonce')) {
-    return 'Transaction nonce error: the wallet signed with an already-used nonce. Retry the transaction; a fresh nonce is fetched from the chain automatically. Do not edit the nonce manually.';
-  }
-
-  // Check for known selectors and error names
+  // Check for known selectors and error names. This runs before the nonce
+  // check: viem error dumps list the request arguments, which can include
+  // a nonce, so a known revert must not read as a nonce error.
   for (const [key, message] of Object.entries(KNOWN_ERRORS)) {
     if (raw.includes(key)) {
       return message;
     }
+  }
+
+  // Nonce errors: match the node's phrases only, not any mention of a nonce.
+  if (NONCE_ERROR.test(raw)) {
+    return 'Transaction nonce error: the wallet signed with an already-used nonce. Retry the transaction; a fresh nonce is fetched from the chain automatically. Do not edit the nonce manually.';
   }
 
   // Generic revert with some context
