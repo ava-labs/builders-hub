@@ -27,6 +27,8 @@ const tileSchema = z.discriminatedUnion("kind", [
     sql: z.string().max(20_000),
     visual: visualSpecSchema,
     panelIndex: z.number().int().min(0).nullable(),
+    /** the answer's figures alone, with no panel */
+    figures: z.boolean().optional(),
     view: z.enum(["hbar", "bar", "line", "area", "scatter", "dumbbell", "diverging", "histogram", "heatmap", "treemap", "table"]).optional(),
     /** the follow-ups after the question, so Open asks the same thread */
     then: z.array(z.string().max(2000)).max(8).optional(),

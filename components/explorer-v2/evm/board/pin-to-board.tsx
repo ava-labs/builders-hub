@@ -1,14 +1,16 @@
 "use client";
 
 /* The pin control: an answer, or one panel of it, onto a board the
-   reader picks or makes. */
+   reader picks or makes. An answer with more than one part goes on as
+   one tile, or as a tile for each part of its grid (its figures, then
+   each chart), so a new board looks like the answer. */
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import * as Popover from "@radix-ui/react-popover";
 import { ArrowUpRight, Check, CornerDownRight, Pin, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { boardHref, boardScope, pinAnswer, useBoards, type Board } from "@/lib/explorer-query/board";
+import { boardHref, boardScope, pinAnswer, pinAnswerTiles, useBoards, type Board } from "@/lib/explorer-query/board";
 import type { QueryAnswer } from "@/lib/explorer-query/types";
 import { BoardThumb, Label } from "@/components/explorer-v2/evm/query-board-bits";
 
@@ -35,20 +37,26 @@ export function PinToBoard({
   const [open, setOpen] = useState(false);
   const [naming, setNaming] = useState(false);
   const [name, setName] = useState("");
-  const [done, setDone] = useState<{ id: string; name: string } | null>(null);
+  const [done, setDone] = useState<{ id: string; name: string; tiles: number } | null>(null);
+  const [each, setEach] = useState(false);
   const key = thread?.join("\n");
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const tile = useMemo(() => pinAnswer(answer, { panelIndex, thread }), [answer, panelIndex, key]);
+  // the whole answer's other way onto a board: a tile for each part of its grid
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const parts = useMemo(() => (panelIndex === undefined ? pinAnswerTiles(answer, { thread }) : []), [answer, panelIndex, key]);
+  const choice = parts.length > 1;
+  const tiles = choice && each ? parts : tile ? [tile] : [];
 
   const pinTo = (b: Board) => {
-    if (!tile) return;
-    addTile(b.id, tile);
-    setDone({ id: b.id, name: b.name });
+    if (!tiles.length) return;
+    for (const t of tiles) addTile(b.id, t);
+    setDone({ id: b.id, name: b.name, tiles: tiles.length });
   };
   const pinNew = () => {
-    if (!tile) return;
-    const b = create(name.trim() || answer.title.slice(0, 60) || "Untitled board", [tile]);
-    setDone({ id: b.id, name: b.name });
+    if (!tiles.length) return;
+    const b = create(name.trim() || answer.title.slice(0, 60) || "Untitled board", tiles);
+    setDone({ id: b.id, name: b.name, tiles: tiles.length });
   };
 
   return (
@@ -86,7 +94,8 @@ export function PinToBoard({
                   <Check className="h-3 w-3" strokeWidth={3} />
                 </span>
                 <span className="min-w-0 truncate">
-                  Pinned to <span className="font-medium">{done.name}</span>
+                  {done.tiles > 1 ? `Pinned ${done.tiles} tiles to ` : "Pinned to "}
+                  <span className="font-medium">{done.name}</span>
                 </span>
               </span>
               <Link
@@ -99,6 +108,32 @@ export function PinToBoard({
             </div>
           ) : (
             <div className="flex flex-col">
+              {choice && (
+                <>
+                  <div role="radiogroup" aria-label="What to pin" className="flex flex-col">
+                    {[
+                      { on: !each, pick: () => setEach(false), label: "Pin the whole answer", count: "1 tile" },
+                      { on: each, pick: () => setEach(true), label: "Pin each chart", count: `${parts.length} tiles` },
+                    ].map((o) => (
+                      <button
+                        key={o.label}
+                        type="button"
+                        role="radio"
+                        aria-checked={o.on}
+                        onClick={o.pick}
+                        className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-[13.5px] text-zinc-600 transition-colors hover:bg-zinc-100 aria-checked:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:aria-checked:text-zinc-50"
+                      >
+                        <span className={cn("flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border", o.on ? "border-zinc-900 dark:border-zinc-50" : "border-zinc-300 dark:border-zinc-700")}>
+                          {o.on && <span className="h-1.5 w-1.5 rounded-full bg-zinc-900 dark:bg-zinc-50" />}
+                        </span>
+                        <span className="min-w-0 flex-1 truncate">{o.label}</span>
+                        <span className="font-mono text-[10px] text-zinc-400">{o.count}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="mx-2 my-1 h-px bg-zinc-100 dark:bg-zinc-900" />
+                </>
+              )}
               <Label className="px-2.5 pb-1.5 pt-2">Pin to a board</Label>
               <div className="flex max-h-64 flex-col overflow-y-auto">
                 {boards.map((b) => (

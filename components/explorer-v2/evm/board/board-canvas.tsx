@@ -24,6 +24,7 @@ import type { SyncState } from "@/lib/explorer-query/board-sync";
 import { askHref, boardHref, boardScope, boardsHref, noteTile, sortedTiles, type Board, type ChartTile, type Tile } from "@/lib/explorer-query/board";
 import { metricTitle, metricVisual, windowText } from "@/lib/explorer-query/stats-metrics";
 import type { ColumnMeta } from "@/lib/explorer-query/clickhouse";
+import { tileVisual } from "@/lib/explorer-query/tile-visual";
 import type { DrillAnswer, Names } from "@/lib/explorer-query/types";
 import type { VisualSpec } from "@/lib/explorer-query/visual-spec";
 import { fillTitle, isTxList, rowDoor } from "@/components/explorer-v2/evm/QueryRows";
@@ -31,7 +32,6 @@ import { QueryInspector } from "@/components/explorer-v2/evm/QueryInspector";
 import { ago, useNow } from "@/components/explorer-v2/evm/query-board-bits";
 import { ShareBoard, SyncNote } from "./board-share";
 import { InlineName, btn, primary, useCopied, type BoardApi, type BoardPageProps, type Row, type TileCtx } from "./parts";
-import { tileVisual } from "./tile-chart";
 import { SPAN, SortableTile, TileFrame } from "./tile-frame";
 
 /** one level of the board's sheet: a tile's rows, or the records behind one of them */

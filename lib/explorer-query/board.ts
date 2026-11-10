@@ -8,7 +8,7 @@
 
 import { useSyncExternalStore } from "react";
 import type { ColumnMeta } from "./clickhouse";
-import type { Drill, Names, QueryAnswer } from "./types";
+import type { Drill, Names, QueryAnswer, Totals } from "./types";
 import type { Panel, VisualSpec } from "./visual-spec";
 import { metricColumns, seriesLabels, type MetricKey } from "./stats-metrics";
 import { useBoardSync } from "./board-sync";
@@ -39,6 +39,10 @@ export interface Snapshot {
   /** unix ms the rows were read */
   at: number;
   anchor?: string | null;
+  /** the whole result's figures when a LIMIT cut the rows, as the answer read them; a refresh reads none */
+  totals?: Totals | null;
+  /** the rows stop short of the whole result: at the query's LIMIT, the row cap, or the cap on kept rows */
+  cut?: boolean;
 }
 
 export interface ChartTile {
@@ -50,6 +54,8 @@ export interface ChartTile {
   visual: VisualSpec;
   /** one panel of the answer, or null for the whole answer with its figures */
   panelIndex: number | null;
+  /** the answer's figures alone, with no panel: the first tile of an answer pinned chart by chart */
+  figures?: boolean;
   /** the reader's choice of chart for the panel, over the designer's */
   view?: Panel["kind"];
   /** the follow-ups asked after the question, in order */
@@ -147,7 +153,7 @@ function write(store: Store): void {
   const attempts: ((t: Tile) => Tile)[] = [
     (t) => t,
     // a chart's first rows lead; a metric tile's newest days are its last
-    (t) => (t.kind !== "note" && t.snapshot ? { ...t, snapshot: { ...t.snapshot, rows: t.kind === "metric" ? t.snapshot.rows.slice(-100) : t.snapshot.rows.slice(0, 100) } } : t),
+    (t) => (t.kind !== "note" && t.snapshot ? { ...t, snapshot: { ...t.snapshot, rows: t.kind === "metric" ? t.snapshot.rows.slice(-100) : t.snapshot.rows.slice(0, 100), ...(t.kind === "chart" && t.snapshot.rows.length > 100 ? { cut: true } : {}) } } : t),
     (t) => (t.kind !== "note" ? { ...t, snapshot: undefined } : t),
   ];
   for (const shrink of attempts) {
@@ -405,9 +411,30 @@ const TABLE_VISUAL: VisualSpec = {
   callouts: [],
 };
 
-/** the rows a tile keeps, capped */
-export function snapshotOf(result: { columns: ColumnMeta[]; rows: Row[] }, names: Names, anchor?: string | null): Snapshot {
-  return { columns: result.columns, rows: result.rows.slice(0, SNAPSHOT_ROWS), names, at: Date.now(), anchor: anchor ?? null };
+/** a query that ends in its LIMIT, as the server reads one (cut.ts) */
+const TRAILING_LIMIT = /\sLIMIT\s+(\d+)\s*$/i;
+
+/** whether rows stop short of the whole result. The answer's totals say so exactly; a refresh reads none, so its
+    rows count as cut when they reach the query's LIMIT or the row cap */
+function stopsShort(result: { rows: Row[]; truncated?: boolean }, sql: string | undefined, totals: Totals | null | undefined): boolean {
+  const n = result.rows.length;
+  if (n > SNAPSHOT_ROWS) return true;
+  if (totals) return totals.rows > n;
+  const limit = TRAILING_LIMIT.exec(sql ?? "");
+  return !!result.truncated || (!!limit && n >= Number(limit[1]));
+}
+
+/** the rows a tile keeps, capped; `about` is the query they came from and its totals, when the answer read them */
+export function snapshotOf(result: { columns: ColumnMeta[]; rows: Row[]; truncated?: boolean }, names: Names, anchor?: string | null, about: { sql?: string; totals?: Totals | null } = {}): Snapshot {
+  return {
+    columns: result.columns,
+    rows: result.rows.slice(0, SNAPSHOT_ROWS),
+    names,
+    at: Date.now(),
+    anchor: anchor ?? null,
+    ...(about.totals ? { totals: about.totals } : {}),
+    ...(stopsShort(result, about.sql, about.totals) ? { cut: true } : {}),
+  };
 }
 
 /** the rows a metric tile keeps for its first paint: its window's newest days, capped as a chart's rows are */
@@ -438,8 +465,21 @@ export function pinAnswer(answer: QueryAnswer, opts: { panelIndex?: number | nul
     drill: answer.drill ?? null,
     size,
     order: 0,
-    snapshot: answer.result ? snapshotOf(answer.result, answer.names, answer.anchor) : undefined,
+    snapshot: answer.result ? snapshotOf(answer.result, answer.names, answer.anchor, { sql: answer.sql, totals: answer.totals }) : undefined,
   };
+}
+
+/** an answer as the tiles of its grid: its figures on one tile when it has any, then one tile for each panel the
+    grid draws (a chart, or the designer's table), at the panel's width. Empty when there is no SQL to run again */
+export function pinAnswerTiles(answer: QueryAnswer, opts: { thread?: string[] } = {}): ChartTile[] {
+  const whole = pinAnswer(answer, opts);
+  if (!whole) return [];
+  const { stats, panels } = whole.visual;
+  const tiles = panels.flatMap((p, i): ChartTile[] => {
+    const tile = p.kind === "table" || (p.x && p.series.length > 0) ? pinAnswer(answer, { ...opts, panelIndex: i }) : null;
+    return tile ? [{ ...tile, size: p.width === "half" ? "m" : "w" }] : [];
+  });
+  return stats.length ? [{ ...whole, figures: true }, ...tiles] : tiles;
 }
 
 export function noteTile(text = "## A heading\nA line on what this board watches."): NoteTile {

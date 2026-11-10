@@ -1,22 +1,17 @@
 "use client";
 
-/* A chart tile's drawing: its slice of the answer, drawn with the page's
-   own charts from the rows the tile kept. */
+/* A chart tile's drawing: its slice of the answer (tile-visual.ts), drawn
+   with the page's own charts from the rows the tile kept. The figures
+   count the whole result while the tile holds the answer's totals, and a
+   chart is told when its rows stop at a LIMIT, as on the answer's grid. */
 
 import { useMemo } from "react";
 import type { ChartTile } from "@/lib/explorer-query/board";
-import type { VisualSpec } from "@/lib/explorer-query/visual-spec";
+import { tileVisual } from "@/lib/explorer-query/tile-visual";
 import { QueryVisual } from "@/components/explorer-v2/evm/QueryVisual";
 import { PanelRows, doorFor, isTxList } from "@/components/explorer-v2/evm/QueryRows";
 import { RowsBody } from "@/components/explorer-v2/evm/QueryInspector";
 import type { Row } from "./parts";
-
-/** the tile's slice of the answer: one panel alone, or all of it */
-export function tileVisual(t: ChartTile): VisualSpec {
-  if (t.panelIndex === null) return t.visual;
-  const p = t.visual.panels[t.panelIndex] ?? t.visual.panels[0];
-  return { stats: [], callouts: [], panels: [{ ...p, width: "full", kind: t.view ?? p.kind }] };
-}
 
 /** whether a tile's marks open anything: a transaction, a thing's own page, or records */
 function opens(tile: ChartTile, base: string): boolean {
@@ -61,8 +56,8 @@ export function TileChart({
     );
   }
   const charts = visual.panels.filter((p) => p.kind !== "table" && p.x && p.series.length > 0);
-  // no chart to index the rows: the rows, by their shape, are the tile
-  if (charts.length === 0)
+  // no chart to index the rows: the rows, by their shape, are the tile; a figures tile draws its figures alone
+  if (charts.length === 0 && !tile.figures)
     return (
       <div className="-mx-3 max-h-[26rem] overflow-y-auto overscroll-contain">
         <RowsBody columns={snap.columns} rows={snap.rows} names={snap.names} visual={visual} base={base} sym={sym} onOpen={tile.drill ? onDrill : undefined} />
@@ -74,6 +69,8 @@ export function TileChart({
       rows={snap.rows}
       names={snap.names}
       sym={sym}
+      totals={snap.totals}
+      cut={snap.cut}
       canDrill={open && !!onMark}
       onPick={onMark ?? (() => {})}
       base={base}

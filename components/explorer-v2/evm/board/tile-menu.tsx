@@ -3,7 +3,7 @@
 /* A tile's controls: the corner that resizes it, its menu and its grip. */
 
 import Link from "next/link";
-import { ArrowUpRight, Copy, GripVertical, MoreHorizontal, Trash2 } from "lucide-react";
+import { ArrowUpRight, Copy, Download, GripVertical, ImageDown, MoreHorizontal, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +26,7 @@ export function SizeHandle({ size, onSize }: { size: TileSize; onSize: (s: TileS
       onClick={() => onSize(next)}
       title={`${SIZE_LABEL[size]}. Click for ${SIZE_LABEL[next].toLowerCase()}`}
       aria-label={`Resize tile to ${SIZE_LABEL[next].toLowerCase()}`}
+      data-no-shot
       className="absolute bottom-1.5 right-1.5 hidden h-6 w-6 items-center justify-center rounded-md text-zinc-300 opacity-0 transition-opacity hover:text-zinc-900 focus-visible:opacity-100 group-hover/tile:opacity-100 md:flex dark:text-zinc-700 dark:hover:text-zinc-100"
     >
       <svg viewBox="0 0 12 12" className="h-3 w-3" aria-hidden>
@@ -35,10 +36,26 @@ export function SizeHandle({ size, onSize }: { size: TileSize; onSize: (s: TileS
   );
 }
 
-export function TileMenu({ tile, ctx, onRename, onEdit }: { tile: Tile; ctx: TileCtx; onRename?: () => void; onEdit?: () => void }) {
+export function TileMenu({
+  tile,
+  ctx,
+  onRename,
+  onEdit,
+  onCsv,
+  onPng,
+}: {
+  tile: Tile;
+  ctx: TileCtx;
+  onRename?: () => void;
+  onEdit?: () => void;
+  /** the tile's rows as a file; given once the tile holds rows */
+  onCsv?: () => void;
+  /** the tile's drawing as an image; given once the tile holds rows */
+  onPng?: () => void;
+}) {
   return (
     <DropdownMenu modal={false}>
-      <DropdownMenuTrigger className={iconBtn} aria-label="Tile options">
+      <DropdownMenuTrigger className={iconBtn} aria-label="Tile options" data-no-shot>
         <MoreHorizontal className="h-4 w-4" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48 font-mono text-[12px]">
@@ -54,6 +71,16 @@ export function TileMenu({ tile, ctx, onRename, onEdit }: { tile: Tile; ctx: Til
         <DropdownMenuItem onSelect={() => ctx.api.duplicateTile(ctx.boardId, tile.id)}>
           <Copy className="h-3.5 w-3.5" /> Duplicate
         </DropdownMenuItem>
+        {onCsv && (
+          <DropdownMenuItem onSelect={onCsv}>
+            <Download className="h-3.5 w-3.5" /> Download CSV
+          </DropdownMenuItem>
+        )}
+        {onPng && (
+          <DropdownMenuItem onSelect={onPng}>
+            <ImageDown className="h-3.5 w-3.5" /> Download PNG
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator />
         {tile.kind === "metric" && (
           <>
@@ -98,6 +125,7 @@ export function Grip({ handle }: { handle?: Handle }) {
       ref={handle?.ref}
       {...handle?.props}
       aria-label="Drag to move"
+      data-no-shot
       className="-ml-1.5 flex h-7 w-5 shrink-0 cursor-grab touch-none items-center justify-center rounded text-zinc-300 transition-colors hover:text-zinc-600 active:cursor-grabbing md:opacity-0 md:group-hover/tile:opacity-100 md:focus-visible:opacity-100 dark:text-zinc-700 dark:hover:text-zinc-300"
     >
       <GripVertical className="h-4 w-4" />

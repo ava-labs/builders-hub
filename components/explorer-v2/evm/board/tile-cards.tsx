@@ -14,6 +14,7 @@ import { QueryVisual } from "@/components/explorer-v2/evm/QueryVisual";
 import { NoteBody, ago, runTileSql, useNow } from "@/components/explorer-v2/evm/query-board-bits";
 import { InlineName, iconBtn, type Handle, type Row, type TileCtx } from "./parts";
 import { TileChart } from "./tile-chart";
+import { downloadTileCsv, downloadTilePng } from "./tile-export";
 import { Grip, TileMenu } from "./tile-menu";
 
 /** rows older than this are run again when the board opens */
@@ -29,13 +30,16 @@ export function ChartTileCard({ tile, ctx, handle, overlay, refreshSignal }: { t
   const now = useNow();
   const { scope, boardId, chainId, api, readOnly } = ctx;
   const rows = tile.snapshot?.rows.length ?? 0;
+  const head = useRef<HTMLDivElement>(null);
+  const name = tile.title || tile.question;
+  const snap = tile.snapshot;
 
   const refresh = useCallback(async () => {
     setBusy(true);
     setError(null);
     try {
       const r = await runTileSql(`${scope}/${boardId}/${tile.id}`, chainId, tile.sql);
-      api.updateTile(boardId, tile.id, { snapshot: snapshotOf(r.result, r.names, r.anchor) });
+      api.updateTile(boardId, tile.id, { snapshot: snapshotOf(r.result, r.names, r.anchor, { sql: tile.sql }) });
     } catch (e) {
       setError(e instanceof Error ? e.message : "The query failed");
     } finally {
@@ -60,7 +64,7 @@ export function ChartTileCard({ tile, ctx, handle, overlay, refreshSignal }: { t
 
   return (
     <>
-      <div className="flex items-center gap-1.5">
+      <div ref={head} className="flex items-center gap-1.5">
         {!readOnly && <Grip handle={handle} />}
         {renaming ? (
           <InlineName
@@ -78,18 +82,27 @@ export function ChartTileCard({ tile, ctx, handle, overlay, refreshSignal }: { t
             title={threadOf(tile)}
             className="min-w-0 flex-1 truncate text-[14.5px] font-medium tracking-tight text-zinc-900 dark:text-zinc-50"
           >
-            {tile.title || tile.question}
+            {name}
           </h3>
         )}
         {rows > 0 && (
-          <button type="button" onClick={() => ctx.onRows(tile)} className={iconBtn} aria-label={`Rows (${rows})`} title={`Rows (${formatNumber(rows)})`}>
+          <button type="button" data-no-shot onClick={() => ctx.onRows(tile)} className={iconBtn} aria-label={`Rows (${rows})`} title={`Rows (${formatNumber(rows)})`}>
             <Rows3 className="h-3.5 w-3.5" />
           </button>
         )}
-        <button type="button" onClick={() => void refresh()} disabled={busy} className={iconBtn} aria-label="Refresh">
+        <button type="button" data-no-shot onClick={() => void refresh()} disabled={busy} className={iconBtn} aria-label="Refresh">
           <RotateCw className={cn("h-3.5 w-3.5", busy && "animate-spin")} />
         </button>
-        {!readOnly && <TileMenu tile={tile} ctx={ctx} onRename={() => setRenaming(true)} />}
+        {!readOnly && (
+          <TileMenu
+            tile={tile}
+            ctx={ctx}
+            onRename={() => setRenaming(true)}
+            // one panel hands out its own columns; a whole answer or its figures, every column
+            onCsv={snap ? () => downloadTileCsv(name, snap, tile.figures || tile.panelIndex === null ? undefined : tile.visual.panels[tile.panelIndex]) : undefined}
+            onPng={snap ? () => void downloadTilePng(head.current, name) : undefined}
+          />
+        )}
       </div>
       <div className={cn("min-w-0 transition-opacity duration-300", busy && tile.snapshot && "opacity-60")}>
         <TileChart
@@ -101,7 +114,7 @@ export function ChartTileCard({ tile, ctx, handle, overlay, refreshSignal }: { t
           onRows={() => ctx.onRows(tile)}
         />
       </div>
-      <footer className="flex items-center justify-between gap-3 pr-6 font-mono text-[10.5px] text-zinc-400 dark:text-zinc-500">
+      <footer data-no-shot className="flex items-center justify-between gap-3 pr-6 font-mono text-[10.5px] text-zinc-400 dark:text-zinc-500">
         {error ? (
           <span className="truncate text-[#E6212F]" title={error}>
             {error}
@@ -174,10 +187,13 @@ export function MetricTileCard({ tile, ctx, handle, overlay, refreshSignal }: { 
   const at = fresh ? all.at : tile.snapshot?.at;
   const snap: Snapshot | null = rows ? { columns: metricColumns(seriesLabels(tile.series)), rows, names: {}, at: at ?? Date.now() } : null;
   const chains = metricChains(tile);
+  const head = useRef<HTMLDivElement>(null);
+  // the window rides in the file's name, as it does in the sheet's title
+  const name = `${metricTitle(tile)} ${windowText(tile)}`;
 
   return (
     <>
-      <div className="flex items-center gap-1.5">
+      <div ref={head} className="flex items-center gap-1.5">
         {!readOnly && <Grip handle={handle} />}
         {renaming ? (
           <InlineName
@@ -198,14 +214,22 @@ export function MetricTileCard({ tile, ctx, handle, overlay, refreshSignal }: { 
           </h3>
         )}
         {!!rows?.length && (
-          <button type="button" onClick={() => ctx.onRows(tile, snap)} className={iconBtn} aria-label={`Rows (${rows.length})`} title={`Rows (${formatNumber(rows.length)})`}>
+          <button type="button" data-no-shot onClick={() => ctx.onRows(tile, snap)} className={iconBtn} aria-label={`Rows (${rows.length})`} title={`Rows (${formatNumber(rows.length)})`}>
             <Rows3 className="h-3.5 w-3.5" />
           </button>
         )}
-        <button type="button" onClick={() => void load()} disabled={busy} className={iconBtn} aria-label="Refresh">
+        <button type="button" data-no-shot onClick={() => void load()} disabled={busy} className={iconBtn} aria-label="Refresh">
           <RotateCw className={cn("h-3.5 w-3.5", busy && "animate-spin")} />
         </button>
-        {!readOnly && <TileMenu tile={tile} ctx={ctx} onRename={() => setRenaming(true)} />}
+        {!readOnly && (
+          <TileMenu
+            tile={tile}
+            ctx={ctx}
+            onRename={() => setRenaming(true)}
+            onCsv={snap?.rows.length ? () => downloadTileCsv(name, snap) : undefined}
+            onPng={snap?.rows.length ? () => void downloadTilePng(head.current, name) : undefined}
+          />
+        )}
       </div>
       <div className={cn("min-w-0 transition-opacity duration-300", busy && rows && "opacity-60")}>
         {!rows && error && !busy ? (
@@ -225,7 +249,7 @@ export function MetricTileCard({ tile, ctx, handle, overlay, refreshSignal }: { 
           <QueryVisual visual={visual} rows={rows} names={{}} sym={ctx.sym} canDrill={false} onPick={() => {}} base={ctx.base} titles={false} cards={false} />
         )}
       </div>
-      <footer className="flex items-center justify-between gap-3 pr-6 font-mono text-[10.5px] text-zinc-400 dark:text-zinc-500">
+      <footer data-no-shot className="flex items-center justify-between gap-3 pr-6 font-mono text-[10.5px] text-zinc-400 dark:text-zinc-500">
         {/* with no rows the error stands in the body */}
         {error && !rows ? (
           <span />

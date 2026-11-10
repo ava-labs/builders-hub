@@ -40,6 +40,8 @@ export function TileFrame({
     <motion.div
       layout={!overlay}
       layoutDependency={tile.size}
+      // the card a tile's image is made of (tile-export.ts)
+      data-tile
       transition={{ type: "spring", stiffness: 420, damping: 40 }}
       className={cn(
         "group/tile relative flex h-full min-w-0 flex-col gap-3 rounded-2xl p-4 transition-shadow duration-200",
