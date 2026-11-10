@@ -38,7 +38,7 @@ beforeEach(() => {
   getHackathonMock.mockResolvedValue(PRIVATE_EVENT);
 });
 
-describe('GET /api/events/[id] — private event visibility', () => {
+describe('GET /api/events/[id]: private event visibility', () => {
   it('404s an anonymous caller', async () => {
     getAuthSessionMock.mockResolvedValue(null);
     expect((await GET(req, ctx)).status).toBe(404);

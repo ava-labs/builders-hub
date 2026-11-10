@@ -17,7 +17,7 @@ export class ValidationError extends Error {
 
     // `details` names internal schema fields and `cause` is routing metadata.
     // Both are defined non-enumerable so that a route doing the natural thing
-    // — `NextResponse.json({ error })` — serialises to `{}` instead of handing
+    // (`NextResponse.json({ error })`) serialises to `{}` instead of handing
     // the caller a field map to aim a mass-assignment payload at. Server-side
     // reads (logging, status selection) are unaffected; only JSON output is.
     Object.defineProperty(this, "details", { value: details, enumerable: false, writable: true });

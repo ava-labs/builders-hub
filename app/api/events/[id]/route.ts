@@ -125,9 +125,9 @@ export const PUT = withAuth(async (req: NextRequest, context: any, session: any)
         "Error in PUT /api/events/[id]: Validation failed",
         details?.map((d) => `${d.field}: ${d.message}`)
       );
-      // The detail list is logged above; it is not echoed back. It enumerates
-      // internal field names, which is a map for probing the update payload.
-      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+      // canEditEvent gates this route, so only an organizer gets the field list.
+      // The edit page (app/events/edit/page.tsx) shows it in its error toast.
+      return NextResponse.json({ error: 'Invalid request body', details }, { status: 400 });
     }
     console.error("Error in PUT /api/events/[id]:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
