@@ -45,7 +45,7 @@ test('primary network docs list the right chain IDs and RPC URLs', async (fixtur
   });
 });
 
-// net_version returns the chain ID (avalanchego vms/saevm/sae/rpc/server.go, newNetAPI(..., ChainID.Uint64())),
+// net_version returns the chain ID (avalanchego vms/evm/sae/rpc/server.go, newNetAPI(..., ChainID.Uint64())),
 // so the C-Chain answers 43114 on Mainnet and 43113 on Fuji.
 test('C-Chain RPC docs state the right networkID and chainID', async (fixtures) => {
   needsModel();

@@ -7,10 +7,10 @@ import { FlowArt, FlowSvg, HatchPattern, fmt, type Point } from '@/components/do
  * as one set. The dashed line is steeper here, because this chart has more teeth and each tooth must show.
  *
  * Facts from AvalancheGo, the C-Chain after Helicon (ava-labs/avalanchego@5bf881e, origin/master):
- * - pruning-enabled is true by default (vms/saevm/cchain/config.go:129). Then the node commits the settled state
- *   root only at heights that are a multiple of commit-interval, 4096 (vms/saevm/saedb/tracker.go:32 and 274-276,
- *   vms/saevm/saedb/saedb.go:16-17), and serves state sync summaries only at those heights
- *   (vms/saevm/statesync/README.md:22). These are the state sync snapshots: they grow the disk at the rate of the
+ * - pruning-enabled is true by default (vms/evm/imp/cchain/config.go:129). Then the node commits the settled state
+ *   root only at heights that are a multiple of commit-interval, 4096 (vms/evm/saedb/tracker.go:32 and 274-276,
+ *   vms/evm/saedb/saedb.go:16-17), and serves state sync summaries only at those heights
+ *   (vms/evm/statesync/README.md:22). These are the state sync snapshots: they grow the disk at the rate of the
  *   dashed line. A production network must use 4096 with the default hash scheme (cchain/config.go:189-193,
  *   saedb/tracker.go:62).
  * - The C-Chain has no offline pruning (cchain/config.go:84, commented out). A node state syncs only if it has
