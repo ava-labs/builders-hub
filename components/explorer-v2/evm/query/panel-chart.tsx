@@ -115,13 +115,15 @@ export function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected
   const traces = !scatter && panel.series.some((s) => markOf(s) !== "bar");
   // a count beside its own parts (transactions and the reverted ones): the parts are never above the first series,
   // so they stand inside its bar, not beside it. The first series is then drawn as what is left of it
+  // a line beside them (the period before, a rate) is no part: only the bars nest
+  const parts = useMemo(() => panel.series.flatMap((s, i) => (i > 0 && markOf(s) === "bar" && s.axis !== "right" ? [i] : [])), [panel.series, markOf]);
   const nested = useMemo(
     () =>
-      !horizontal && !scatter && !stack && panel.series.length > 1 && panel.series.every((s) => markOf(s) === "bar" && s.axis !== "right") &&
-      base.every((r) => typeof r.__s0 === "number" && panel.series.slice(1).reduce((sum, _, i) => (typeof r[`__s${i + 1}`] === "number" && (r[`__s${i + 1}`] as number) >= 0 ? sum + (r[`__s${i + 1}`] as number) : Infinity), 0) <= r.__s0),
-    [base, panel.series, horizontal, scatter, stack],
+      !horizontal && !scatter && !stack && parts.length > 0 && markOf(panel.series[0]) === "bar" && panel.series[0].axis !== "right" && !panel.series.some((s) => markOf(s) === "bar" && s.axis === "right") &&
+      base.every((r) => typeof r.__s0 === "number" && parts.reduce((sum, i) => (typeof r[`__s${i}`] === "number" && (r[`__s${i}`] as number) >= 0 ? sum + (r[`__s${i}`] as number) : Infinity), 0) <= r.__s0),
+    [base, panel.series, parts, markOf, horizontal, scatter, stack],
   );
-  const shaped = useMemo((): Row[] => (nested ? base.map((r) => ({ ...r, __d0: panel.series.slice(1).reduce((left, _, i) => left - (r[`__s${i + 1}`] as number), r.__s0 as number) })) : base), [base, nested, panel.series]);
+  const shaped = useMemo((): Row[] => (nested ? base.map((r) => ({ ...r, __d0: parts.reduce((left, i) => left - (r[`__s${i}`] as number), r.__s0 as number) })) : base), [base, nested, parts]);
   const data = useMemo(() => {
     if (!hasSel || !traces) return shaped;
     return shaped.map((r, j) => {

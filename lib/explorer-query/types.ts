@@ -96,6 +96,8 @@ export interface QueryAnswer {
   span?: string | null;
   /** what the page may do with the answer's window with no model: its buttons, and the period before it */
   moves?: Moves | null;
+  /** up to three questions a reader may ask next about this answer: the page offers each as a chip */
+  followups?: string[];
   sql: string;
   chart: ChartSpec;
   drill: Drill | null;

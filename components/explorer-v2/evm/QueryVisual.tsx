@@ -227,6 +227,8 @@ export type QueryVisualProps = {
   stack?: boolean;
   /** when a LIMIT cut the rows: the whole answer's figures, which the figures across the top count */
   totals?: Totals | null;
+  /** the rows stop at a LIMIT, from a caller that holds no totals to show it: a board tile after its refresh */
+  cut?: boolean;
   /** the chain's explorer path: a figure that is one row's extreme opens that row's transaction */
   base?: string;
   /** the window the answer reads ("last 6 hours"), for the figures over all of it */
@@ -235,11 +237,13 @@ export type QueryVisualProps = {
   prior?: Prior | null;
   /** what the page sets between the figures and the panels: the findings */
   lead?: ReactNode;
+  /** make the selection the subject of the next question; offered beside its chips */
+  onAskSelection?: () => void;
 };
 
 const isChart = (p: Panel | undefined): p is Panel => !!p && p.kind !== "table" && !!p.x && p.series.length > 0;
 
-export function QueryVisual({ visual, rows, names, sym, canDrill, onPick, onZoom, selected, hoverKey, onHoverKey, selection, onSelection, chips = true, compact = false, panelIndex, panelAction, titles = true, cards = true, renderTable, stack = false, totals, base, span, prior, lead }: QueryVisualProps) {
+export function QueryVisual({ visual, rows, names, sym, canDrill, onPick, onZoom, selected, hoverKey, onHoverKey, selection, onSelection, chips = true, compact = false, panelIndex, panelAction, titles = true, cards = true, renderTable, stack = false, totals, cut: cutRows = false, base, span, prior, lead, onAskSelection }: QueryVisualProps) {
   const whole = selection ?? EMPTY;
   // a pick on a column these rows lack (another answer's) cannot narrow them
   const live = useMemo(() => whole.filter((p) => rows.some((r) => p.column in r)), [whole, rows]);
@@ -257,18 +261,20 @@ export function QueryVisual({ visual, rows, names, sym, canDrill, onPick, onZoom
   );
   const single = panelIndex !== undefined || charts.length === 1;
   // the rows stop at a LIMIT: the whole result's size, or the query's own count of it, is past them
-  const cut = (!!totals && totals.rows > rows.length) || (typeof rows[0]?.of_total === "number" && rows[0].of_total > rows.length);
+  const cut = cutRows || (!!totals && totals.rows > rows.length) || (typeof rows[0]?.of_total === "number" && rows[0].of_total > rows.length);
   // the column a chart names each row by: a figure that is one row finds that row's mark by it
   const rowX = charts.find(({ p }) => isChart(p))?.p.x;
+  // one picked mark is one row: its records open from the chips, as its mark's own door does
+  const one = live.length === 1 && live[0].kind === "value" && live[0].values.length === 1 && picked.length === 1 ? picked[0] : undefined;
   return (
     <div className={cn("flex flex-col", compact ? "gap-3" : cards ? "gap-3 sm:gap-4" : "gap-6")}>
       {!compact && <StatsStrip stats={visual.stats} rows={picked} all={rows} names={names} sym={sym} active={live.length > 0} cards={cards} stack={stack} totals={totals} base={base} span={span} prior={prior} x={rowX} onHoverKey={onHoverKey} onOpen={canDrill ? onPick : undefined} />}
       {lead}
-      {onSelection && chips && <SelectionChips selection={whole} onSelection={onSelection} rows={rows} names={names} onZoom={onZoom} className={cards ? "px-1" : "-mb-2"} />}
+      {onSelection && chips && <SelectionChips selection={whole} onSelection={onSelection} rows={rows} names={names} onZoom={onZoom} onOpen={one && canDrill ? () => onPick(one) : undefined} onAsk={live.length ? onAskSelection : undefined} className={cards ? "px-1" : "-mb-2"} />}
       {charts.length > 0 && (
         <div className={cn("grid", cards ? "gap-3 sm:gap-4" : "gap-x-10 gap-y-8", !single && !stack && "lg:grid-cols-2")}>
           {charts.map(({ p, idx }, i) => (
-            <div key={`${i}-${p.title}-${p.x}`} data-tile className={cn("min-w-0", cards && cn(CARD, "px-4 pb-4 pt-3.5 sm:px-5 sm:pb-5 sm:pt-4"), !single && !stack && p.width === "full" && "lg:col-span-2")}>
+            <div key={`${i}-${p.title}-${p.x}-${p.kind}`} data-tile className={cn("min-w-0", cards && cn(CARD, "px-4 pb-4 pt-3.5 sm:px-5 sm:pb-5 sm:pt-4"), !single && !stack && p.width === "full" && "lg:col-span-2")}>
               {p.kind === "table" && renderTable ? (
                 <section aria-label={p.title || undefined} className="group/panel flex flex-col gap-3">
                   <div className="flex min-h-7 items-center justify-between gap-3">

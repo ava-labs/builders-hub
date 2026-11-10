@@ -24,6 +24,7 @@ export function AskSection({
   prompt,
   setPrompt,
   setAbout,
+  askAboutSelection,
   submit,
   inputRef,
   phase,
@@ -47,6 +48,8 @@ export function AskSection({
   setPrompt: (v: string) => void;
   /** the next question is about the selection */
   setAbout: (v: boolean) => void;
+  /** make the selection the subject of the next question, and put the caret in the box */
+  askAboutSelection: () => void;
   submit: () => void;
   inputRef: RefObject<HTMLTextAreaElement | null>;
   phase: "idle" | "query" | "running";
@@ -66,17 +69,6 @@ export function AskSection({
   const { openLoginModal } = useLoginModalTrigger();
   const still = useReducedMotion();
   const busy = phase !== "idle";
-
-  const askAboutSelection = () => {
-    setAbout(true);
-    setPrompt(`For ${selWords}: `);
-    requestAnimationFrame(() => {
-      const el = inputRef.current;
-      if (!el) return;
-      el.focus();
-      el.setSelectionRange(el.value.length, el.value.length);
-    });
-  };
 
   const input = (
     <PromptBox

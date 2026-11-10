@@ -19,6 +19,7 @@ import { DrillView, type OpenDrill } from "../QueryZoom";
 import { QueryMonitor } from "../QueryMonitor";
 import { NO_QUERY } from "../query-client";
 import { SkeletonGrid } from "./answer-skeleton";
+import type { Compared } from "./compare";
 import { CARD, type Row } from "./sheet";
 import type { Prior } from "./stat-figures";
 import { TileActions } from "./tile-actions";
@@ -56,6 +57,8 @@ export function AnswerStage({
   prior,
   onSql,
   lead,
+  compared,
+  onAskSelection,
 }: {
   answer: QueryAnswer;
   visual: VisualSpec | null;
@@ -94,6 +97,10 @@ export function AnswerStage({
   onSql: () => void;
   /** the findings, set between the figures and the panels */
   lead?: ReactNode;
+  /** the answer beside the period before it, while the reader compares the two */
+  compared: Compared | null;
+  /** make the selection the subject of the next question */
+  onAskSelection: () => void;
 }) {
   return answer.monitor ? (
     // a live feed of the chain's own moves, read from its RPC as each block is made
@@ -107,8 +114,9 @@ export function AnswerStage({
     <SkeletonGrid status="Rows are in. Laying out the chart" />
   ) : charted && visual ? (
     <QueryVisual
-      visual={drawn ?? visual}
-      rows={allRows}
+      visual={compared?.visual ?? drawn ?? visual}
+      rows={compared?.rows ?? allRows}
+      onAskSelection={onAskSelection}
       names={names}
       sym={sym}
       totals={answer.totals}
@@ -119,7 +127,7 @@ export function AnswerStage({
       canDrill={canDrill || recordRows}
       // a mark that is one thing on the chain (a transaction, a
       // contract, a validator, a block) opens that thing's own page
-      onPick={openRow}
+      onPick={(r) => openRow(compared?.origin.get(r) ?? r)}
       hoverKey={hoverKey}
       onHoverKey={setHoverKey}
       range={range}

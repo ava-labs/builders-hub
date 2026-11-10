@@ -10,7 +10,7 @@ import { edgesOf, msOf, windowOf } from "@/lib/explorer-query/edges";
 import type { ChartSpec, Names, Totals } from "@/lib/explorer-query/types";
 import { isTime } from "@/lib/explorer-query/values";
 import type { Format, VisualSpec } from "@/lib/explorer-query/visual-spec";
-import { fmt, spanOf, tipX, xText, zoneOf, type Span } from "../query-format";
+import { fmt, fmtX, spanOf, tipX, xText, zoneOf, type Span } from "../query-format";
 import { changeText, priorWords, type Prior } from "./stat-figures";
 
 type Row = Record<string, unknown>;
@@ -29,6 +29,8 @@ export interface Finding {
   tone: "up" | "down" | "bad" | "plain";
   /** how far the finding stands out, 0 to 1: the page shows the highest */
   score: number;
+  /** the question a reader asks next about it: the page offers it as a chip, and a model answers it */
+  ask?: string;
 }
 
 export interface FindInput {
@@ -152,21 +154,21 @@ export function findingsOf(input: FindInput): Finding[] {
       const hi = Math.max(...vals);
       const at = full[vals.indexOf(hi)];
       if (mid > 0 && hi >= 2 * mid)
-        found.push({ kind: "peak", tag: "Peak", key: at[x], row: at, tone: "plain", score: Math.min(hi / mid, 8) / 8, text: `${tipX(at[x], span, zone)} held ${amount(hi)}, ${times(hi / mid)} the median ${each}.` });
+        found.push({ kind: "peak", tag: "Peak", key: at[x], row: at, tone: "plain", score: Math.min(hi / mid, 8) / 8, ask: `What drove the peak at ${fmtX(at[x], span === "days" ? "days" : "hours", "UTC")} UTC?`, text: `${tipX(at[x], span, zone)} held ${amount(hi)}, ${times(hi / mid)} the median ${each}.` });
     }
     if (full.length >= 8) {
       const half = full.length >> 1;
       const [a, b] = [vals.slice(0, half), vals.slice(full.length - half)].map((v) => v.reduce((p, q) => p + q, 0) / v.length);
       const d = a > 0 ? (b - a) / a : 0;
       if (Math.abs(d) >= 0.25)
-        found.push({ kind: "trend", tag: "Trend", tone: d > 0 ? "up" : "down", score: (Math.min(Math.abs(d), 2) / 2) * 0.7, text: `The later half averaged ${amount(mean(b))} per ${each}, ${pct(Math.abs(d))} ${d > 0 ? "above" : "below"} the earlier half.` });
+        found.push({ kind: "trend", tag: "Trend", tone: d > 0 ? "up" : "down", score: (Math.min(Math.abs(d), 2) / 2) * 0.7, ask: `What drove the ${d > 0 ? "rise" : "fall"} in the later half?`, text: `The later half averaged ${amount(mean(b))} per ${each}, ${pct(Math.abs(d))} ${d > 0 ? "above" : "below"} the earlier half.` });
     }
     const total = input.totals?.sum[main.column] ?? sumOf(rows, main.column);
     if (prior) {
       const was = prior.totals?.sum[main.column] ?? sumOf(prior.rows, main.column);
       const p = was > 0 ? (total - was) / was : 0;
       if (Math.abs(p) >= 0.1)
-        found.push({ kind: "change", tag: "Change", tone: p > 0 ? "up" : "down", score: Math.min(Math.abs(p), 1) * 0.6, text: `${period ? "The total" : main.label} ${p > 0 ? "rose" : "fell"} ${changeText(total, was).replace(/^[+-]/, "")} against ${before}: ${say(total)}, from ${say(was)}.` });
+        found.push({ kind: "change", tag: "Change", tone: p > 0 ? "up" : "down", score: Math.min(Math.abs(p), 1) * 0.6, ask: `What drove the ${p > 0 ? "rise" : "fall"} against ${before}?`, text: `${period ? "The total" : main.label} ${p > 0 ? "rose" : "fell"} ${changeText(total, was).replace(/^[+-]/, "")} against ${before}: ${say(total)}, from ${say(was)}.` });
     }
     if (fail && total > 0) {
       const bad = input.totals?.sum[fail.column] ?? sumOf(rows, fail.column);
@@ -179,11 +181,14 @@ export function findingsOf(input: FindInput): Finding[] {
           tag: "Failures",
           tone: "bad",
           score: Math.min(rate * 2, 1) * 0.75,
+          ask: `Which contracts ${failed} most?`,
           text: `${pct(rate)} of ${what} ${failed}: ${say(bad, fail)} of ${say(total)}${wasRate !== null && Math.abs(rate - wasRate) >= 0.01 ? `, ${rate > wasRate ? "up" : "down"} from ${pct(wasRate)} in ${before}` : ""}.`,
         });
     }
   } else {
     const name = (r: Row) => xText(names, x, r[x], "other");
+    // a row as a question names it: its value in full, which a model can look up, with the name the page shows
+    const full = (r: Row) => (name(r) === String(r[x]) ? String(r[x]) : `${name(r)} (${String(r[x])})`);
     const ranked = [...rows].filter((r) => num(r[main.column]) !== null).sort((p, q) => (num(q[main.column]) ?? 0) - (num(p[main.column]) ?? 0));
     if (ranked.length < 3) return [];
     const [top, second] = ranked;
@@ -191,8 +196,8 @@ export function findingsOf(input: FindInput): Finding[] {
     // the whole a share is of: every row's sum when a LIMIT cut none, else the sum the totals read past it
     const whole = cut ? (input.totals?.sum[main.column] ?? null) : shown;
     const [v1, v2] = [num(top[main.column]) ?? 0, num(second[main.column]) ?? 0];
-    if (whole && whole > 0 && v1 / whole >= 0.25) found.push({ kind: "leader", tag: "Leader", key: top[x], row: top, tone: "plain", score: Math.min(v1 / whole, 1) * 0.9, text: `${name(top)} holds ${pct(v1 / whole)} of ${what}: ${say(v1)} of ${say(whole)}.` });
-    else if (v2 > 0 && v1 >= 2 * v2) found.push({ kind: "leader", tag: "Leader", key: top[x], row: top, tone: "plain", score: (Math.min(v1 / v2, 6) / 6) * 0.8, text: `${name(top)} leads with ${amount(v1)}, ${times(v1 / v2)} the next (${name(second)}).` });
+    if (whole && whole > 0 && v1 / whole >= 0.25) found.push({ kind: "leader", tag: "Leader", key: top[x], row: top, ask: `What is behind ${full(top)}?`, tone: "plain", score: Math.min(v1 / whole, 1) * 0.9, text: `${name(top)} holds ${pct(v1 / whole)} of ${what}: ${say(v1)} of ${say(whole)}.` });
+    else if (v2 > 0 && v1 >= 2 * v2) found.push({ kind: "leader", tag: "Leader", key: top[x], row: top, ask: `What is behind ${full(top)}?`, tone: "plain", score: (Math.min(v1 / v2, 6) / 6) * 0.8, text: `${name(top)} leads with ${amount(v1)}, ${times(v1 / v2)} the next (${name(second)}).` });
     if (whole && whole > 0 && ranked.length >= 6) {
       const three = ranked.slice(0, 3).reduce((n, r) => n + (num(r[main.column]) ?? 0), 0);
       if (three / whole >= 0.5 && v1 / whole < 0.5) found.push({ kind: "concentration", tag: "Concentration", tone: "plain", score: (three / whole) * 0.6, text: `The top 3 hold ${pct(three / whole)} of ${what}.` });
@@ -211,10 +216,10 @@ export function findingsOf(input: FindInput): Finding[] {
         .map((m) => ({ ...m, p: (m.now - m.before) / m.before }))
         .sort((p, q) => Math.abs(q.p) - Math.abs(p.p))[0];
       if (moved && Math.abs(moved.p) >= 0.3)
-        found.push({ kind: "mover", tag: "Mover", key: moved.r[x], row: moved.r, tone: moved.p > 0 ? "up" : "down", score: (Math.min(Math.abs(moved.p), 3) / 3) * 0.85, text: `${name(moved.r)} ${moved.p > 0 ? "rose" : "fell"} ${changeText(moved.now, moved.before).replace(/^[+-]/, "")} against ${then}: ${say(moved.now)}, from ${say(moved.before)}.` });
+        found.push({ kind: "mover", tag: "Mover", key: moved.r[x], row: moved.r, ask: `What drove ${full(moved.r)} ${moved.p > 0 ? "up" : "down"} against ${then}?`, tone: moved.p > 0 ? "up" : "down", score: (Math.min(Math.abs(moved.p), 3) / 3) * 0.85, text: `${name(moved.r)} ${moved.p > 0 ? "rose" : "fell"} ${changeText(moved.now, moved.before).replace(/^[+-]/, "")} against ${then}: ${say(moved.now)}, from ${say(moved.before)}.` });
       // the rows before are a ranking of the same length: a name they lack was below its last place
       const fresh = !twin && prior && prior.rows.length >= ranked.length ? ranked.slice(0, 5).find((r) => !was.has(String(r[x]))) : undefined;
-      if (fresh && prior) found.push({ kind: "newcomer", tag: "New", key: fresh[x], row: fresh, tone: "up", score: 0.65, text: `${name(fresh)} was not among the top ${prior.rows.length} in ${before}. It is number ${ranked.indexOf(fresh) + 1} now, with ${amount(num(fresh[main.column]) ?? 0)}.` });
+      if (fresh && prior) found.push({ kind: "newcomer", tag: "New", key: fresh[x], row: fresh, ask: `What is ${full(fresh)}, and why is it new here?`, tone: "up", score: 0.65, text: `${name(fresh)} was not among the top ${prior.rows.length} in ${before}. It is number ${ranked.indexOf(fresh) + 1} now, with ${amount(num(fresh[main.column]) ?? 0)}.` });
     }
     if (fail) {
       const mid = median(ranked.map((r) => num(r[main.column]) ?? 0));
@@ -223,7 +228,7 @@ export function findingsOf(input: FindInput): Finding[] {
         .map((r) => ({ r, rate: (num(r[fail.column]) ?? 0) / (num(r[main.column]) ?? 1) }))
         .sort((p, q) => q.rate - p.rate)[0];
       if (worst && worst.rate >= 0.2 && worst.rate <= 1)
-        found.push({ kind: "failure", tag: "Failures", key: worst.r[x], row: worst.r, tone: "bad", score: Math.min(worst.rate, 1) * 0.8, text: `${name(worst.r)} ${failed} on ${pct(worst.rate)} of its ${amount(num(worst.r[main.column]) ?? 0)}.` });
+        found.push({ kind: "failure", tag: "Failures", key: worst.r[x], row: worst.r, ask: `Why did ${full(worst.r)} ${failed.replace(/ed$/, "")} so often?`, tone: "bad", score: Math.min(worst.rate, 1) * 0.8, text: `${name(worst.r)} ${failed} on ${pct(worst.rate)} of its ${amount(num(worst.r[main.column]) ?? 0)}.` });
     }
   }
   return found.sort((p, q) => q.score - p.score).slice(0, FINDINGS);

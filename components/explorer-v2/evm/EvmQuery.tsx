@@ -27,8 +27,9 @@ import { runTileSql } from "./query-board-bits";
 import { AnswerHead } from "./query/answer-head";
 import { AnswerSkeleton } from "./query/answer-skeleton";
 import { AnswerStage } from "./query/answer-stage";
-import { findingsOf } from "./query/findings";
 import { FindingsBlock } from "./query/findings-block";
+import { FollowupsBlock } from "./query/followups-block";
+import { useInsight } from "./query/use-insight";
 import { AskSection } from "./query/ask-section";
 import { type Moved, movedAnswer } from "./query/moved-answer";
 import { SQL_DRAWER_ID, SqlDrawer, useSqlOpen } from "./query/sql-drawer";
@@ -179,6 +180,8 @@ export function QueryPage({
   const [sqlOpen, setSqlOpen] = useSqlOpen();
   // a window button: the span being read, and the answer as first given, which its own button brings back
   const [moving, setMoving] = useState<SpanKey | null>(null);
+  // the reader set the answer beside the period before it
+  const [compare, setCompare] = useState(false);
   const origin = useRef<QueryAnswer | null>(null);
   const [sqlDraft, setSqlDraft] = useState(seed?.answer.sql ?? "");
   // why the reader's own SQL last failed: said in the editor, at the place it names
@@ -351,6 +354,7 @@ export function QueryPage({
         const next = [...hist, { prompt: text, sql: a.sql, title: a.title }].slice(-6);
         answerSql.current = a.sql;
         origin.current = null;
+        setCompare(false);
         setAnswer(a);
         setSqlDraft(a.sql);
         setSqlError(null);
@@ -563,11 +567,18 @@ export function QueryPage({
   const { selWords, selForModel } = useSelectionWords({ sel, allRows, names, visual, sym });
   // each figure says how it moved against the period before, once that period is read
   const prior = usePrior(answer, c.chainId);
-  // what stands out in the rows, by rule: the lines gain the movers once the period before is read
-  const findings = useMemo(
-    () => (answer?.result && !answer.monitor && !laying ? findingsOf({ columns: answer.result.columns, rows: answer.result.rows, names: answer.names, visual, chart: answer.chart, sql: answer.sql, anchor: answer.anchor, totals: answer.totals, prior, span: answer.span, sym }) : []),
-    [answer, visual, prior, laying, sym],
-  );
+  // what stands out in the rows, the answer beside the period before, and the questions it raises
+  const { findings, comparable, compareLabel, asks } = useInsight({ answer, visual, drawn, prior, laying, sym, fuji: network === "fuji" });
+  const askAboutSelection = () => {
+    setAbout(true);
+    setPrompt(`For ${selWords}: `);
+    requestAnimationFrame(() => {
+      const el = inputRef.current;
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(el.value.length, el.value.length);
+    });
+  };
 
   const submit = () => {
     const extra = answer && about && sel.length ? `${FILTER_MARK}${selForModel()}.)` : "";
@@ -601,7 +612,7 @@ export function QueryPage({
         {/* the question */}
         <AskSection
           crumbs={crumbs} answer={answer} drill={drill} sel={sel} selWords={selWords}
-          prompt={prompt} setPrompt={setPrompt} setAbout={setAbout} submit={submit} inputRef={inputRef}
+          prompt={prompt} setPrompt={setPrompt} setAbout={setAbout} askAboutSelection={askAboutSelection} submit={submit} inputRef={inputRef}
           phase={phase} moving={moving !== null} elapsed={elapsed} stale={stale} error={error} gated={gated}
           c={c} network={network} examples={examples} ask={ask}
         />
@@ -630,9 +641,18 @@ export function QueryPage({
                   sel={sel} setSel={setSel} range={range} setRange={setRange} hoverKey={hoverKey} setHoverKey={setHoverKey} hoverTx={hoverTx} setHoverTx={setHoverTx}
                   setInspect={setInspect} openRow={openRow} openDrill={openDrill} ask={ask} prior={prior} onSql={openSql}
                   lead={<FindingsBlock findings={findings} onHoverKey={setHoverKey} onOpen={canDrill || recordRows ? openRow : undefined} />}
+                  compared={compare ? comparable : null} onAskSelection={askAboutSelection}
                 />
               </ZoomStage>
             </div>
+
+            {/* the next step: the answer another way, or a question it raises */}
+            {!drill && !laying && (
+              <FollowupsBlock
+                asks={asks} onAsk={(q) => void ask(q, true)} busy={busy}
+                compare={comparable ? { label: compareLabel, on: compare, toggle: () => setCompare((v) => !v) } : null}
+              />
+            )}
 
             {/* where the figures came from, folded away until asked */}
             {/* a monitor ran no SQL: its card says where its moves come from */}

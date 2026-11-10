@@ -32,6 +32,8 @@ export interface Recipe {
   /** which model wrote the SQL */
   writer: string;
   at: number;
+  /** up to three questions a reader may ask next about this answer */
+  followups?: string[];
 }
 
 const TTL_S = 7 * 24 * 3600;

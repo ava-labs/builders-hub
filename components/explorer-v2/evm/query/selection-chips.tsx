@@ -12,6 +12,8 @@ import { ACCENT, type Row } from "./sheet";
 /* ------------------------------------------------------------------ */
 /* the selection, as chips                                             */
 
+const ACT = "rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500 transition-colors hover:text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0061E2]/50 dark:text-zinc-400 dark:hover:text-zinc-100";
+
 export function SelectionChips({
   selection,
   onSelection,
@@ -19,6 +21,8 @@ export function SelectionChips({
   names,
   formatValue,
   onZoom,
+  onOpen,
+  onAsk,
   className,
 }: {
   selection: Selection;
@@ -30,6 +34,10 @@ export function SelectionChips({
   formatValue?: (column: string, value: string | number) => string | undefined;
   /** when given, a range pick offers to ask again inside that range */
   onZoom?: (lo: unknown, hi: unknown) => void;
+  /** when one mark is picked and it has records: open them */
+  onOpen?: () => void;
+  /** make the selection the subject of the next question */
+  onAsk?: () => void;
   className?: string;
 }) {
   const reduced = useReduced();
@@ -84,6 +92,16 @@ export function SelectionChips({
                 className="rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500 transition-colors hover:text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0061E2]/50 dark:text-zinc-400 dark:hover:text-zinc-50"
               >
                 Zoom in
+              </button>
+            )}
+            {onOpen && (
+              <button type="button" onClick={onOpen} className={ACT}>
+                Open records
+              </button>
+            )}
+            {onAsk && (
+              <button type="button" onClick={onAsk} className={ACT}>
+                Ask about this
               </button>
             )}
             <button
