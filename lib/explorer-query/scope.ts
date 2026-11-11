@@ -4,6 +4,7 @@
    range, never from the question's words. */
 
 import { msOf, STALE_MS } from "./edges";
+import { STANDING_REFS } from "./target";
 import { namesUpgrade } from "./upgrades";
 import { DAY, HOUR, MINUTE, MONTHS, WEEK } from "./values";
 
@@ -399,11 +400,20 @@ export function staleLine(anchor: number, clock: number): string {
 /** a title's periods: per 5 minutes, per day, daily */
 const PERIODS = /\bper (?:\d+[- ])?(?:second|minute|hour|day|week|month|year|block)s?\b|\b(?:hourly|daily|weekly|monthly)\b/i;
 
+/** a query that reads only tables of a set as it stands now (target.ts). Its rows' dates are no window: "subnets
+    created per year and active today" over p_subnets was titled "active since the chain began", the span of the
+    years in its rows. A name the query's own WITH defines is not a table */
+function standsNow(sql: string): boolean {
+  const own = new Set([...sql.matchAll(/(?:\bWITH|,)\s*([A-Za-z_]\w*)\s+AS\s*\(/gi)].map((m) => m[1].toLowerCase()));
+  const read = [...sql.matchAll(/(?<!\bFILL\s+)(?<!\bARRAY\s+)\b(?:FROM|JOIN)\s+([A-Za-z_]\w*)/gi)].map((m) => m[1]).filter((t) => !own.has(t.toLowerCase()));
+  return read.length > 0 && read.every((t) => STANDING_REFS.includes(t));
+}
+
 /** the window an answer reads: the SQL's own, else the span of its rows. An index more than STALE_MS behind closes
     it at the index's end, named in the reader's dates (at) */
 function readWindow(sql: string, rows: readonly Record<string, unknown>[], x: string | undefined, now: number, clock: number): { w: Window | null; stale: boolean; at: number } {
   const win = sqlWindow(sql, now);
-  const w = win === "unknown" ? null : (win ?? rowsWindow(rows, x, now));
+  const w = win === "unknown" ? null : (win ?? (standsNow(sql) ? null : rowsWindow(rows, x, now)));
   const stale = clock - now >= STALE_MS;
   if (!w || !stale) return { w, stale, at: now };
   // a window that runs to now ends where the index ends, a calendar one at the end of that day

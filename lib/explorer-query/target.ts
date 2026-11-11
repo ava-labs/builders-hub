@@ -35,6 +35,10 @@ export const PCHAIN_TABLES = [
 export const PCHAIN_REFS = ["p_validator_versions", "p_avax_supply", "p_avax_supply_daily", "p_stake_fill", "network_upgrades", "p_subnets"] as const;
 const FUJI_REFS = ["p_validator_versions"] as const;
 
+/** reference tables that hold a set as it stands now, with no history: a date in their rows is a fact about a member
+    (the day a subnet was created), not a window the query reads */
+export const STANDING_REFS: readonly string[] = ["p_subnets", "p_validator_versions", "p_avax_supply"];
+
 /** tables our server builds for the C-Chain's DEXs (protocols.ts): its
     pool factories and token decimals; and for its lending protocols
     (lending.ts): Benqi's markets and the lent tokens' decimals and price
