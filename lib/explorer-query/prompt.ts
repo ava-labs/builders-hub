@@ -618,12 +618,15 @@ SELECT multiIf(is_l1 = 1 AND validators > 0, 'L1 with validators', is_l1 = 1, 'L
     : "";
   // mainnet only, from the P-Chain audit: rewards read from their outputs (P08 said they cannot be summed), a
   // registration count named as one (P06 called 22 renewals of 26 new validators), and the last N days as N whole
-  // days and today (P09 and P15 read 6 days and today). Fuji's prompt stays as it was
+  // days and today (P09 and P15 read 6 days and today). And stake that renews is not stake that unlocks: "AVAX that
+  // unlocks in 7 days" counted 3.05M AVAX of 47 auto-renewed validators (of 43 whose cycle ended in the 8 days to
+  // 2026-11-11, 42 stayed in the set under the same tx_id). Fuji's prompt stays as it was
   const audited = isFuji(id)
     ? ""
     : `
 - raw_p_reward_utxos: one row per reward output, paid to a validator or a delegator when its staking period ends (block_time is when). Its AVAX is reinterpretAsUInt64(reverse(substring(utxo_bytes, 75, 8))) / 1e9, the 8-byte amount after the output's type id: sum it for the AVAX paid in staking rewards. It is never returned stake, and never decoded_p_txs.reward_paid, which is set on few reward transactions.
-- Registrations: an AddPermissionlessValidatorTx, AddValidatorTx or AddAutoRenewedValidatorTx registers a validation period, and a node that renews registers again. A count of them is a count of registrations, renewals included: its title and note say registrations, never new validators. A question about validators counts nodes, uniqExact(node_id), beside the registrations, and the new ones: the nodes with no registration before the window, node_id NOT IN (SELECT node_id FROM decoded_p_txs WHERE chain_id = ${id} AND tx_type IN ('AddPermissionlessValidatorTx', 'AddValidatorTx', 'AddAutoRenewedValidatorTx') AND block_time < the window's start).`;
+- Registrations: an AddPermissionlessValidatorTx, AddValidatorTx or AddAutoRenewedValidatorTx registers a validation period, and a node that renews registers again. A count of them is a count of registrations, renewals included: its title and note say registrations, never new validators. A question about validators counts nodes, uniqExact(node_id), beside the registrations, and the new ones: the nodes with no registration before the window, node_id NOT IN (SELECT node_id FROM decoded_p_txs WHERE chain_id = ${id} AND tx_type IN ('AddPermissionlessValidatorTx', 'AddValidatorTx', 'AddAutoRenewedValidatorTx') AND block_time < the window's start).
+- Stake that ends: in p_validator_snapshots, next_period > 0 marks an auto-renewed validator (it is NULL on every other one). Its end_time is the end of its current cycle, not of its stake: it starts the next cycle of next_period seconds under the same tx_id, so its stake does not unlock. A question about stake that ends, expires or unlocks keeps the two apart, sumIf(weight, ifNull(next_period, 0) = 0) / 1e9 AS unlocking_avax beside sumIf(weight, ifNull(next_period, 0) > 0) / 1e9 AS renewing_avax, and the note says the renewing stake stays staked.`;
   // the auto-renewed staking transactions (ACP-236), and the reward a RewardValidatorTx paid, which reward_paid does
   // not hold (P09 put RewardAutoRenewedValidatorTx under other)
   const renewed = isFuji(id)
