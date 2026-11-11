@@ -25,13 +25,13 @@ describe('the zone a chart x reads in', () => {
 describe('an axis tick', () => {
   it("writes a minute or an hour in the viewer's zone", () => {
     expect(fmtX('2026-10-06 00:00:00', 'minutes', NY)).toBe('20:00');
-    expect(fmtX('2026-10-06 00:00:00', 'hours', NY)).toBe('10-05 20:00');
+    expect(fmtX('2026-10-06 00:00:00', 'hours', NY)).toBe('Oct 5 20:00');
     expect(fmtX('2026-10-06 00:00:00', 'minutes', KOLKATA)).toBe('05:30');
   });
 
   it('writes a day as the UTC day it counts', () => {
-    expect(fmtX('2026-10-06', 'days', 'UTC')).toBe('10-06');
-    expect(fmtX('2026-10-06 00:00:00', 'days', 'UTC')).toBe('10-06');
+    expect(fmtX('2026-10-06', 'days', 'UTC')).toBe('Oct 6');
+    expect(fmtX('2026-10-06 00:00:00', 'days', 'UTC')).toBe('Oct 6');
   });
 
   it('writes UTC when no zone is named', () => {
@@ -42,7 +42,7 @@ describe('an axis tick', () => {
 describe('a tooltip', () => {
   it('names the zone of a time of day, and none for a day', () => {
     expect(tipX('2026-10-06 02:29:00', 'minutes', NY)).toBe('22:29 EDT');
-    expect(tipX('2026-10-06', 'days', 'UTC')).toBe('10-06');
+    expect(tipX('2026-10-06', 'days', 'UTC')).toBe('Oct 6');
   });
 });
 

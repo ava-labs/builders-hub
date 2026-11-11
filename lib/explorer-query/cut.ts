@@ -64,6 +64,13 @@ export function newestSql(sql: string, result: Pick<QueryResult, "columns" | "ro
   return `SELECT * FROM (SELECT * FROM (\n${cut.inner}\n) ORDER BY ${quote(x)} DESC LIMIT ${cut.limit}) ORDER BY ${quote(x)}`;
 }
 
+/** one totals read a minute for a query on a chain, in flight or done, as its rows' run is shared (run-cache.ts):
+    a query that many readers send, or one reader sends again, costs the database its totals once. A read that
+    failed is kept too, so a query that times out is not read again at once */
+const KEPT_MS = 60_000;
+const KEPT_MAX = 64;
+const kept = new Map<string, { at: number; totals: Promise<Totals | null> }>();
+
 /** the whole result, read once past its limit: its size, each column's figures, and the row that holds each
     extreme. sql is the query as written, before anchored(): the totals read goes through anchored() itself,
     so it reads the same tables the rows did (FINAL, the reference tables). Null when the rows did not reach a
@@ -74,6 +81,17 @@ export async function totalsOf(sql: string, result: QueryResult, chainId: number
   if (!cut) return null;
   const own = ownCount(cut.inner, result);
   if (own !== null) return { rows: own, newest: cut.newest, sum: {}, count: {}, min: {}, max: {}, distinct: {} };
+  const key = `${chainId}\n${sql}`;
+  const hit = kept.get(key);
+  if (hit && Date.now() - hit.at < KEPT_MS) return hit.totals;
+  const totals = readTotals(cut, result, chainId);
+  kept.delete(key);
+  kept.set(key, { at: Date.now(), totals });
+  while (kept.size > KEPT_MAX) kept.delete(kept.keys().next().value as string);
+  return totals;
+}
+
+async function readTotals(cut: NonNullable<ReturnType<typeof cutOf>>, result: QueryResult, chainId: number): Promise<Totals | null> {
   const cols = result.columns.map((c, i) => ({ name: c.name, i, num: NUMERIC.test(c.type) }));
   // the column a row is known by: a time, else the first that is not a number
   const label = result.columns.find((c) => TIME.test(c.type)) ?? result.columns.find((c) => !NUMERIC.test(c.type));

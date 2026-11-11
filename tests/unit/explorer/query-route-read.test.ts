@@ -9,7 +9,8 @@ const recipes = vi.hoisted(() => new Map<string, unknown>());
 const keptWords = vi.hoisted(() => vi.fn((r: { title: string; note: string }) => ({ title: `${r.title} as shown`, note: r.note })));
 
 vi.mock('@/lib/explorer-query/answer', () => ({ answerQuestion, drillSql: vi.fn(), keptWords }));
-vi.mock('@/lib/explorer-query/visual', () => ({ designVisual, writeReading }));
+vi.mock('@/lib/explorer-query/visual', () => ({ designVisual }));
+vi.mock('@/lib/explorer-query/reading', () => ({ writeReading }));
 vi.mock('@/lib/explorer-query/clickhouse', () => ({ runQuery, anchored: vi.fn(async (sql: string) => ({ sql, anchor: null, sources: [] })), indexState: vi.fn(async () => null) }));
 vi.mock('@/lib/explorer-query/enrich', () => ({ nameRows: vi.fn(async () => ({})) }));
 vi.mock('@/lib/explorer-query/cut', () => ({ totalsOf: vi.fn(async () => null) }));

@@ -2,7 +2,7 @@
 
 /* Under a Query answer: where its figures came from, folded away until
    asked. The tables, the window of the chain they cover, the run, the SQL
-   to copy or edit, and the model's steps. */
+   to copy, and the model's steps. */
 
 import { useState } from "react";
 import Link from "next/link";
@@ -12,10 +12,9 @@ import { cn } from "@/lib/utils";
 import { formatNumber } from "@/components/explorer-v2/format";
 import { askAbout } from "@/components/explorer-v2/dig/selection";
 import type { Names, QueryAnswer } from "@/lib/explorer-query/types";
-import type { VisualSpec } from "@/lib/explorer-query/visual";
+import type { VisualSpec } from "@/lib/explorer-query/visual-spec";
 import { NoteText, downloadCsv, duration, toUnix } from "./QueryRows";
 import type { OpenDrill } from "./QueryZoom";
-import { sqlScopeOf } from "./QueryWorking";
 import { cutLine, rowCount } from "./query-client";
 
 function useCopy() {
@@ -36,32 +35,23 @@ export function QueryHow({
   visual,
   names,
   base,
-  c,
   drill,
   designing,
-  busy,
   linked,
   sqlOpen,
   onSqlOpen,
-  sqlDraft,
-  onSqlDraft,
-  onRun,
 }: {
   answer: QueryAnswer;
   visual: VisualSpec | null;
   names: Names;
   base: string;
-  c: { kind: "evm" | "pchain"; chainId: string | number; chainSlug?: string };
   drill: OpenDrill | null;
   designing: boolean;
-  busy: boolean;
   /** the answer has a thread to link to */
   linked: boolean;
+  /** the SQL stands in its drawer above the chart (query/sql-drawer.tsx) */
   sqlOpen: boolean;
   onSqlOpen: (open: boolean) => void;
-  sqlDraft: string;
-  onSqlDraft: (sql: string) => void;
-  onRun: () => void;
 }) {
   const [how, setHow] = useState(false);
   const still = useReducedMotion();
@@ -178,30 +168,6 @@ export function QueryHow({
                   </ol>
                 )}
               </div>
-
-              {sqlOpen && (
-                <div className="flex flex-col gap-3">
-                  <textarea
-                    value={sqlDraft}
-                    onChange={(e) => onSqlDraft(e.target.value)}
-                    spellCheck={false}
-                    rows={Math.min(18, Math.max(5, sqlDraft.split("\n").length + 1))}
-                    className="w-full resize-y rounded-xl bg-zinc-50 px-3 py-2 font-mono text-[12px] leading-relaxed text-zinc-900 outline-none ring-1 ring-zinc-200/70 focus:ring-zinc-400 dark:bg-zinc-900/50 dark:text-zinc-100 dark:ring-zinc-800"
-                  />
-                  <div className="flex flex-wrap items-center justify-between gap-3 font-mono text-[11px]">
-                    <span className="text-zinc-400 dark:text-zinc-500">{sqlScopeOf(c)}</span>
-                    <button type="button" onClick={onRun} disabled={busy || sqlDraft.trim() === answer.sql.trim()} className="rounded-full bg-zinc-900 px-3.5 py-1.5 uppercase tracking-[0.14em] text-white disabled:opacity-25 dark:bg-zinc-100 dark:text-zinc-900">
-                      Run
-                    </button>
-                  </div>
-                  {answer.drill && (
-                    <details className="font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
-                      <summary className="cursor-pointer select-none">How a group opens into its transactions</summary>
-                      <pre className="mt-2 overflow-x-auto rounded-xl bg-zinc-50 px-3 py-2 leading-relaxed dark:bg-zinc-900/50">{answer.drill.sql}</pre>
-                    </details>
-                  )}
-                </div>
-              )}
             </div>
           </motion.div>
         )}

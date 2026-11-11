@@ -14,6 +14,7 @@ import { registryTurn } from "./registry-turn";
 import { mevExamples, mevRules, mevTurn } from "./mev";
 import { ICTT_VERSION, icttChain, icttExamples, icttRules, icttTurn } from "./ictt";
 import { knownLines, refLine, refSchema } from "./sources";
+import { latestSnapshot } from "./pchain-sets";
 import { MAINNET_UPGRADES } from "@/constants/network-upgrades";
 import { gapsLine } from "./gaps";
 import { upgradeTime, upgradeTurn, upgradesLine } from "./upgrades";
@@ -591,26 +592,41 @@ const HELICON_FROM = `toDate('${upgradeTime(HELICON).slice(0, 10)}') - INTERVAL 
     (sources.ts); left out, the lines last read; null, none */
 export function pchainPrompt(opts: { chainId: number; network: string; schema: string; coverage: string | null; lines?: string[] | null }): string {
   const id = opts.chainId;
-  // the newest snapshot that holds as many rows as the one before it, or is 15 minutes old: a snapshot still being
-  // written holds fewer rows. Mainnet only: 15 minutes alone read r12's H16 from a snapshot 24 minutes old, one
-  // validator short, where a 13-minute one was complete. Fuji's stays as it was
-  const latest = (t: string) =>
-    isFuji(id)
-      ? `(SELECT max(snapshot_time) FROM ${t} WHERE chain_id = ${id} AND snapshot_time <= now() - INTERVAL 15 MINUTE AND snapshot_time >= now() - INTERVAL 1 DAY)`
-      : `(SELECT max(snap_t) FROM (SELECT snapshot_time AS snap_t, count() AS snap_rows, lagInFrame(count()) OVER (ORDER BY snapshot_time ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS snap_before FROM ${t} WHERE chain_id = ${id} AND snapshot_time >= now() - INTERVAL 1 DAY GROUP BY snapshot_time) WHERE (snap_before > 0 AND snap_rows >= snap_before) OR snap_t <= now() - INTERVAL 15 MINUTE)`;
+  const latest = (t: string) => latestSnapshot(t, id);
   const primary = "unhex(repeat('00', 32))";
   const live = opts.lines === undefined ? knownLines(id) : opts.lines;
   const lines = live?.length ? live : ["1.15", "1.14"];
   // the Data API counts the supply on mainnet only (target.ts)
   const supply = targetOf(id).refs.includes("p_avax_supply");
+  // mainnet only: what a subnet is before it converts, and each subnet as it stands now (pchain-sets.ts). The writer
+  // read "active subnets that have not converted" as every subnet with no conversion, most of which run no validator
+  const sets = targetOf(id).refs.includes("p_subnets");
+  const subnetRules = sets
+    ? `
+- Subnets: a CreateSubnetTx creates a subnet, and its tx_id is the subnet's id (the row's own subnet_id is NULL). A CreateChainTx adds a blockchain to it (subnet_id, chain_name). Until a ConvertSubnetToL1Tx makes it an L1 it is a legacy subnet: its owner gives each validator a term with an AddSubnetValidatorTx (subnet_id, node_id, weight, start_time, end_time), and the term holds the seat until end_time (at most a year) unless a RemoveSubnetValidatorTx (subnet_id, node_id) came after it. A legacy subnet's weight is a number its owner sets, like an L1's: never AVAX. Its validators are Primary Network validators too, so their stake and uptime are in p_validator_snapshots under the same node (node_id is text there: ${NODE("decoded_p_txs.node_id")}). Most subnets ever created run no validator now: a creation, a chain or a missing conversion never makes a subnet active.
+- p_subnets: one row per subnet a CreateSubnetTx created, as it stands now; the Primary Network is not in it. subnet_id is CB58 text (return it as subnet_id and the server names it), created_at, chains (the blockchains created on it), chain_name (its newest chain's name on the P-Chain, '' when it has none), is_l1 and converted_at (its ConvertSubnetToL1Tx), validators (the validators in its set now: an L1's active seats, or a legacy subnet's terms that have not ended) and validators_until (legacy subnets only: when its last term ends, so when its set empties unless a term is added). Our server builds it from the tables above with each query, so a read of it needs no time bound. Any question about subnets or L1s as a set (which are active, live, running or dead; which have or have not converted; how many run validators) reads p_subnets, and active, live or running means validators > 0. To join it to another table, encode that table's id the same way: ${CB58("assumeNotNull(decoded_p_txs.subnet_id)")} = p_subnets.subnet_id.`
+    : "";
+  const subnetExamples = sets
+    ? `
+Legacy subnets that run validators now, the active subnets that have not converted to an L1 (the server names the subnet); drill into one subnet's terms:
+SELECT subnet_id, validators, toString(validators_until) AS last_term_ends, chain_name, toString(toDate(created_at)) AS created FROM p_subnets WHERE chain_id = ${id} AND is_l1 = 0 AND validators > 0 ORDER BY validators DESC
+drill: SELECT block_time AS t, block_height, ${CB58("tx_id")} AS tx_id, tx_type, ${NODE("node_id")} AS node_id, weight, toString(end_time) AS ends FROM decoded_p_txs WHERE chain_id = ${id} AND block_time >= now() - INTERVAL 366 DAY AND tx_type = 'AddSubnetValidatorTx' AND subnet_id = {{subnet_id:bytes}} AND end_time > now() ORDER BY block_time DESC LIMIT 50
+
+Every subnet by what it is now (the whole set, in groups):
+SELECT multiIf(is_l1 = 1 AND validators > 0, 'L1 with validators', is_l1 = 1, 'L1 with no active validator', validators > 0, 'Legacy subnet with validators', chains > 0, 'Legacy subnet with no validator', 'No chain') AS state, count() AS subnets, sum(validators) AS validators_now FROM p_subnets WHERE chain_id = ${id} GROUP BY state ORDER BY subnets DESC
+`
+    : "";
   // mainnet only, from the P-Chain audit: rewards read from their outputs (P08 said they cannot be summed), a
   // registration count named as one (P06 called 22 renewals of 26 new validators), and the last N days as N whole
-  // days and today (P09 and P15 read 6 days and today). Fuji's prompt stays as it was
+  // days and today (P09 and P15 read 6 days and today). And stake that renews is not stake that unlocks: "AVAX that
+  // unlocks in 7 days" counted 3.05M AVAX of 47 auto-renewed validators (of 43 whose cycle ended in the 8 days to
+  // 2026-11-11, 42 stayed in the set under the same tx_id). Fuji's prompt stays as it was
   const audited = isFuji(id)
     ? ""
     : `
 - raw_p_reward_utxos: one row per reward output, paid to a validator or a delegator when its staking period ends (block_time is when). Its AVAX is reinterpretAsUInt64(reverse(substring(utxo_bytes, 75, 8))) / 1e9, the 8-byte amount after the output's type id: sum it for the AVAX paid in staking rewards. It is never returned stake, and never decoded_p_txs.reward_paid, which is set on few reward transactions.
-- Registrations: an AddPermissionlessValidatorTx, AddValidatorTx or AddAutoRenewedValidatorTx registers a validation period, and a node that renews registers again. A count of them is a count of registrations, renewals included: its title and note say registrations, never new validators. A question about validators counts nodes, uniqExact(node_id), beside the registrations, and the new ones: the nodes with no registration before the window, node_id NOT IN (SELECT node_id FROM decoded_p_txs WHERE chain_id = ${id} AND tx_type IN ('AddPermissionlessValidatorTx', 'AddValidatorTx', 'AddAutoRenewedValidatorTx') AND block_time < the window's start).`;
+- Registrations: an AddPermissionlessValidatorTx, AddValidatorTx or AddAutoRenewedValidatorTx registers a validation period, and a node that renews registers again. A count of them is a count of registrations, renewals included: its title and note say registrations, never new validators. A question about validators counts nodes, uniqExact(node_id), beside the registrations, and the new ones: the nodes with no registration before the window, node_id NOT IN (SELECT node_id FROM decoded_p_txs WHERE chain_id = ${id} AND tx_type IN ('AddPermissionlessValidatorTx', 'AddValidatorTx', 'AddAutoRenewedValidatorTx') AND block_time < the window's start).
+- Stake that ends: in p_validator_snapshots, next_period > 0 marks an auto-renewed validator (it is NULL on every other one). Its end_time is the end of its current cycle, not of its stake: it starts the next cycle of next_period seconds under the same tx_id, so its stake does not unlock. A question about stake that ends, expires or unlocks keeps the two apart, sumIf(weight, ifNull(next_period, 0) = 0) / 1e9 AS unlocking_avax beside sumIf(weight, ifNull(next_period, 0) > 0) / 1e9 AS renewing_avax, and the note says the renewing stake stays staked.`;
   // the auto-renewed staking transactions (ACP-236), and the reward a RewardValidatorTx paid, which reward_paid does
   // not hold (P09 put RewardAutoRenewedValidatorTx under other)
   const renewed = isFuji(id)
@@ -632,10 +648,10 @@ ${opts.coverage ? `\n${opts.coverage}` : ""}
   id === PCHAIN_IDS.fuji
     ? " On Fuji, ConvertSubnetToL1Tx rows carry no l1_validation_ids or l1_balances (they were indexed before those columns were decoded), so the first validators of a new L1 cannot be counted here: count registrations from RegisterL1ValidatorTx, carry the conversions beside them, and say in the note that the first validators of new L1s are not included."
     : ""
-}
+}${subnetRules}
 - Amounts (weight, stake_amount, balance, l1_balance, amount, supply) are nAVAX: divide by 1e9 for AVAX. An L1 validator's weight (p_l1_validator_snapshots.weight, l1_weight) is a unitless number the L1 sets: never divide it by 1e9, and never call it AVAX or stake.${isFuji(id) ? "" : " A sum of nAVAX is a whole number, and a whole number times it wraps past the UInt64 limit once the stake passes 184M AVAX, with no error: make the sum a decimal before any multiply, 100 * (sum(weight) / 1e9)."}
 - The snapshot tables (p_validator_snapshots, p_delegator_snapshots, p_l1_validator_snapshots) are photographs of the sets, taken about every 11 minutes. A snapshot's rows are written over several minutes under one snapshot_time, so the newest can be half written: for the current set, read snapshot_time = ${latest("<table>")}. That expression already passes over a snapshot still being written, so the note never mentions it. For a history, group by snapshot_time and keep the snapshots at least 15 minutes old. In snapshots, node_id and ids are already text (NodeID-…).
-- The Primary Network's subnet_id is 32 zero bytes: subnet_id = ${primary}. Other subnet_id values are L1s.
+- The Primary Network's subnet_id is 32 zero bytes: subnet_id = ${primary}. ${sets ? "p_validator_snapshots and p_delegator_snapshots hold the Primary Network alone, and p_l1_validator_snapshots the L1s' seats: a legacy subnet's validators are in no snapshot table." : "Other subnet_id values are L1s."}
 - p_l1_validator_snapshots: an L1's seats. balance is what is left to pay the continuous fee (net of what has burned); a seat with balance 0 is inactive. A question about balances reads the active seats only (balance > 0), returns the L1 (subnet_id, which the server names) and the days the balance lasts (days_left) at the fee a seat pays per day, as in the worked example.
 - Fees paid: the Convert, Register and IncreaseL1ValidatorBalance deposits minus the balances left overstate the continuous fees L1 validators have paid, because a removed or disabled seat's balance is refunded to its owner and the tables do not mark refunds. ${supply ? "For the fees paid, read p_avax_supply.l1_validator_fees_avax, as in the worked example." : "Give that figure only as an upper bound, and say so in the note."}
 - p_exec_state_history: the P-Chain supply after each block (nAVAX), the AVAX the P-Chain counts as issued, gross of what the C-Chain and X-Chain burned. Call it the P-Chain supply, never the AVAX supply or the total supply.${supply ? " The total supply net of every chain's burns is p_avax_supply.total_supply_avax, and on past days p_avax_supply_daily.total_supply_avax: a share of the supply divides by that, never by the P-Chain supply." : ""}
@@ -703,7 +719,7 @@ drill: SELECT block_time AS t, block_height, ${CB58("tx_id")} AS tx_id, tx_type,
 
 L1s by active validators now, with the balance left for fees (the server names the L1):
 SELECT ${CB58("subnet_id")} AS subnet_id, count() AS validators, sum(balance) / 1e9 AS balance_avax FROM p_l1_validator_snapshots WHERE chain_id = ${id} AND balance > 0 AND snapshot_time = ${latest("p_l1_validator_snapshots")} GROUP BY subnet_id ORDER BY validators DESC
-
+${subnetExamples}
 The 20 active L1 seats with the least balance left, and the days it lasts at the fee a seat pays per day (the server names the L1):
 WITH ${latest("p_l1_validator_snapshots")} AS s_now, (SELECT max(snapshot_time) FROM p_l1_validator_snapshots WHERE chain_id = ${id} AND snapshot_time <= s_now - INTERVAL 1 DAY AND snapshot_time >= s_now - INTERVAL 2 DAY) AS s_day, fee AS (SELECT median(d.balance - n.balance) * 86400 / dateDiff('second', s_day, s_now) AS per_day FROM p_l1_validator_snapshots AS n INNER JOIN p_l1_validator_snapshots AS d ON d.validation_id = n.validation_id WHERE n.chain_id = ${id} AND d.chain_id = ${id} AND n.snapshot_time = s_now AND d.snapshot_time = s_day AND n.balance > 0 AND d.balance > n.balance) SELECT ${CB58("subnet_id")} AS subnet_id, node_id, balance / 1e9 AS balance_avax, round(balance / (SELECT per_day FROM fee), 1) AS days_left, count() OVER () AS of_total FROM p_l1_validator_snapshots WHERE chain_id = ${id} AND snapshot_time = s_now AND balance > 0 ORDER BY balance ASC LIMIT 20
 

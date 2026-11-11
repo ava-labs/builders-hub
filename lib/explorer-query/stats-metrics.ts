@@ -6,7 +6,7 @@
    its figures are the ones its reader saw there. */
 
 import type { ColumnMeta } from "./clickhouse";
-import type { Format, VisualSpec } from "./visual";
+import type { Format, VisualSpec } from "./visual-spec";
 // types only: the account's routes check tiles against this catalog (board-wire.ts), and the store is the page's
 import type { MetricSeries, MetricTile } from "./board";
 

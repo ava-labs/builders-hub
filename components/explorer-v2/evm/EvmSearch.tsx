@@ -60,8 +60,8 @@ export function EvmSearchBox({
   const slug = base.split("/").pop();
   const catalog = (l1ChainsData as L1Chain[]).find((c) => c.slug === slug && !!c.rpcUrl);
   const askable = !!catalog;
-  // an L1 is offered questions that work on any EVM chain
-  const prompts = examplesFor(catalog?.chainId ?? "").flatMap((g) => g.items.map((i) => i.q));
+  // an L1 is offered questions that work on any EVM chain; a group's first two lead it
+  const prompts = examplesFor(catalog?.chainId ?? "").flatMap((g) => g.items.slice(0, 2).map((i) => i.q));
   // an empty, focused box offers the way back to asking: this device's
   // recent questions, a few to start from, and the Query page itself
   const [recent, setRecent] = useState<string[]>([]);

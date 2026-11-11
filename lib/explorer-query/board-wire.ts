@@ -3,7 +3,7 @@
    other device runs the SQL again. Shared by the API routes and the sync. */
 
 import { z } from "zod";
-import { visualSpecSchema } from "./visual";
+import { visualSpecSchema } from "./visual-spec";
 import { MAX_METRIC_SERIES, METRIC_CHAIN, METRIC_KEYS } from "./stats-metrics";
 import { MAX_TILES } from "./board-limits";
 
@@ -27,7 +27,9 @@ const tileSchema = z.discriminatedUnion("kind", [
     sql: z.string().max(20_000),
     visual: visualSpecSchema,
     panelIndex: z.number().int().min(0).nullable(),
-    view: z.enum(["hbar", "bar", "line", "area", "scatter", "table"]).optional(),
+    /** the answer's figures alone, with no panel */
+    figures: z.boolean().optional(),
+    view: z.enum(["hbar", "bar", "line", "area", "scatter", "dumbbell", "diverging", "histogram", "heatmap", "treemap", "table"]).optional(),
     /** the follow-ups after the question, so Open asks the same thread */
     then: z.array(z.string().max(2000)).max(8).optional(),
     /** how a mark opens into the records behind it */

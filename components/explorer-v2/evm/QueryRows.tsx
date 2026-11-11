@@ -10,7 +10,7 @@ import { HEAD, ROW, idInk, fnInk } from "@/components/explorer-v2/ui";
 import { formatNumber, truncate } from "@/components/explorer-v2/format";
 import type { Names } from "@/lib/explorer-query/types";
 import type { ColumnMeta } from "@/lib/explorer-query/clickhouse";
-import type { Format, Panel, VisualSpec } from "@/lib/explorer-query/visual";
+import type { Format, Panel, VisualSpec } from "@/lib/explorer-query/visual-spec";
 import { order } from "@/lib/explorer-query/selection";
 import { PERCENT_COLUMN } from "@/lib/explorer-query/stat-label";
 import { isAddress, isHash, isSelector, isTime } from "@/lib/explorer-query/values";
@@ -347,7 +347,9 @@ export function PanelRows({
   limit?: number;
 }) {
   const named = panel.series.map((s) => columns.find((c) => c.name === s.column)).filter((c): c is ColumnMeta => !!c);
-  const cols = named.length ? named : columns;
+  // the panel's x names each row: it leads the table's columns unless the designer placed it among them
+  const lead = columns.find((c) => c.name === panel.x && !named.includes(c));
+  const cols = named.length ? (lead ? [lead, ...named] : named) : columns;
   const when = cols.find((c) => isTime(rows[0]?.[c.name]))?.name;
   const span = when ? spanOf(rows.map((r) => r[when])) : "other";
   if (!rows.length) return <p className="py-6 font-mono text-[12px] text-zinc-400 dark:text-zinc-500">No rows in this selection.</p>;
@@ -544,6 +546,9 @@ export const isTxList = (cols: ColumnMeta[]) => ["tx_hash", "from_address", "to_
 
 /** the rows exactly as the query returned them, with decoded names beside
     the raw values they name */
+/** a download's file name, from the title of what it holds */
+export const fileName = (title: string, ext: string) => `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "query"}.${ext}`;
+
 export function downloadCsv(a: { title: string; columns: ColumnMeta[]; rows: Row[]; names: Names }) {
   const cols = a.columns.map((k) => k.name);
   const named = cols.filter((k) => a.names[k] && Object.keys(a.names[k]).length);
@@ -557,7 +562,7 @@ export function downloadCsv(a: { title: string; columns: ColumnMeta[]; rows: Row
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `${a.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "query"}.csv`;
+  link.download = fileName(a.title, "csv");
   link.click();
   URL.revokeObjectURL(url);
 }

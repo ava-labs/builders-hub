@@ -1,7 +1,7 @@
 import { formatNumber, truncate, zoneName, zoneStamp } from "@/components/explorer-v2/format";
 import { msOf } from "@/lib/explorer-query/edges";
 import type { Names } from "@/lib/explorer-query/types";
-import type { Format } from "@/lib/explorer-query/visual";
+import type { Format } from "@/lib/explorer-query/visual-spec";
 import { DAY, MONTHS_SHORT, isAddress, isHash, isTime } from "@/lib/explorer-query/values";
 
 /* A query answer's figures and times as the page writes them: in the
@@ -15,7 +15,8 @@ export function spanOf(xs: unknown[]): Span {
   const ts = xs.filter(isTime).map((s) => new Date(s.replace(" ", "T") + (s.length <= 10 ? "T00:00:00Z" : "Z")).getTime());
   if (ts.length < 2) return "other";
   const w = Math.max(...ts) - Math.min(...ts);
-  return w <= 3 * 3600e3 ? "minutes" : w <= 3 * 86400e3 ? "hours" : "days";
+  // up to about a day a time of day names each tick; a date on every one of them says nothing
+  return w <= 26 * 3600e3 ? "minutes" : w <= 3 * 86400e3 ? "hours" : "days";
 }
 
 /** the time zone a chart's x reads in. The rows write UTC. Days, weeks and months all start at a UTC midnight, and a
@@ -32,8 +33,9 @@ const inZone = (v: string, zone: string) => (zone === "UTC" ? v.replace("T", " "
 export function fmtX(v: unknown, span: Span, zone = "UTC"): string {
   if (isTime(v)) {
     const s = inZone(v, zone);
-    if (span === "days") return s.slice(5, 10);
-    if (span === "hours") return s.slice(5, 16);
+    const day = `${MONTHS_SHORT[Number(s.slice(5, 7)) - 1]} ${Number(s.slice(8, 10))}`;
+    if (span === "days") return day;
+    if (span === "hours") return `${day} ${s.slice(11, 16)}`;
     return s.slice(11, 16);
   }
   return typeof v === "number" ? formatNumber(v) : String(v ?? "");

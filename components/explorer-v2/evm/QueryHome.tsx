@@ -1,8 +1,9 @@
 "use client";
 
-/* The Query page before a question: what this device asked lately, the
-   boards it built, and questions worth asking. Three quiet sections with
-   room between them; everything is one click from an answer. */
+/* The Query page before a question: questions worth asking, each with
+   what a scan read of its answer (a figure, its rows drawn small), the
+   findings that stand out now, then what this device asked lately and
+   the boards it built. Everything is one click from an answer. */
 
 import { useRef, useState } from "react";
 import Link from "next/link";
@@ -17,6 +18,9 @@ import { NETWORK_SLUG } from "@/lib/explorer-query/target";
 import { BoardCard, NewBoardCard } from "./QueryBoard";
 import { Label, useNow } from "./query-board-bits";
 import { Glyph } from "./query/Glyph";
+import type { ScanCard } from "@/lib/explorer-query/scan-card";
+import { CardFigure, CardSpark, WorthALook } from "./query/live-card";
+import { useScan } from "./query/use-scan";
 
 /** recent questions shown before "Show all" */
 const FOLD = 4;
@@ -26,27 +30,21 @@ function Recent({ chain, onAsk }: { chain: string; onAsk: (q: string) => void })
   const items = useRecentQuestions(chain);
   const [all, setAll] = useState(false);
   const shown = all ? items : items.slice(0, FOLD);
+  if (items.length === 0) return null;
   return (
-    <section className="flex flex-col gap-3">
+    <section className="flex min-w-0 flex-1 flex-col gap-3">
       <div className="flex items-center justify-between">
         <Label className="flex items-center gap-1.5">
           <History className="h-3 w-3" /> Recent
         </Label>
-        {items.length > 0 && (
-          <button
-            type="button"
-            onClick={() => forgetQuestions(chain)}
-            className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
-          >
-            Clear
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => forgetQuestions(chain)}
+          className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
+        >
+          Clear
+        </button>
       </div>
-      {items.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-zinc-200 px-4 py-6 text-[13.5px] leading-relaxed text-zinc-400 dark:border-zinc-800 dark:text-zinc-500">
-          Questions you ask come back here, newest first.
-        </p>
-      ) : (
         <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
           <ul className="divide-y divide-zinc-100 dark:divide-zinc-900">
             <AnimatePresence initial={false}>
@@ -90,7 +88,6 @@ function Recent({ chain, onAsk }: { chain: string; onAsk: (q: string) => void })
             </button>
           )}
         </div>
-      )}
     </section>
   );
 }
@@ -98,20 +95,16 @@ function Recent({ chain, onAsk }: { chain: string; onAsk: (q: string) => void })
 function Boards({ chain, network }: { chain: string; network: string }) {
   const { boards } = useBoards(boardScope(network, chain));
   const now = useNow();
+  if (boards.length === 0) return null;
   return (
-    <section className="flex flex-col gap-3">
+    <section className="flex min-w-0 flex-[1.4] flex-col gap-3">
       <div className="flex items-center justify-between">
         <Label className="flex items-center gap-1.5">
           <LayoutGrid className="h-3 w-3" /> Boards
         </Label>
-        {boards.length > 0 && (
-          <Link
-            href={boardsHref(network, chain)}
-            className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
-          >
-            All boards
-          </Link>
-        )}
+        <Link href={boardsHref(network, chain)} className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100">
+          All boards
+        </Link>
       </div>
       {/* a row to swipe on a phone, a grid where there is room */}
       <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-2 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:p-0 xl:grid-cols-3 [&::-webkit-scrollbar]:hidden">
@@ -120,18 +113,6 @@ function Boards({ chain, network }: { chain: string; network: string }) {
             <BoardCard board={b} href={boardHref(network, chain, b.id)} now={now} />
           </div>
         ))}
-        {boards.length === 0 ? (
-          <div className="flex min-h-[11.5rem] w-[70%] shrink-0 snap-start flex-col justify-between gap-4 rounded-2xl border border-zinc-200 bg-zinc-50/60 p-4 sm:col-span-1 sm:w-auto xl:col-span-2 dark:border-zinc-800 dark:bg-zinc-900/30">
-            <div className="grid grid-cols-6 gap-1.5 opacity-70" aria-hidden>
-              <span className="col-span-4 h-8 rounded-md border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950" />
-              <span className="col-span-2 h-8 rounded-md border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950" />
-              <span className="col-span-6 h-5 rounded-md border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950" />
-            </div>
-            <p className="text-[13.5px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-              Pin any chart to a board to build a page of your own. Tiles keep their SQL and refresh when you open it.
-            </p>
-          </div>
-        ) : null}
         <NewBoardCard network={network} chainSlug={chain} className="w-[45%] shrink-0 snap-start sm:w-auto" />
       </div>
     </section>
@@ -139,7 +120,7 @@ function Boards({ chain, network }: { chain: string; network: string }) {
 }
 
 /* one suggestion: the topic, its answer drawn small, the question */
-function SuggestionCard({ q, hint, group, hue, glyph, onAsk }: { q: string; hint: string; group: string; hue: string; glyph: GlyphKind; onAsk: (q: string) => void }) {
+function SuggestionCard({ q, hint, group, hue, glyph, card, onAsk }: { q: string; hint: string; group: string; hue: string; glyph: GlyphKind; /** what a scan kept of the answer */ card?: ScanCard; onAsk: (q: string) => void }) {
   return (
     <button
       type="button"
@@ -153,8 +134,17 @@ function SuggestionCard({ q, hint, group, hue, glyph, onAsk }: { q: string; hint
         <span className="font-mono text-[9.5px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{group}</span>
       </span>
       <span className="relative mt-5 flex h-[4.5rem] items-end text-zinc-900 dark:text-zinc-100">
-        <Glyph kind={glyph} hue={hue} seed={q} className="h-full w-full origin-bottom transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-y-[1.08]" />
+        {card && card.shape !== "none" ? (
+          <CardSpark card={card} hue={hue} className="h-full w-full" />
+        ) : (
+          <Glyph kind={glyph} hue={hue} seed={q} className="h-full w-full origin-bottom transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-y-[1.08]" />
+        )}
       </span>
+      {card && (
+        <span className="relative mt-4">
+          <CardFigure card={card} />
+        </span>
+      )}
       {/* titles hang from one line across a row of cards */}
       <span className="flex-1" />
       <span className="relative mt-6 flex items-end justify-between gap-4">
@@ -170,24 +160,46 @@ function SuggestionCard({ q, hint, group, hue, glyph, onAsk }: { q: string; hint
   );
 }
 
-function Suggestions({ examples, onAsk }: { examples: typeof EXAMPLES; onAsk: (q: string) => void }) {
+const TOPIC = "rounded-full px-3 py-1 font-mono text-[10.5px] uppercase tracking-[0.12em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0061E2]/50";
+
+function Suggestions({ examples, chainId, onAsk }: { examples: typeof EXAMPLES; chainId: string | number; onAsk: (q: string) => void }) {
+  const scan = useScan(chainId);
+  const now = useNow();
+  // one topic at a time, or every topic
+  const [topic, setTopic] = useState<string | null>(null);
   const cards = examples.flatMap((g) => g.items.map((it) => ({ ...it, group: g.group, hue: g.hue })));
+  const shown = topic ? cards.filter((c) => c.group === topic) : cards;
   return (
-    <section className="flex flex-col gap-4">
-      <Label>Try asking</Label>
-      {/* a row to swipe on a phone, a grid where there is room */}
-      <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-4 pt-1 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:p-0 xl:grid-cols-4 [&::-webkit-scrollbar]:hidden">
-        {cards.map((c, i) => (
-          <SuggestionCard key={c.q} q={c.q} hint={c.hint} group={c.group} hue={c.hue} glyph={c.glyph ?? GLYPHS[i % GLYPHS.length]} onAsk={onAsk} />
-        ))}
+    <section className="flex flex-col gap-6">
+      {scan && <WorthALook scan={scan} questions={cards.map((c) => c.q)} now={now} onAsk={onAsk} />}
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <Label>Try asking</Label>
+          {examples.length > 1 && (
+            <div role="group" aria-label="Topic" className="flex flex-wrap gap-1">
+              {[null, ...examples.map((g) => g.group)].map((g) => (
+                <button key={g ?? "all"} type="button" aria-pressed={topic === g} onClick={() => setTopic(g)} className={cn(TOPIC, topic === g ? "bg-zinc-900 text-zinc-50 dark:bg-zinc-100 dark:text-zinc-900" : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100")}>
+                  {g ?? "All"}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        {/* a row to swipe on a phone, a grid where there is room */}
+        <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-4 pt-1 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:p-0 xl:grid-cols-4 [&::-webkit-scrollbar]:hidden">
+          {shown.map((c) => (
+            <SuggestionCard key={c.q} q={c.q} hint={c.hint} group={c.group} hue={c.hue} glyph={c.glyph ?? GLYPHS[cards.indexOf(c) % GLYPHS.length]} card={scan?.cards[c.q]} onAsk={onAsk} />
+          ))}
+        </div>
       </div>
     </section>
   );
 }
 
-/** the Query page's landing: recent questions, boards, suggestions */
+/** the Query page's landing: suggestions with what a scan read of them, then recent questions and boards */
 export function QueryHome({
   chain,
+  chainId,
   network,
   examples,
   onAsk,
@@ -195,6 +207,8 @@ export function QueryHome({
 }: {
   /** the chain slug: "c-chain", "p-chain", "all" */
   chain: string;
+  /** what the query route takes for this page: a chain id, or the network's slug */
+  chainId: string | number;
   network: string;
   examples: typeof EXAMPLES;
   onAsk: (q: string) => void;
@@ -207,14 +221,15 @@ export function QueryHome({
   const fade = useRef(!hydrated).current;
   const landing = (
     <div className={cn("flex flex-col gap-10 pt-4", className)}>
+      <Suggestions examples={examples} chainId={chainId} onAsk={onAsk} />
+      {/* this device's own: each shows only once it holds something */}
       {hydrated && (
-        <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-8">
+        <div className="flex flex-col gap-10 lg:flex-row lg:gap-8">
           <Recent chain={chain} onAsk={onAsk} />
           {/* a board's SQL is bound to one chain, so All chains has none */}
           {chain !== NETWORK_SLUG && <Boards chain={chain} network={network} />}
         </div>
       )}
-      <Suggestions examples={examples} onAsk={onAsk} />
     </div>
   );
   return fade ? <Rise delay={0.14}>{landing}</Rise> : landing;

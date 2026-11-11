@@ -5,7 +5,9 @@ import { edgesOf, windowOf } from '@/lib/explorer-query/edges';
 import type { QueryEvent } from '@/lib/explorer-query/answer';
 import { MAX_ROWS } from '@/lib/explorer-query/guard';
 import type { Totals } from '@/lib/explorer-query/types';
-import { codeWords, figures, plainLabel, plainWords, readerSpec, rowWords, sampleOf, shownLength, sqlNames, withFullHex, withoutCode, type VisualSpec } from '@/lib/explorer-query/visual';
+import { figures, sampleOf } from '@/lib/explorer-query/figures';
+import { codeWords, plainLabel, plainWords, readerSpec, rowWords, shownLength, sqlNames, withFullHex, withoutCode } from '@/lib/explorer-query/reader-words';
+import type { VisualSpec } from '@/lib/explorer-query/visual-spec';
 import { averageLabel } from '@/lib/explorer-query/stat-label';
 
 const totals = (rows: number): Totals => ({ rows, newest: false, sum: {}, count: {}, min: {}, max: {}, distinct: {} });

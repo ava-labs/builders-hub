@@ -407,7 +407,9 @@ test("the x axis reads in the viewer's time zone, and a day stays the UTC day it
   const days = await settled(browser, 'Transactions per day');
   // each tick names one of the eight UTC days, and the last tick (always drawn) the last day: in a zone west of UTC a
   // shifted axis ends a day early. A phone draws every other day
-  const want = sent['Transactions per day'].map((r) => String(r.d).slice(5, 10));
+  // a day's tick is its month and its day of the month: Nov 3
+  const month = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const want = sent['Transactions per day'].map((r) => `${month[Number(String(r.d).slice(5, 7)) - 1]} ${Number(String(r.d).slice(8, 10))}`);
   expect(days.ticks.filter((t) => !want.includes(t))).toEqual([]);
   expect(days.ticks.at(-1)).toBe(want.at(-1));
   expect(unexpected).toEqual([]);

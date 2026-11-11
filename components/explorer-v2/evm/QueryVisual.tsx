@@ -1,26 +1,25 @@
 "use client";
 
-import { createContext, useCallback, useContext, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import Link from "next/link";
-import { Area, Bar, CartesianGrid, Cell, ComposedChart, Customized, Line, Pie, PieChart, ReferenceArea, ReferenceLine, ResponsiveContainer, Scatter, Tooltip as RechartsTooltip, XAxis, YAxis } from "recharts";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowDown, ArrowUp, ChartArea, ChartBar, ChartColumn, ChartLine, ChartPie, ChartScatter, ChevronRight, Sigma, Table2, X as XIcon, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { TipPlate } from "@/components/explorer-v2/staking/bits";
-import { formatNumber, truncate } from "@/components/explorer-v2/format";
 import type { Names, Totals } from "@/lib/explorer-query/types";
-import { EMPTY, applySelection, clearColumn, matches, order, toggleValue, withPick, type Selection } from "@/lib/explorer-query/selection";
-import type { Format, Panel, Series, Stat, VisualSpec } from "@/lib/explorer-query/visual";
+import { EMPTY, applySelection, type Selection } from "@/lib/explorer-query/selection";
+import type { Panel, Stat, VisualSpec } from "@/lib/explorer-query/visual-spec";
 import { isTime } from "@/lib/explorer-query/values";
 import { wholeFigure } from "@/lib/explorer-query/stat-label";
-import { CHART_MS, FADE_CLASS, MOTION, useNarrow, useReduced, useTween } from "./query/motion";
-import { rowCount, SAID_PARTIAL } from "./query-client";
+import { MOTION, useReduced, useTween } from "./query/motion";
 import { extremeOf, rowWords, statDoor } from "./stat-door";
 import { FlowChart } from "./query/FlowChart";
-import { BandLabel, FitTick, MarkLabels } from "./query/fit-text";
-import { chipRange, chipValue, fmt, fmtX, nameFor, spanOf, tipX, xText, zoneOf } from "./query-format";
+import { PanelBlock } from "./query/panel-block";
+import { SelectionChips } from "./query/selection-chips";
+import { CARD, fails, pct, type Row } from "./query/sheet";
+import { priorWords, statChange, statValue, type Prior } from "./query/stat-figures";
+import { fmt, nameFor } from "./query-format";
 
 export { fmt, fmtX, nameFor, spanOf, tipX, zoneOf } from "./query-format";
+export { CARD } from "./query/sheet";
 
 /* Draws what the designer specified: a strip of headline figures, one
    to four panels, and the callouts. The chart is the index of the rows:
@@ -29,145 +28,8 @@ export { fmt, fmtX, nameFor, spanOf, tipX, zoneOf } from "./query-format";
    Opening the records behind a mark is a small door (the chevron, a
    double click, Enter), so a plain click can mean select. */
 
-/* ink for what is counted, red only for what failed, then the categorical
-   inks for further series */
-const TONES = ["currentColor", "#0061E2", "#0d9488", "#d97706", "#7c3aed"];
-const FAIL = /revert|fail|error|drop/i;
-const toneOf = (s: { column: string; label: string }, i: number) => (FAIL.test(`${s.column} ${s.label}`) ? "#E6212F" : TONES[i % TONES.length]);
-const MONO = { fontSize: 10, fontFamily: "var(--font-geist-mono)" };
-/** the selection's one accent: brush, picked range */
-const ACCENT = "#0061E2";
-/** how far an unselected mark recedes */
-const DIM = 0.22;
-/** a scatter's dot in the pointer's focus, and the dots around it */
-const DOT_INK = { "--qv-on": 1, "--qv-off": 0.35 } as CSSProperties;
-
-type Row = Record<string, unknown>;
-/* ------------------------------------------------------------------ */
-/* selection helpers                                                   */
-
-const inSelection = (sel: Selection, r: Row) => sel.every((p) => matches(r, p));
-const pickValue = (v: unknown): string | number => (typeof v === "number" ? v : String(v ?? ""));
-
-/* ------------------------------------------------------------------ */
-/* the selection, as chips                                             */
-
-export function SelectionChips({
-  selection,
-  onSelection,
-  rows,
-  names,
-  formatValue,
-  onZoom,
-  className,
-}: {
-  selection: Selection;
-  onSelection: (s: Selection) => void;
-  /** the answer's rows: a time reads in the zone its column's axis reads in (zoneOf) */
-  rows: Row[];
-  names: Names;
-  /** a label for one picked value; return undefined to use the default */
-  formatValue?: (column: string, value: string | number) => string | undefined;
-  /** when given, a range pick offers to ask again inside that range */
-  onZoom?: (lo: unknown, hi: unknown) => void;
-  className?: string;
-}) {
-  const reduced = useReduced();
-  const zone = (column: string) => zoneOf(rows.map((r) => r[column]));
-  const chips = selection.flatMap((p) =>
-    p.kind === "range"
-      ? [{ key: `${p.column}:range`, text: chipRange(names, p.column, p.from, p.to, zone(p.column)), column: p.column, drop: () => onSelection(clearColumn(selection, p.column)) }]
-      : p.values.map((v) => ({
-          key: `${p.column}:${v}`,
-          text: formatValue?.(p.column, v) ?? chipValue(names, p.column, v, zone(p.column)),
-          column: p.column,
-          drop: () => onSelection(withPick(selection, { kind: "value", column: p.column, values: p.values.filter((q) => q !== v) })),
-        })),
-  );
-  const range = selection.find((p) => p.kind === "range");
-  const t = reduced ? { duration: 0 } : MOTION;
-  return (
-    <AnimatePresence initial={false}>
-      {chips.length > 0 && (
-        <motion.div key="chips" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={t} className={cn("overflow-hidden", className)}>
-          <div role="list" aria-label="Selection" className="flex flex-wrap items-center gap-1.5 pb-1">
-            <AnimatePresence initial={false} mode="popLayout">
-              {chips.map((c) => (
-                <motion.span
-                  key={c.key}
-                  role="listitem"
-                  layout={!reduced}
-                  initial={{ opacity: 0, scale: 0.92 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.92 }}
-                  transition={t}
-                  title={c.column.replace(/_/g, " ")}
-                  className="inline-flex items-center gap-1 rounded-full bg-zinc-100 py-0.5 pr-0.5 pl-2.5 font-mono text-[11px] tabular-nums text-zinc-800 dark:bg-zinc-800/80 dark:text-zinc-100"
-                >
-                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: ACCENT }} />
-                  {c.text}
-                  <button
-                    type="button"
-                    onClick={c.drop}
-                    aria-label={`Remove ${c.text}`}
-                    className="flex h-5 w-5 items-center justify-center rounded-full text-zinc-400 transition-colors hover:bg-zinc-200 hover:text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0061E2]/50 dark:text-zinc-500 dark:hover:bg-zinc-700 dark:hover:text-zinc-50"
-                  >
-                    <XIcon className="h-3 w-3" strokeWidth={2} />
-                  </button>
-                </motion.span>
-              ))}
-            </AnimatePresence>
-            {range && onZoom && (
-              <button
-                type="button"
-                onClick={() => onZoom(range.from, range.to)}
-                className="rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500 transition-colors hover:text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0061E2]/50 dark:text-zinc-400 dark:hover:text-zinc-50"
-              >
-                Zoom in
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => onSelection([])}
-              className="rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0061E2]/50 dark:text-zinc-500 dark:hover:text-zinc-50"
-            >
-              Clear
-            </button>
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
-}
-
 /* ------------------------------------------------------------------ */
 /* stats                                                               */
-
-function statValue(rows: Row[], s: Stat): number | string | null {
-  const vals = rows.map((r) => r[s.column]);
-  const nums = vals.filter((v): v is number => typeof v === "number");
-  switch (s.agg) {
-    case "sum":
-      return nums.reduce((a, b) => a + b, 0);
-    case "avg":
-      return nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : null;
-    case "max":
-      return nums.length ? Math.max(...nums) : null;
-    case "min":
-      return nums.length ? Math.min(...nums) : null;
-    case "first":
-      return (vals[0] as number | string | undefined) ?? null;
-    case "last":
-      return (vals[vals.length - 1] as number | string | undefined) ?? null;
-    case "count":
-      return vals.length;
-    case "distinct":
-      return new Set(vals.map(String)).size;
-  }
-}
-
-/** a percent's digits, before its %: whole from 10, one place below */
-const pct = (p: number) => (p >= 10 || p === 0 ? p.toFixed(0) : p.toFixed(1));
 
 /** how the selection's figure stands against the whole answer's */
 function compare(s: Stat, v: number | string | null, all: number | string | null, text: (v: number | string) => string): string | undefined {
@@ -213,7 +75,7 @@ function Spark({ s, rows, all }: { s: Stat; rows: Row[]; all: Row[] }) {
 /** the figures that add up, average or count the whole answer, which a window line names */
 const OVER_WINDOW = new Set(["sum", "avg", "count", "distinct"]);
 
-function StatFigure({ s, rows, all, names, sym, active, totals, base, span, x, onHoverKey, onOpen }: { s: Stat; rows: Row[]; all: Row[]; names: Names; sym: string; active: boolean; totals?: Totals | null; base?: string; span?: string | null; x?: string; onHoverKey?: (k: unknown) => void; onOpen?: (row: Row) => void }) {
+function StatFigure({ s, rows, all, names, sym, active, totals, base, span, prior, x, onHoverKey, onOpen }: { s: Stat; rows: Row[]; all: Row[]; names: Names; sym: string; active: boolean; totals?: Totals | null; base?: string; span?: string | null; prior?: Prior | null; x?: string; onHoverKey?: (k: unknown) => void; onOpen?: (row: Row) => void }) {
   const reduced = useReduced();
   // with no selection the figure counts the whole answer, past any LIMIT; a selection counts its own rows
   const total = wholeFigure(totals, s);
@@ -223,7 +85,9 @@ function StatFigure({ s, rows, all, names, sym, active, totals, base, span, x, o
   const text = (x: number | string) => (typeof x === "number" ? fmt(x, s.format, sym) : (nameFor(names, s.column, x) ?? String(x)));
   const shown = num !== null ? fmt(t !== null && Number.isInteger(num) ? Math.round(t) : (t ?? num), s.format, sym) : v === null ? "…" : text(v);
   // a figure over the whole answer says the window it covers, so a total beside a title of periods reads as the window's
-  const sub = active ? compare(s, v, total ?? statValue(all, s), text) : (s.sub ?? (span && OVER_WINDOW.has(s.agg) ? span : undefined));
+  // against the same figure over the period before, once that period is read; a selection has no period before
+  const change = active ? null : statChange(s, v, prior);
+  const sub = active ? compare(s, v, total ?? statValue(all, s), text) : (s.sub ?? (!change && span && OVER_WINDOW.has(s.agg) ? span : undefined));
   // a row's extreme opens that row's transaction; a figure the totals gave names no row the page holds
   const door = statDoor(s, rows, v, base);
   // else a max or a min names its row (the peak's bucket, the leader), lights the row's mark on the chart, and opens
@@ -276,23 +140,31 @@ function StatFigure({ s, rows, all, names, sym, active, totals, base, span, x, o
           </motion.span>
         )}
       </AnimatePresence>
+      {change && (
+        <motion.span
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={reduced ? { duration: 0 } : MOTION}
+          title={`${fmt(change.before, s.format, sym)} in the ${priorWords(span)}`}
+          className="flex min-w-0 flex-wrap items-baseline gap-x-1.5 font-mono text-[11px] tabular-nums"
+        >
+          <span className={cn("shrink-0 font-bold", change.rose !== fails(s) ? "text-emerald-700 dark:text-emerald-400" : "text-[#C81B28] dark:text-red-400")}>{change.text}</span>
+          <span className="text-zinc-400 dark:text-zinc-500">vs {priorWords(span)}</span>
+        </motion.span>
+      )}
       <Spark s={s} rows={rows} all={all} />
     </div>
   );
 }
 
-/** one tile of an answer: a figure or a chart stands on its own card */
-export const CARD =
-  "rounded-2xl bg-white ring-1 ring-zinc-200/80 shadow-[0_1px_2px_rgba(24,24,27,0.04),0_8px_24px_-18px_rgba(24,24,27,0.18)] transition-shadow duration-300 hover:shadow-[0_1px_2px_rgba(24,24,27,0.05),0_14px_32px_-18px_rgba(24,24,27,0.28)] dark:bg-zinc-950 dark:ring-zinc-800/80 dark:shadow-none";
-
-function StatsStrip({ stats, rows, all, names, sym, active, cards, stack = false, totals, base, span, x, onHoverKey, onOpen }: { stats: Stat[]; rows: Row[]; all: Row[]; names: Names; sym: string; active: boolean; cards: boolean; stack?: boolean; totals?: Totals | null; base?: string; span?: string | null; x?: string; onHoverKey?: (k: unknown) => void; onOpen?: (row: Row) => void }) {
+function StatsStrip({ stats, rows, all, names, sym, active, cards, stack = false, totals, base, span, prior, x, onHoverKey, onOpen }: { stats: Stat[]; rows: Row[]; all: Row[]; names: Names; sym: string; active: boolean; cards: boolean; stack?: boolean; totals?: Totals | null; base?: string; span?: string | null; prior?: Prior | null; x?: string; onHoverKey?: (k: unknown) => void; onOpen?: (row: Row) => void }) {
   if (stats.length === 0) return null;
   if (cards) {
     return (
       <div className={cn("grid grid-cols-2 gap-3", stats.length === 1 ? "grid-cols-1" : stack ? "" : stats.length === 3 ? "sm:grid-cols-3" : stats.length === 4 ? "sm:grid-cols-4" : "")}>
         {stats.map((s) => (
           <div key={`${s.label}:${s.column}:${s.agg}`} className={cn(CARD, "min-w-0")}>
-            <StatFigure s={s} rows={rows} all={all} names={names} sym={sym} active={active} totals={totals} base={base} span={span} x={x} onHoverKey={onHoverKey} onOpen={onOpen} />
+            <StatFigure s={s} rows={rows} all={all} names={names} sym={sym} active={active} totals={totals} base={base} span={span} prior={prior} x={x} onHoverKey={onHoverKey} onOpen={onOpen} />
           </div>
         ))}
       </div>
@@ -308,647 +180,8 @@ function StatsStrip({ stats, rows, all, names, sym, active, cards, stack = false
       )}
     >
       {stats.map((s) => (
-        <StatFigure key={`${s.label}:${s.column}:${s.agg}`} s={s} rows={rows} all={all} names={names} sym={sym} active={active} totals={totals} base={base} span={span} x={x} onHoverKey={onHoverKey} onOpen={onOpen} />
+        <StatFigure key={`${s.label}:${s.column}:${s.agg}`} s={s} rows={rows} all={all} names={names} sym={sym} active={active} totals={totals} base={base} span={span} prior={prior} x={x} onHoverKey={onHoverKey} onOpen={onOpen} />
       ))}
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* one panel                                                           */
-
-type PanelProps = {
-  panel: Panel;
-  /** a control the page adds to the panel header, e.g. pin to a board */
-  action?: ReactNode;
-  /** draw the panel's own title; off where a tile already names it */
-  titled?: boolean;
-  /** every row of the answer; marks outside the selection dim, they do not leave */
-  rows: Row[];
-  names: Names;
-  sym: string;
-  canDrill: boolean;
-  onPick: (row: Row) => void;
-  /** the x value of the group whose records are open */
-  selected?: unknown;
-  /** the x value under the pointer anywhere on the page (a table row, another panel) */
-  hoverKey?: unknown;
-  onHoverKey?: (k: unknown) => void;
-  /** the page's whole selection, for writing back */
-  selection: Selection;
-  /** the picks on columns these rows have: what dims and filters */
-  live: Selection;
-  onSelection?: (s: Selection) => void;
-  compact: boolean;
-  /** a log y axis: one outlier no longer flattens every other mark */
-  log?: boolean;
-};
-
-/** the small door to a mark's records, drawn beside the hovered bar */
-function OpenMark({ cx, cy, label, onOpen }: { cx: number; cy: number; label: string; onOpen: () => void }) {
-  return (
-    <g
-      transform={`translate(${cx},${cy})`}
-      role="button"
-      aria-label={`Open ${label}`}
-      className="cursor-pointer"
-      onMouseDown={(e) => e.stopPropagation()}
-      onClick={(e) => {
-        e.stopPropagation();
-        onOpen();
-      }}
-    >
-      <circle r={9} className="fill-white stroke-zinc-300 dark:fill-zinc-900 dark:stroke-zinc-600" strokeWidth={1} />
-      <path d="M-1.5 -3.5 L2 0 L-1.5 3.5" fill="none" className="stroke-zinc-700 dark:stroke-zinc-200" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
-    </g>
-  );
-}
-
-/* A hover never draws the marks again. Recharts lays a chart out again
-   whenever a child's props change, and a mark's ink or a door in a bar's
-   label changed on every move: a chart of 721 bars cost 138 ms a move.
-   So the marks hold only what the data and the selection say, and what
-   the pointer lights is drawn by one small layer in the chart's own svg:
-   the marks' focus as a style rule, the door, the line that follows a
-   hover elsewhere on the page, and the band a drag draws. */
-
-/** the mark under the pointer or the keyboard, the x value hovered anywhere on the page, and a drag's two ends */
-const HoverContext = createContext<{ active: number | null; key: unknown; drag: [number, number] | null }>({ active: null, key: undefined, drag: null });
-
-type HoverSpec = {
-  /** the chart's scope for its style rule */
-  uid: string;
-  data: Row[];
-  x: string;
-  /** a scatter's dots follow only their own pointer */
-  scatter: boolean;
-  /** the dataKey of the bars that carry the door, if any */
-  door: string | null;
-  horizontal: boolean;
-  /** a continuous chart marks a hover elsewhere on the page with a line */
-  cross: boolean;
-  label: (v: unknown) => string;
-  open: (j: number) => void;
-};
-
-/** what recharts hands a Customized child: the laid-out marks and the plot's box */
-type Laid = {
-  formattedGraphicalItems?: { item?: { props?: { dataKey?: unknown } }; props?: { data?: { x?: number; y?: number; width?: number; height?: number }[]; points?: { x?: number | null }[] } }[];
-  offset?: { top?: number; height?: number };
-};
-
-function HoverLayer({ spec, formattedGraphicalItems: items, offset }: { spec: HoverSpec } & Laid) {
-  const { active, key, drag } = useContext(HoverContext);
-  const { data, x, uid } = spec;
-  const named = active === null && key !== undefined ? data.findIndex((r) => r[x] === key) : -1;
-  // null: nothing in focus; -1: a value these marks do not hold, so every mark recedes
-  const focus = spec.scatter ? active : active !== null ? active : key !== undefined ? named : null;
-  const rule = focus === null ? "" : `[data-qv="${uid}"] .qv-m{fill-opacity:var(--qv-off)}${focus >= 0 ? `[data-qv="${uid}"] .qv-i-${focus}{fill-opacity:var(--qv-on)}` : ""}`;
-  let door: ReactNode = null;
-  if (spec.door && active !== null) {
-    const b = items?.find((it) => it.item?.props?.dataKey === spec.door)?.props?.data?.[active];
-    if (b && b.x !== undefined && b.y !== undefined) {
-      const bw = b.width ?? 0;
-      const bh = b.height ?? 0;
-      const cx = spec.horizontal ? b.x + Math.max(0, bw) + 13 : b.x + bw / 2;
-      const cy = spec.horizontal ? b.y + bh / 2 : Math.min(b.y, b.y + bh) - 11;
-      const j = active;
-      door = <OpenMark cx={cx} cy={cy} label={spec.label(data[j]?.[x])} onOpen={() => spec.open(j)} />;
-    }
-  }
-  // a mark's left edge, middle and right edge on the x axis, from the first series as laid out
-  const first = items?.[0]?.props;
-  const edges = (j: number): [number, number, number] | null => {
-    const bar = first?.data?.[j];
-    if (bar?.x !== undefined) return [bar.x, bar.x + (bar.width ?? 0) / 2, bar.x + (bar.width ?? 0)];
-    const px = first?.points?.[j]?.x;
-    return typeof px === "number" ? [px, px, px] : null;
-  };
-  const top = offset?.top;
-  const tall = offset?.height;
-  let line: ReactNode = null;
-  if (spec.cross && named >= 0 && top !== undefined && tall !== undefined) {
-    const e = edges(named);
-    if (e) line = <line x1={e[1]} x2={e[1]} y1={top} y2={top + tall} stroke="currentColor" strokeOpacity={0.5} strokeDasharray="2 3" />;
-  }
-  let band: ReactNode = null;
-  if (drag && top !== undefined && tall !== undefined) {
-    const a = edges(Math.min(drag[0], drag[1]));
-    const b = edges(Math.max(drag[0], drag[1]));
-    if (a && b) band = <rect x={a[0]} y={top} width={Math.max(1, b[2] - a[0])} height={tall} fill={ACCENT} fillOpacity={0.12} stroke={ACCENT} strokeOpacity={0.5} />;
-  }
-  return (
-    <g>
-      {rule && <style>{rule}</style>}
-      {band}
-      {line}
-      {door}
-    </g>
-  );
-}
-
-/** a transformed series reads in its own unit: shares are percent, an index is a plain number */
-const unitOf = (sr: Series): Format => (sr.transform === "share" ? "percent" : sr.transform === "indexed" ? "number" : sr.format);
-/** a series' figure as the reader reads it: an outflow drawn below zero is still the amount that went out */
-const shownOf = (sr: Series, v: unknown) => (sr.below && typeof v === "number" ? -v : v);
-
-function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hoverKey, onHoverKey, selection, live, onSelection, compact, log = false }: PanelProps) {
-  const reduced = useReduced();
-  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
-  const [kb, setKb] = useState<number | null>(null);
-  // after the keyboard's cursor leaves, the tooltip it opened is held shut until the pointer comes back
-  const [shut, setShut] = useState(false);
-  // rows the red lines' names stack in over the plot, so none covers another
-  const [markRows, setMarkRows] = useState(1);
-  const [drag, setDrag] = useState<[number, number] | null>(null);
-  const dragging = drag !== null;
-  const dragRef = useRef<{ a: number; b: number } | null>(null);
-  const dragged = useRef(false);
-  // the mark last handed to the page, so a move within one mark sets nothing
-  const shown = useRef<number | null>(null);
-  const uid = useId();
-  const x = panel.x!;
-  // rankings: order and cut before drawing; src keeps the page's own row
-  // objects, so a pick hands back a row the page can find
-  const { base, src } = useMemo(() => {
-    let d = [...rows];
-    if (panel.sortBy) {
-      const k = panel.sortBy;
-      d.sort((a, b) => ((b[k] as number) ?? 0) - ((a[k] as number) ?? 0));
-      if (panel.sortDir === "asc") d.reverse();
-    }
-    if (panel.topN) d = d.slice(0, panel.topN);
-    // every series draws from its own key, so one column can appear raw
-    // and transformed (bars and their rolling average) in the same panel
-    const out = d.map((r) => ({ ...r }) as Row);
-    // a scatter's x axis is numeric; a time column is plotted as epoch ms
-    if (panel.kind === "scatter" && panel.x && out.some((r) => isTime(r[panel.x!]))) {
-      for (const r of out) r.__x = isTime(r[panel.x]) ? Date.parse(String(r[panel.x]).replace(" ", "T") + (String(r[panel.x]).length <= 10 ? "T00:00:00Z" : "Z")) : null;
-    }
-    const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
-    panel.series.forEach((sr, i) => {
-      const k = `__s${i}`;
-      const vals = out.map((r) => num(r[sr.column]));
-      if (sr.transform === "cumulative") {
-        let acc = 0;
-        vals.forEach((v, j) => (out[j][k] = v === null ? null : (acc += v)));
-      } else if (sr.transform === "indexed") {
-        const first = vals.find((v) => v !== null && v !== 0) ?? null;
-        vals.forEach((v, j) => (out[j][k] = v === null || first === null ? null : (v / first) * 100));
-      } else if (sr.transform === "rolling") {
-        vals.forEach((_, j) => {
-          const win = vals.slice(Math.max(0, j - 4), j + 1).filter((v): v is number => v !== null);
-          out[j][k] = win.length ? win.reduce((a, b) => a + b, 0) / win.length : null;
-        });
-      } else if (sr.transform === "share") {
-        const parts = panel.series.map((p, pi) => ({ p, pi })).filter(({ p }) => p.transform === "share");
-        out.forEach((r, j) => {
-          const total = parts.reduce((a, { p }) => a + (num(r[p.column]) ?? 0), 0);
-          out[j][k] = total > 0 ? ((num(r[sr.column]) ?? 0) / total) * 100 : null;
-        });
-      } else vals.forEach((v, j) => (out[j][k] = v));
-      // an outflow stands below the axis: it draws the column's value negated
-      if (sr.below) for (const r of out) if (typeof r[k] === "number") r[k] = -(r[k] as number);
-    });
-    // the net line: each row's left-axis series summed, what came in less what went out
-    if (panel.net) {
-      const legs = panel.series.flatMap((s, i) => (s.axis === "right" ? [] : [`__s${i}`]));
-      for (const r of out) r.__net = legs.some((k) => typeof r[k] === "number") ? legs.reduce((a, k) => a + (typeof r[k] === "number" ? (r[k] as number) : 0), 0) : null;
-    }
-    return { base: out, src: d };
-  }, [rows, panel.sortBy, panel.sortDir, panel.topN, panel.series, panel.kind, panel.x, panel.net]);
-  const [span, zone] = useMemo(() => [spanOf(base.map((r) => r[x])), zoneOf(base.map((r) => r[x]))] as const, [base, x]);
-  const horizontal = panel.kind === "hbar";
-  const narrow = useNarrow();
-  const scatter = panel.kind === "scatter";
-  const timeX = scatter && base.some((r) => typeof r.__x === "number");
-  // time or numeric buckets are a continuum: drag to select a range.
-  // anything else is a set of categories: click to pick values
-  const continuous = !horizontal && !scatter && (span !== "other" || (base.length > 0 && base.every((r) => typeof r[x] === "number")));
-  const category = !continuous && !scatter;
-  const selecting = !!onSelection && !scatter;
-  const markOf = useCallback((sr: Series): "bar" | "line" | "area" => (horizontal ? "bar" : sr.mark !== "auto" ? sr.mark : panel.kind === "line" ? "line" : panel.kind === "area" ? "area" : "bar"), [horizontal, panel.kind]);
-  // ins and outs: a series drawn below zero stacks the panel by sign, each period's ins above the axis and its outs below
-  const signed = panel.series.some((s) => s.below);
-  const stack = panel.stacked || signed;
-  const netTone = TONES[panel.series.length % TONES.length];
-  const left = panel.series.filter((s) => s.axis !== "right");
-  const right = panel.series.filter((s) => s.axis === "right");
-  const fmtL = left[0] ? unitOf(left[0]) : "number";
-  const fmtR = right[0] ? unitOf(right[0]) : "number";
-
-  const hasSel = live.length > 0;
-  const lit = useMemo(() => base.map((r) => !hasSel || inSelection(live, r)), [base, live, hasSel]);
-  const litCount = lit.filter(Boolean).length;
-  // lines and areas cannot dim point by point: the whole trace recedes and
-  // the selected stretch is drawn again over it in full ink
-  const traces = !scatter && panel.series.some((s) => markOf(s) !== "bar");
-  const data = useMemo(() => {
-    if (!hasSel || !traces) return base;
-    return base.map((r, j) => {
-      const o: Row = { ...r };
-      panel.series.forEach((_, i) => (o[`__in${i}`] = lit[j] ? r[`__s${i}`] : null));
-      return o;
-    });
-  }, [base, lit, hasSel, traces, panel.series]);
-
-  // markers and bands name x values; match them to the drawn category. An x that repeats has no one place (recharts lays
-  // such an axis out by row), so nothing is marked on it
-  const once = useMemo(() => new Set(data.map((r) => String(r[x]))).size === data.length, [data, x]);
-  const xOf = useCallback((v: string | number) => (once ? (data.find((r) => String(r[x]) === String(v))?.[x] as string | number | undefined) : undefined), [data, x, once]);
-  const label = useCallback((v: unknown) => xText(names, x, v, span, zone), [names, x, span, zone]);
-  const rowH = compact ? 22 : 26;
-  const height = horizontal ? Math.max(compact ? 120 : 160, data.length * rowH + 36) : compact ? 180 : 260;
-  const active = hoverIdx ?? kb;
-  const drillMark = category && selecting && canDrill;
-  // the chevron sits on the bar that ends the stack above the axis, or the first bar
-  const barIdx = panel.series.map((s, i) => ({ s, i })).filter(({ s }) => markOf(s) === "bar");
-  const doorSeries = drillMark && barIdx.length ? (stack ? (barIdx.filter(({ s }) => !s.below).pop() ?? barIdx[barIdx.length - 1]).i : barIdx[0].i) : -1;
-  const rangePick = live.find((p) => p.kind === "range" && p.column === x);
-
-  const describe = (j: number) => {
-    const r = data[j];
-    if (!r) return "";
-    const figures = [...panel.series.map((s, i) => `${fmt(shownOf(s, r[`__s${i}`]), unitOf(s), sym)} ${s.label}`), ...(panel.net && typeof r.__net === "number" ? [`${fmt(r.__net, fmtL, sym)} net`] : [])].join(", ");
-    return `${nameFor(names, x, r[x]) ?? label(r[x])}: ${figures}${hasSel && lit[j] ? ", selected" : ""}`;
-  };
-
-  /* gestures */
-  const toggle = (j: number, additive: boolean) => {
-    const r = data[j];
-    if (!r || !onSelection) return;
-    onSelection(toggleValue(selection, x, String(r[x] ?? ""), additive));
-  };
-  const setRange = (a: number, b: number) => {
-    if (!onSelection) return;
-    const vals = data.slice(Math.min(a, b), Math.max(a, b) + 1).map((r) => pickValue(r[x]));
-    const sorted = [...vals].sort((p, q) => {
-      const op = order(p);
-      const oq = order(q);
-      return op < oq ? -1 : op > oq ? 1 : 0;
-    });
-    if (sorted.length) onSelection(withPick(selection, { kind: "range", column: x, from: sorted[0], to: sorted[sorted.length - 1] }));
-  };
-  /** Space on a continuous chart: anchor a one-point range, then stretch it */
-  const spaceRange = (j: number) => {
-    if (!onSelection) return;
-    const v = pickValue(data[j]?.[x]);
-    const cur = selection.find((p) => p.column === x && p.kind === "range");
-    if (!cur || cur.kind !== "range") return onSelection(withPick(selection, { kind: "range", column: x, from: v, to: v }));
-    if (cur.from === v && cur.to === v) return onSelection(clearColumn(selection, x));
-    const all = [cur.from, cur.to, v];
-    const lo = all.reduce((m, q) => (order(q) < order(m) ? q : m));
-    const hi = all.reduce((m, q) => (order(q) > order(m) ? q : m));
-    onSelection(withPick(selection, { kind: "range", column: x, from: lo, to: hi }));
-  };
-  const drill = (j: number | null | undefined) => {
-    if (typeof j === "number" && src[j] && canDrill) onPick(src[j]);
-  };
-  const walk = (j: number | null) => {
-    shown.current = null;
-    if (j === null && kb !== null) setShut(true);
-    setKb(j);
-    onHoverKey?.(j === null ? undefined : data[j]?.[x]);
-  };
-  const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
-    const n = data.length;
-    if (!n) return;
-    const next = e.key === "ArrowRight" || e.key === "ArrowDown";
-    const prev = e.key === "ArrowLeft" || e.key === "ArrowUp";
-    if (next || prev) {
-      e.preventDefault();
-      setHoverIdx(null);
-      const cur = kb ?? (next ? -1 : n);
-      walk(Math.max(0, Math.min(n - 1, cur + (next ? 1 : -1))));
-    } else if (e.key === "Home" || e.key === "End") {
-      e.preventDefault();
-      walk(e.key === "Home" ? 0 : n - 1);
-    } else if (e.key === "Enter") {
-      if (kb !== null && canDrill) {
-        e.preventDefault();
-        drill(kb);
-      }
-    } else if (e.key === " ") {
-      if (kb !== null && selecting) {
-        e.preventDefault();
-        if (category) toggle(kb, true);
-        else spaceRange(kb);
-      }
-    } else if (e.key === "Escape") {
-      if (onSelection && selection.length) {
-        e.preventDefault();
-        onSelection([]);
-      }
-      walk(null);
-    }
-  };
-
-  const idxOf = (s: unknown) => {
-    const i = (s as { activeTooltipIndex?: number } | null)?.activeTooltipIndex;
-    return typeof i === "number" && i >= 0 && i < data.length ? i : null;
-  };
-
-  /** a bar's ink: the selection first, then the drill. The pointer's focus is the hover
-      layer's style rule over the two inks each bar carries: in focus, and beside it */
-  const inkOf = useCallback(
-    (j: number, dashed: boolean) => {
-      let o = lit[j] ? 0.9 : DIM;
-      if (selected !== undefined && data[j]?.[x] !== selected) o = Math.min(o, 0.3);
-      // a bucket the edge marks partial or still filling is drawn faint, so a short edge bar never reads as a drop
-      const k = (dashed ? 0.35 : 1) * (panel.markers.some((m) => String(m.x) === String(data[j]?.[x]) && SAID_PARTIAL.test(m.label)) ? 0.45 : 1);
-      const off = !hasSel && selected === undefined ? 0.4 : o;
-      return { base: k * o, style: { "--qv-on": k * (lit[j] ? 1 : 0.5), "--qv-off": k * off } as CSSProperties };
-    },
-    [data, lit, selected, x, hasSel, panel.markers],
-  );
-  const drillRef = useRef(drill);
-  drillRef.current = drill;
-  const open = useCallback((j: number) => drillRef.current(j), []);
-  const hover = useMemo(() => ({ active, key: hoverKey, drag }), [active, hoverKey, drag]);
-
-  /* the chart's gestures, read through a ref: the chart below is built
-     once per data and selection, and each handler still sees this render */
-  const ev = useRef({ down: (_s: unknown) => {}, up: () => {}, click: (_s: unknown, _e?: ReactMouseEvent) => {}, move: (_s: unknown) => {}, leave: () => {} });
-  ev.current = {
-    down: (s) => {
-      dragged.current = false;
-      const i = idxOf(s);
-      if (selecting && continuous && i !== null) dragRef.current = { a: i, b: i };
-    },
-    up: () => {
-      const d = dragRef.current;
-      dragRef.current = null;
-      setDrag(null);
-      if (d && d.a !== d.b) {
-        dragged.current = true;
-        setRange(d.a, d.b);
-      }
-    },
-    click: (s, e) => {
-      if (dragged.current) {
-        dragged.current = false;
-        return;
-      }
-      const i = idxOf(s);
-      if (i === null) return;
-      if (selecting && category) toggle(i, !!(e && (e.shiftKey || e.metaKey || e.ctrlKey)));
-      else drill(i);
-    },
-    move: (s) => {
-      const idx = idxOf(s);
-      // off the plot (the chevron's margin) the last mark stays in hand
-      if (idx === null) return;
-      if (kb !== null) setKb(null);
-      if (shut) setShut(false);
-      if (idx !== shown.current) {
-        shown.current = idx;
-        setHoverIdx(idx);
-        onHoverKey?.(data[idx]?.[x]);
-      }
-      const d = dragRef.current;
-      if (d && idx !== d.b) {
-        d.b = idx;
-        setDrag([d.a, idx]);
-      }
-    },
-    leave: () => {
-      const d = dragRef.current;
-      dragRef.current = null;
-      setDrag(null);
-      if (d && d.a !== d.b) setRange(d.a, d.b);
-      shown.current = null;
-      setHoverIdx(null);
-      onHoverKey?.(undefined);
-    },
-  };
-
-  const anim = useMemo(() => ({ isAnimationActive: !reduced, animationDuration: CHART_MS, animationEasing: "ease-out" as const }), [reduced]);
-  const traceInk = hasSel ? 0.3 : 1;
-  const mode = scatter ? "scatter" : horizontal ? "ranking" : continuous ? "series" : "columns";
-  const hint = selecting ? (category ? "Arrow keys move, Space selects, Enter opens, Escape clears." : "Arrow keys move, Space marks a range, Enter opens, Escape clears.") : "Arrow keys move, Enter opens.";
-  const spec = useMemo<HoverSpec>(
-    () => ({ uid, data, x, scatter, door: doorSeries >= 0 ? `__s${doorSeries}` : null, horizontal, cross: continuous, label, open }),
-    [uid, data, x, scatter, doorSeries, horizontal, continuous, label, open],
-  );
-  const chart = useMemo(
-    () => (
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart
-              data={data}
-              layout={horizontal ? "vertical" : "horizontal"}
-              margin={{ top: (horizontal ? panel.referenceLines.length > 0 : drillMark || (!scatter && panel.markers.length > 0)) ? 5 + 13 * markRows : 4, right: drillMark && horizontal ? 28 : right.length ? 8 : scatter ? 36 : 12, left: 0, bottom: 0 }}
-              barCategoryGap={horizontal ? "26%" : "18%"}
-              stackOffset={signed ? "sign" : undefined}
-              onMouseDown={(s) => ev.current.down(s)}
-              onMouseUp={() => ev.current.up()}
-              onClick={(s, e: ReactMouseEvent | undefined) => ev.current.click(s, e)}
-              onMouseMove={(s) => ev.current.move(s)}
-              onMouseLeave={() => ev.current.leave()}
-            >
-              <CartesianGrid vertical={horizontal} horizontal={!horizontal} stroke="rgba(161,161,170,0.14)" />
-              {/* recharts reads axes as direct children: no fragments here */}
-              {horizontal && <XAxis type="number" tickFormatter={(v) => fmt(v, fmtL, sym, true)} tick={MONO} tickLine={false} axisLine={false} />}
-              {horizontal && <YAxis type="category" dataKey={x} tickFormatter={label} tick={MONO} tickLine={false} axisLine={false} width={narrow ? 92 : compact ? 120 : 172} interval={0} />}
-              {!horizontal && !scatter && <XAxis dataKey={x} tickFormatter={label} tick={<FitTick />} tickLine={false} axisLine={false} minTickGap={28} interval="preserveEnd" />}
-              {scatter && (
-                <XAxis
-                  type="number"
-                  dataKey={timeX ? "__x" : x}
-                  domain={timeX ? ["dataMin", "dataMax"] : ["auto", "auto"]}
-                  tickFormatter={(v: number) => (timeX ? fmtX(new Date(v).toISOString().slice(0, 19).replace("T", " "), span, zone) : fmt(v, "compact", sym, true))}
-                  tick={MONO}
-                  tickLine={false}
-                  axisLine={false}
-                  minTickGap={28}
-                  name={x}
-                />
-              )}
-              {!horizontal && <YAxis yAxisId="left" scale={log ? "log" : "auto"} domain={log ? ["auto", "auto"] : undefined} tickFormatter={(v) => fmt(v, fmtL, sym, true)} tick={MONO} tickLine={false} axisLine={false} width={56} />}
-              {!horizontal && right.length > 0 && <YAxis yAxisId="right" orientation="right" tickFormatter={(v) => fmt(v, fmtR, sym, true)} tick={MONO} tickLine={false} axisLine={false} width={56} />}
-              <RechartsTooltip
-                // the keyboard drives the tooltip through defaultIndex; off the
-                // chart with no keyboard cursor it is forced shut
-                defaultIndex={!scatter && kb !== null ? kb : undefined}
-                active={dragging ? false : !scatter && kb !== null ? true : shut ? false : undefined}
-                isAnimationActive={false}
-                cursor={continuous && markOf(panel.series[0]) !== "bar" ? { stroke: "rgba(161,161,170,0.4)" } : { fill: "rgba(161,161,170,0.08)" }}
-                content={({ active: on, payload }) => {
-                  if (!on || !payload?.[0]) return null;
-                  const r = payload[0].payload as Row;
-                  const name = nameFor(names, x, r[x]);
-                  return (
-                    <TipPlate>
-                      <p className="font-mono text-[10px] text-zinc-500">
-                        {name ?? tipX(r[x], span, zone)}
-                        {name && <span className="ml-2 text-zinc-300 dark:text-zinc-600">{String(r[x]).length > 20 ? truncate(String(r[x]), 6) : String(r[x])}</span>}
-                      </p>
-                      {scatter && !timeX && (
-                        <p className="font-mono text-[11px] tabular-nums text-zinc-900 dark:text-zinc-100">
-                          {fmt(r[x], "number", sym)} <span className="text-zinc-400">{x.replace(/_/g, " ")}</span>
-                        </p>
-                      )}
-                      {panel.series.map((s, i) => (
-                        <p key={`${s.column}-${i}`} className="flex items-center gap-2 font-mono text-[11px] tabular-nums text-zinc-900 dark:text-zinc-100">
-                          <span className="h-1.5 w-1.5 rounded-full" style={{ background: toneOf(s, i) }} />
-                          {fmt(shownOf(s, r[`__s${i}`]), unitOf(s), sym)} <span className="text-zinc-400">{s.label}</span>
-                          {s.transform !== "none" && s.transform !== "share" && typeof r[s.column] === "number" && <span className="text-zinc-300 dark:text-zinc-600">raw {fmt(r[s.column], s.format, sym)}</span>}
-                        </p>
-                      ))}
-                      {panel.net && typeof r.__net === "number" && (
-                        <p className="flex items-center gap-2 font-mono text-[11px] tabular-nums text-zinc-900 dark:text-zinc-100">
-                          <span className="h-0.5 w-2" style={{ background: netTone }} />
-                          {fmt(r.__net, fmtL, sym)} <span className="text-zinc-400">net</span>
-                        </p>
-                      )}
-                      {(selecting || canDrill) && (
-                        <p className="mt-1 font-mono text-[10px] text-zinc-400 dark:text-zinc-500">
-                          {selecting && category ? `click selects${canDrill ? ", double-click opens" : ""}` : selecting && continuous ? `drag selects${canDrill ? ", click opens" : ""}` : "click opens"}
-                        </p>
-                      )}
-                    </TipPlate>
-                  );
-                }}
-              />
-              {!horizontal &&
-                !scatter &&
-                panel.bands.map((b) => {
-                  const x1 = xOf(b.from);
-                  const x2 = xOf(b.to);
-                  return x1 !== undefined && x2 !== undefined ? (
-                    <ReferenceArea key={b.label} yAxisId="left" x1={x1} x2={x2} ifOverflow="visible" fill="currentColor" fillOpacity={0.04} stroke="none" label={<BandLabel value={b.label} />} />
-                  ) : null;
-                })}
-              {continuous &&
-                rangePick?.kind === "range" &&
-                (() => {
-                  const x1 = xOf(rangePick.from);
-                  const x2 = xOf(rangePick.to);
-                  return x1 !== undefined && x2 !== undefined ? <ReferenceArea yAxisId="left" x1={x1} x2={x2} ifOverflow="visible" fill={ACCENT} fillOpacity={0.06} stroke="none" /> : null;
-                })()}
-              {!horizontal &&
-                !scatter &&
-                panel.markers.map((m) => {
-                  const mx = xOf(m.x);
-                  return mx !== undefined ? <ReferenceLine key={`${m.label}-${String(m.x)}`} yAxisId="left" x={mx} ifOverflow="visible" stroke="#E6212F" strokeOpacity={0.7} strokeDasharray="3 3" /> : null;
-                })}
-              {panel.referenceLines.map((l) =>
-                horizontal ? (
-                  <ReferenceLine key={l.label} x={l.y} stroke="#E6212F" strokeDasharray="4 3" />
-                ) : (
-                  <ReferenceLine key={l.label} yAxisId="left" y={l.y} stroke="#E6212F" strokeDasharray="4 3" label={{ value: l.label, position: "insideTopRight", fontSize: 10, fontFamily: "var(--font-geist-mono)", fill: "#E6212F" }} />
-                ),
-              )}
-              {panel.series.flatMap((s, i) => {
-                const tone = toneOf(s, i);
-                const key = `${s.column}-${i}`;
-                const dataKey = `__s${i}`;
-                // a ranking has one unnamed axis pair; an explicit undefined id
-                // would not match it, so the prop is left out entirely
-                const axis = horizontal ? {} : { yAxisId: s.axis === "right" ? "right" : "left" };
-                const dash = s.dashed ? "5 4" : undefined;
-                if (scatter)
-                  return [
-                    <Scatter key={`${key}-dot`} {...axis} dataKey={dataKey} fill={tone} {...anim} onClick={(_d: unknown, j: number) => open(j)}>
-                      {data.map((_, j) => (
-                        <Cell key={j} fillOpacity={0.7} className={`qv-m qv-i-${j}`} style={DOT_INK} />
-                      ))}
-                    </Scatter>,
-                  ];
-                const mark = markOf(s);
-                // keys carry the mark, so a view change mounts the new mark and
-                // recharts grows it; the same mark keeps its key and morphs
-                if (mark === "line")
-                  return [
-                    <Line key={`${key}-line`} {...axis} type="monotone" dataKey={dataKey} stroke={tone} strokeOpacity={traceInk} strokeWidth={s.transform === "rolling" ? 2 : 1.5} strokeDasharray={dash} dot={false} {...anim} connectNulls />,
-                    ...(hasSel
-                      ? [<Line key={`${key}-line-in`} {...axis} type="monotone" dataKey={`__in${i}`} stroke={tone} strokeWidth={s.transform === "rolling" ? 2.25 : 1.75} strokeDasharray={dash} dot={litCount === 1 ? { r: 2.5, fill: tone, strokeWidth: 0 } : false} activeDot={false} isAnimationActive={false} legendType="none" />]
-                      : []),
-                  ];
-                if (mark === "area")
-                  return [
-                    <Area key={`${key}-area`} {...axis} type="monotone" dataKey={dataKey} stroke={tone} strokeOpacity={traceInk} fill={tone} fillOpacity={(s.dashed ? 0.05 : 0.16) * (hasSel ? 0.4 : 1)} strokeWidth={1.5} strokeDasharray={dash} stackId={stack ? `s-${s.axis}` : undefined} {...anim} />,
-                    ...(hasSel
-                      ? [<Area key={`${key}-area-in`} {...axis} type="monotone" dataKey={`__in${i}`} stroke={tone} fill={tone} fillOpacity={s.dashed ? 0.06 : 0.2} strokeWidth={1.75} strokeDasharray={dash} stackId={stack ? `in-${s.axis}` : undefined} activeDot={false} isAnimationActive={false} legendType="none" />]
-                      : []),
-                  ];
-                return [
-                  <Bar
-                    key={`${key}-bar`}
-                    {...axis}
-                    dataKey={dataKey}
-                    fill={tone}
-                    stroke={s.dashed ? tone : undefined}
-                    strokeDasharray={dash}
-                    stackId={stack ? `s-${s.axis}` : undefined}
-                    {...anim}
-                    minPointSize={1}
-                    radius={stack ? 0 : horizontal ? [0, 2, 2, 0] : [2, 2, 0, 0]}
-                  >
-                    {data.map((_, j) => {
-                      const ink = inkOf(j, s.dashed);
-                      return <Cell key={j} fillOpacity={ink.base} className={`qv-m qv-i-${j}`} style={ink.style} />;
-                    })}
-                  </Bar>,
-                ];
-              })}
-              {signed && (horizontal ? <ReferenceLine x={0} stroke="currentColor" strokeOpacity={0.35} /> : <ReferenceLine yAxisId="left" y={0} stroke="currentColor" strokeOpacity={0.35} />)}
-              {panel.net && signed && !horizontal && <Line key="net" yAxisId="left" type="monotone" dataKey="__net" stroke={netTone} strokeWidth={1.75} dot={false} activeDot={false} {...anim} connectNulls />}
-              <Customized component={<MarkLabels marks={horizontal ? panel.referenceLines.map((l) => ({ x: l.y, label: l.label })) : scatter ? [] : panel.markers.flatMap((m) => (xOf(m.x) !== undefined ? [{ x: xOf(m.x)!, label: m.label }] : []))} onRows={setMarkRows} />} />
-              <Customized component={<HoverLayer spec={spec} />} />
-            </ComposedChart>
-          </ResponsiveContainer>
-    ),
-    [data, x, names, sym, span, zone, horizontal, scatter, timeX, continuous, category, selecting, canDrill, drillMark, narrow, compact, log, fmtL, fmtR, right.length, panel, rangePick, dragging, kb, shut, markRows, hasSel, litCount, traceInk, anim, label, xOf, markOf, inkOf, open, spec],
-  );
-
-  return (
-    <div className="flex flex-col gap-3">
-      {(panel.series.length > 1 || panel.series.some((sr) => sr.dashed || sr.transform !== "none")) && (
-        <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1">
-          {panel.series.map((s, i) => (
-            <span key={`${s.column}-${i}`} className="flex items-center gap-1.5 font-mono text-[10px] text-zinc-500 dark:text-zinc-400">
-              {s.dashed ? (
-                <span className="w-3 border-t-2 border-dashed" style={{ borderColor: toneOf(s, i) }} />
-              ) : markOf(s) === "line" ? (
-                <span className="w-3 border-t-2" style={{ borderColor: toneOf(s, i) }} />
-              ) : (
-                <span className="h-2 w-2 rounded-[2px]" style={{ background: toneOf(s, i) }} />
-              )}
-              {s.label}
-              {s.transform !== "none" && <span className="text-zinc-300 dark:text-zinc-600">{s.transform === "indexed" ? "index" : s.transform}</span>}
-            </span>
-          ))}
-          {panel.net && signed && (
-            <span className="flex items-center gap-1.5 font-mono text-[10px] text-zinc-500 dark:text-zinc-400">
-              <span className="w-3 border-t-2" style={{ borderColor: netTone }} />
-              Net
-            </span>
-          )}
-        </div>
-      )}
-      <div
-        style={{ height }}
-        tabIndex={0}
-        role="group"
-        data-qv={uid}
-        aria-roledescription="chart"
-        aria-label={`${panel.title || "Chart"}, ${mode} of ${data.length} ${data.length === 1 ? "mark" : "marks"}. ${hint}`}
-        onKeyDown={onKey}
-        onBlur={() => walk(null)}
-        onMouseEnter={() => shut && setShut(false)}
-        onDoubleClick={() => selecting && category && drill(active)}
-        className={cn(
-          "relative rounded-md text-zinc-900 outline-none select-none focus-visible:ring-2 focus-visible:ring-[#0061E2]/40 focus-visible:ring-offset-4 focus-visible:ring-offset-white dark:text-zinc-100 dark:focus-visible:ring-offset-zinc-950",
-          FADE_CLASS,
-          selecting && continuous ? "cursor-crosshair" : (canDrill || (selecting && category)) && "cursor-pointer",
-        )}
-      >
-        <span className="sr-only" aria-live="polite">
-          {kb !== null ? describe(kb) : ""}
-        </span>
-        <HoverContext.Provider value={hover}>{chart}</HoverContext.Provider>
-      </div>
-      {scatter && kb !== null && <p className="font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">{describe(kb)}</p>}
     </div>
   );
 }
@@ -994,15 +227,23 @@ export type QueryVisualProps = {
   stack?: boolean;
   /** when a LIMIT cut the rows: the whole answer's figures, which the figures across the top count */
   totals?: Totals | null;
+  /** the rows stop at a LIMIT, from a caller that holds no totals to show it: a board tile after its refresh */
+  cut?: boolean;
   /** the chain's explorer path: a figure that is one row's extreme opens that row's transaction */
   base?: string;
   /** the window the answer reads ("last 6 hours"), for the figures over all of it */
   span?: string | null;
+  /** the same query over the period before its window: each figure says how it moved */
+  prior?: Prior | null;
+  /** what the page sets between the figures and the panels: the findings */
+  lead?: ReactNode;
+  /** make the selection the subject of the next question; offered beside its chips */
+  onAskSelection?: () => void;
 };
 
 const isChart = (p: Panel | undefined): p is Panel => !!p && p.kind !== "table" && !!p.x && p.series.length > 0;
 
-export function QueryVisual({ visual, rows, names, sym, canDrill, onPick, onZoom, selected, hoverKey, onHoverKey, selection, onSelection, chips = true, compact = false, panelIndex, panelAction, titles = true, cards = true, renderTable, stack = false, totals, base, span }: QueryVisualProps) {
+export function QueryVisual({ visual, rows, names, sym, canDrill, onPick, onZoom, selected, hoverKey, onHoverKey, selection, onSelection, chips = true, compact = false, panelIndex, panelAction, titles = true, cards = true, renderTable, stack = false, totals, cut: cutRows = false, base, span, prior, lead, onAskSelection }: QueryVisualProps) {
   const whole = selection ?? EMPTY;
   // a pick on a column these rows lack (another answer's) cannot narrow them
   const live = useMemo(() => whole.filter((p) => rows.some((r) => p.column in r)), [whole, rows]);
@@ -1019,21 +260,26 @@ export function QueryVisual({ visual, rows, names, sym, canDrill, onPick, onZoom
     [visual, panelIndex, tables],
   );
   const single = panelIndex !== undefined || charts.length === 1;
+  // the rows stop at a LIMIT: the whole result's size, or the query's own count of it, is past them
+  const cut = cutRows || (!!totals && totals.rows > rows.length) || (typeof rows[0]?.of_total === "number" && rows[0].of_total > rows.length);
   // the column a chart names each row by: a figure that is one row finds that row's mark by it
   const rowX = charts.find(({ p }) => isChart(p))?.p.x;
+  // one picked mark is one row: its records open from the chips, as its mark's own door does
+  const one = live.length === 1 && live[0].kind === "value" && live[0].values.length === 1 && picked.length === 1 ? picked[0] : undefined;
   return (
     <div className={cn("flex flex-col", compact ? "gap-3" : cards ? "gap-3 sm:gap-4" : "gap-6")}>
-      {!compact && <StatsStrip stats={visual.stats} rows={picked} all={rows} names={names} sym={sym} active={live.length > 0} cards={cards} stack={stack} totals={totals} base={base} span={span} x={rowX} onHoverKey={onHoverKey} onOpen={canDrill ? onPick : undefined} />}
-      {onSelection && chips && <SelectionChips selection={whole} onSelection={onSelection} rows={rows} names={names} onZoom={onZoom} className={cards ? "px-1" : "-mb-2"} />}
+      {!compact && <StatsStrip stats={visual.stats} rows={picked} all={rows} names={names} sym={sym} active={live.length > 0} cards={cards} stack={stack} totals={totals} base={base} span={span} prior={prior} x={rowX} onHoverKey={onHoverKey} onOpen={canDrill ? onPick : undefined} />}
+      {lead}
+      {onSelection && chips && <SelectionChips selection={whole} onSelection={onSelection} rows={rows} names={names} onZoom={onZoom} onOpen={one && canDrill ? () => onPick(one) : undefined} onAsk={live.length ? onAskSelection : undefined} className={cards ? "px-1" : "-mb-2"} />}
       {charts.length > 0 && (
         <div className={cn("grid", cards ? "gap-3 sm:gap-4" : "gap-x-10 gap-y-8", !single && !stack && "lg:grid-cols-2")}>
           {charts.map(({ p, idx }, i) => (
-            <div key={`${i}-${p.title}-${p.x}`} className={cn("min-w-0", cards && cn(CARD, "px-4 pb-4 pt-3.5 sm:px-5 sm:pb-5 sm:pt-4"), !single && !stack && p.width === "full" && "lg:col-span-2")}>
+            <div key={`${i}-${p.title}-${p.x}-${p.kind}`} data-tile className={cn("min-w-0", cards && cn(CARD, "px-4 pb-4 pt-3.5 sm:px-5 sm:pb-5 sm:pt-4"), !single && !stack && p.width === "full" && "lg:col-span-2")}>
               {p.kind === "table" && renderTable ? (
                 <section aria-label={p.title || undefined} className="group/panel flex flex-col gap-3">
                   <div className="flex min-h-7 items-center justify-between gap-3">
                     <span className="min-w-0 truncate font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{titles && p.title}</span>
-                    {panelAction && <span className="hidden shrink-0 opacity-0 transition-opacity duration-200 group-hover/panel:opacity-100 group-focus-within/panel:opacity-100 sm:inline [@media(hover:none)]:opacity-100">{panelAction(idx)}</span>}
+                    {panelAction && <span data-no-shot className="hidden shrink-0 opacity-0 transition-opacity duration-200 group-hover/panel:opacity-100 group-focus-within/panel:opacity-100 sm:inline [@media(hover:none)]:opacity-100">{panelAction(idx)}</span>}
                   </div>
                   {renderTable(p, idx)}
                 </section>
@@ -1056,384 +302,13 @@ export function QueryVisual({ visual, rows, names, sym, canDrill, onPick, onZoom
                   compact={compact}
                   action={panelAction?.(idx)}
                   titled={titles}
+                  cut={cut}
                 />
               )}
             </div>
           ))}
         </div>
       )}
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* one panel, seen any way the data allows                              */
-
-type View = "line" | "area" | "bar" | "hbar" | "pie" | "scatter" | "table";
-
-const VIEW_META: Record<View, { label: string; icon: LucideIcon }> = {
-  line: { label: "Line", icon: ChartLine },
-  area: { label: "Area", icon: ChartArea },
-  bar: { label: "Columns", icon: ChartColumn },
-  hbar: { label: "Bars", icon: ChartBar },
-  pie: { label: "Pie", icon: ChartPie },
-  scatter: { label: "Scatter", icon: ChartScatter },
-  table: { label: "Table", icon: Table2 },
-};
-
-/** the views that fit a panel's shape: time reads as a line, an area,
-    columns or a table; groups as bars, a pie or a table; two measures as
-    a scatter or a table */
-function viewsFor(panel: Panel, rows: Row[]): View[] {
-  if (panel.kind === "scatter") return ["scatter", "table"];
-  const time = spanOf(rows.map((r) => r[panel.x!])) !== "other";
-  if (time) return ["line", "area", "bar", "table"];
-  const first = panel.series[0]?.column;
-  const parts = !!first && rows.length >= 2 && rows.every((r) => typeof r[first] !== "number" || (r[first] as number) >= 0) && panel.series[0].format !== "percent";
-  return parts ? ["hbar", "pie", "table"] : ["hbar", "table"];
-}
-
-const SEG = "relative flex h-7 min-w-7 items-center justify-center gap-1.5 rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0061E2]/50";
-
-function PanelBlock(props: PanelProps) {
-  const { panel, rows } = props;
-  const reduced = useReduced();
-  const id = useId();
-  const views = useMemo(() => viewsFor(panel, rows), [panel, rows]);
-  const start: View = views.includes(panel.kind as View) ? (panel.kind as View) : panel.kind === "bar" && views.includes("hbar") ? "hbar" : views[0];
-  const [view, setView] = useState<View>(start);
-  // a running total, for counts over time; shares and rates do not add up
-  const canRun = views.includes("line") && panel.series.some((s) => s.format !== "percent" && s.transform === "none");
-  const [running, setRunning] = useState(false);
-  // one mark far above the rest (a 20M transfer among 1M ones) squeezes
-  // the others onto the floor; such a panel opens on a log axis
-  const skewed = useMemo(() => {
-    const col = panel.series.find((x) => x.axis !== "right")?.column;
-    // a log axis has no zero: ins and outs keep a linear one
-    if (!col || panel.series.some((x) => x.transform !== "none" || x.format === "percent" || x.below)) return false;
-    const v = rows.map((r) => r[col]).filter((n): n is number => typeof n === "number");
-    if (v.length < 8 || v.some((n) => n <= 0)) return false;
-    const sorted = [...v].sort((a, b) => a - b);
-    return sorted[sorted.length - 1] / sorted[Math.floor(sorted.length / 2)] > 12;
-  }, [panel.series, rows]);
-  const [logOn, setLog] = useState<boolean | null>(null);
-  const canLog = skewed && (view === "scatter" || view === "line");
-  const log = canLog && !running && (logOn ?? true);
-  const drawn: Panel = useMemo(
-    () => ({
-      ...panel,
-      title: panel.title,
-      kind: view === "pie" || view === "table" ? panel.kind : view,
-      // a view the reader picked applies to every series; the designer's
-      // mixed marks (bars with a rate line) belong to its own view
-      series: panel.series.map((s) => ({
-        ...s,
-        mark: view === start ? s.mark : ("auto" as const),
-        transform: running && s.format !== "percent" && s.transform === "none" ? ("cumulative" as const) : s.transform,
-      })),
-    }),
-    [panel, view, running, start],
-  );
-  // line, area and columns share one chart that morphs; a pie or a table
-  // is a different object, so those crossfade
-  const family = view === "pie" ? "pie" : view === "table" ? "table" : "chart";
-  const t = reduced ? { duration: 0 } : MOTION;
-
-  return (
-    <section aria-label={panel.title || undefined} className="group/panel flex flex-col gap-3">
-      <div className="flex min-h-7 items-center justify-between gap-3">
-        <span className="min-w-0 truncate font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-          {props.titled !== false && panel.title}
-          {running && <span className="ml-2 font-normal text-zinc-400 dark:text-zinc-500">running total</span>}
-        </span>
-        <div className="flex shrink-0 items-center gap-1.5">
-        {props.action && <span className="hidden opacity-0 transition-opacity duration-200 group-hover/panel:opacity-100 group-focus-within/panel:opacity-100 sm:inline [@media(hover:none)]:opacity-100">{props.action}</span>}
-        <div
-          role="group"
-          aria-label={`View ${panel.title || "panel"} as`}
-          className="flex shrink-0 items-center gap-px rounded-full bg-zinc-100 p-0.5 ring-1 ring-inset ring-zinc-200/70 dark:bg-zinc-900 dark:ring-zinc-800"
-        >
-          {views.map((v) => {
-            const { label, icon: Icon } = VIEW_META[v];
-            const on = view === v;
-            return (
-              <button key={v} type="button" title={`See as ${label.toLowerCase()}`} aria-label={label} aria-pressed={on} onClick={() => setView(v)} className={cn(SEG, on ? "px-2.5 text-zinc-900 dark:text-zinc-50" : "px-1.5 text-zinc-500 hover:bg-white/60 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-100")}>
-                {on && <motion.span layoutId={`${id}-pill`} transition={t} className="absolute inset-0 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.12)] dark:bg-zinc-700" />}
-                <Icon className="relative h-3.5 w-3.5" strokeWidth={1.75} />
-                {on && <span className="relative font-mono text-[10.5px] font-medium">{label}</span>}
-              </button>
-            );
-          })}
-          {canLog && !running && (
-            <>
-              <span className="mx-1 h-3.5 w-px bg-zinc-200 dark:bg-zinc-800" />
-              <button
-                type="button"
-                title={log ? "Log scale: each step up is 10x. Click for a linear axis." : "Linear axis. Click for a log scale."}
-                aria-label="Log scale"
-                aria-pressed={log}
-                onClick={() => setLog(!log)}
-                className={cn(SEG, "px-2 font-mono text-[10.5px] font-medium", log ? "bg-white text-zinc-900 shadow-[0_1px_3px_rgba(0,0,0,0.12)] dark:bg-zinc-700 dark:text-zinc-50" : "text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100")}
-              >
-                log
-              </button>
-            </>
-          )}
-          {canRun && view !== "table" && (
-            <>
-              <span className="mx-1 h-3.5 w-px bg-zinc-200 dark:bg-zinc-800" />
-              <button
-                type="button"
-                title="Running total"
-                aria-label="Running total"
-                aria-pressed={running}
-                onClick={() => setRunning((r) => !r)}
-                className={cn(SEG, running ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-zinc-50" : "text-zinc-400 hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100")}
-              >
-                <Sigma className="h-3.5 w-3.5" strokeWidth={1.75} />
-              </button>
-            </>
-          )}
-        </div>
-        </div>
-      </div>
-      <AnimatePresence mode="wait" initial={false}>
-        <motion.div key={family} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, transition: reduced ? { duration: 0 } : { ...MOTION, duration: 0.12 } }} transition={t}>
-          {family === "pie" ? <PieView {...props} /> : family === "table" ? <PanelTable {...props} /> : <PanelChart {...props} panel={drawn} log={log} />}
-        </motion.div>
-      </AnimatePresence>
-    </section>
-  );
-}
-
-const PIE_TONES = ["currentColor", "#0061E2", "#0d9488", "#d97706", "#7c3aed", "#db2777", "#65a30d"];
-const PIE_MAX = 7;
-
-/** a slice's share in its legend: whole percents, one decimal under 10% and over 99%, and never 0% or 100%
-    for a slice that is neither none nor all */
-function sliceShare(share: number): string {
-  if (share > 0 && share < 0.0005) return "<0.1%";
-  if (share < 1 && share >= 0.9995) return ">99.9%";
-  return `${(share * 100).toFixed(share < 0.1 || share > 0.99 ? 1 : 0)}%`;
-}
-
-/** parts of a whole: the leaders as slices, the rest as one grey slice */
-function PieView({ panel, rows, names, sym, canDrill, onPick, hoverKey, onHoverKey, selection, live, onSelection, compact }: PanelProps) {
-  const reduced = useReduced();
-  const x = panel.x!;
-  const s = panel.series[0];
-  const [kb, setKb] = useState<number | null>(null);
-  const { slices, total } = useMemo(() => {
-    const sorted = [...rows].filter((r) => typeof r[s.column] === "number" && (r[s.column] as number) > 0).sort((a, b) => (b[s.column] as number) - (a[s.column] as number));
-    const total = sorted.reduce((a, r) => a + (r[s.column] as number), 0);
-    const head = sorted.slice(0, PIE_MAX).map((r, i) => ({ key: r[x], label: xText(names, x, r[x], "other"), value: r[s.column] as number, row: r as Row | null, tone: PIE_TONES[i] }));
-    const rest = sorted.slice(PIE_MAX).reduce((a, r) => a + (r[s.column] as number), 0);
-    if (rest > 0) head.push({ key: "__rest", label: `${sorted.length - PIE_MAX} more`, value: rest, row: null, tone: "#d4d4d8" });
-    return { slices: head, total };
-  }, [rows, s.column, x, names]);
-  const hasSel = live.length > 0;
-  const on = slices.map((sl) => !hasSel || (sl.row ? inSelection(live, sl.row) : false));
-  const selTotal = slices.reduce((a, sl, i) => a + (on[i] ? sl.value : 0), 0);
-  const focusKey = kb !== null ? slices[kb]?.key : hoverKey;
-  const focusIdx = focusKey === undefined ? -1 : slices.findIndex((sl) => sl.key === focusKey);
-  const focus = focusIdx >= 0 ? slices[focusIdx] : undefined;
-  const inkOf = (i: number) => {
-    let o = on[i] ? 1 : DIM;
-    if (focusIdx >= 0) o = focusIdx === i ? Math.max(o, 0.6) : hasSel ? o : 0.35;
-    return o;
-  };
-  const selecting = !!onSelection;
-  const toggle = (i: number, additive: boolean) => {
-    const sl = slices[i];
-    if (sl?.row && onSelection) onSelection(toggleValue(selection, x, String(sl.row[x] ?? ""), additive));
-  };
-  const drill = (i: number) => {
-    const sl = slices[i];
-    if (sl?.row && canDrill) onPick(sl.row);
-  };
-  const center = focus ? focus.value : hasSel ? selTotal : total;
-  const tweened = useTween(center);
-  const shown = tweened === null ? center : Number.isInteger(center) ? Math.round(tweened) : tweened;
-  const walk = (i: number | null) => {
-    setKb(i);
-    onHoverKey?.(i === null ? undefined : slices[i]?.key);
-  };
-  const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
-    const n = slices.length;
-    if (!n) return;
-    if (["ArrowRight", "ArrowDown", "ArrowLeft", "ArrowUp"].includes(e.key)) {
-      e.preventDefault();
-      const next = e.key === "ArrowRight" || e.key === "ArrowDown";
-      walk(Math.max(0, Math.min(n - 1, (kb ?? (next ? -1 : n)) + (next ? 1 : -1))));
-    } else if (e.key === "Enter" && kb !== null) {
-      e.preventDefault();
-      drill(kb);
-    } else if (e.key === " " && kb !== null && selecting) {
-      e.preventDefault();
-      toggle(kb, true);
-    } else if (e.key === "Escape") {
-      if (onSelection && selection.length) {
-        e.preventDefault();
-        onSelection([]);
-      }
-      walk(null);
-    }
-  };
-
-  return (
-    <div className={cn("grid items-center gap-6 sm:gap-10", compact ? "sm:grid-cols-[minmax(0,10rem)_minmax(0,1fr)]" : "sm:grid-cols-[minmax(0,15rem)_minmax(0,1fr)]")}>
-      <div
-        tabIndex={0}
-        role="group"
-        aria-roledescription="chart"
-        aria-label={`${panel.title || "Pie"}, ${slices.length} slices. Arrow keys move${selecting ? ", Space selects" : ""}${canDrill ? ", Enter opens" : ""}.`}
-        onKeyDown={onKey}
-        onBlur={() => walk(null)}
-        className={cn("relative mx-auto aspect-square w-full rounded-full text-zinc-900 outline-none focus-visible:ring-2 focus-visible:ring-[#0061E2]/40 focus-visible:ring-offset-4 focus-visible:ring-offset-white dark:text-zinc-100 dark:focus-visible:ring-offset-zinc-950", FADE_CLASS, compact ? "max-w-40" : "max-w-52 sm:max-w-60")}
-      >
-        <span className="sr-only" aria-live="polite">
-          {kb !== null && slices[kb] ? `${slices[kb].label}: ${fmt(slices[kb].value, s.format, sym)}${hasSel && on[kb] ? ", selected" : ""}` : ""}
-        </span>
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={slices}
-              dataKey="value"
-              nameKey="label"
-              innerRadius="64%"
-              outerRadius="96%"
-              paddingAngle={1}
-              stroke="none"
-              isAnimationActive={!reduced}
-              animationDuration={CHART_MS}
-              animationEasing="ease-out"
-              onMouseEnter={(d: { payload?: { key: unknown } }) => onHoverKey?.(d?.payload?.key)}
-              onMouseLeave={() => onHoverKey?.(undefined)}
-              onClick={(_d: unknown, i: number, e: ReactMouseEvent) => (selecting ? toggle(i, e.shiftKey || e.metaKey || e.ctrlKey) : drill(i))}
-            >
-              {slices.map((sl, i) => (
-                <Cell key={String(sl.key)} fill={sl.tone} fillOpacity={inkOf(i)} cursor={sl.row && (selecting || canDrill) ? "pointer" : "default"} />
-              ))}
-            </Pie>
-          </PieChart>
-        </ResponsiveContainer>
-        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-0.5 px-6 text-center">
-          <span className={cn("font-mono tabular-nums text-zinc-900 dark:text-zinc-50", compact ? "text-[14px]" : "text-[18px]")}>{fmt(shown, s.format, sym)}</span>
-          <span className="max-w-full truncate font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-            {focus ? focus.label : hasSel ? `${total ? pct((selTotal / total) * 100) : 0}% of ${s.label}` : s.label}
-          </span>
-        </div>
-      </div>
-      <ul className="flex flex-col gap-0.5">
-        {slices.map((sl, i) => {
-          const pickable = !!sl.row && (selecting || canDrill);
-          const share = total ? sl.value / total : 0;
-          const lead = slices[0]?.value ? sl.value / slices[0].value : 0;
-          return (
-            <li key={String(sl.key)} className="group/row relative flex items-center">
-              <button
-                type="button"
-                disabled={!pickable}
-                aria-pressed={selecting && hasSel ? on[i] : undefined}
-                onClick={(e) => (selecting ? toggle(i, e.shiftKey || e.metaKey || e.ctrlKey) : drill(i))}
-                onDoubleClick={() => selecting && drill(i)}
-                onMouseEnter={() => onHoverKey?.(sl.key)}
-                onMouseLeave={() => onHoverKey?.(undefined)}
-                style={{ opacity: inkOf(i) < 0.5 ? 0.45 : 1 }}
-                className={cn(
-                  "grid min-w-0 flex-1 grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-x-3 gap-y-1 rounded-lg py-1.5 pr-8 pl-2 text-left sm:grid-cols-[auto_minmax(0,11rem)_minmax(0,1fr)_auto_auto] transition-[opacity,background-color] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0061E2]/50",
-                  pickable && "hover:bg-zinc-50 dark:hover:bg-zinc-900",
-                  focusIdx === i && "bg-zinc-50 dark:bg-zinc-900",
-                )}
-              >
-                <span className="h-2 w-2 shrink-0 rounded-full text-zinc-900 dark:text-zinc-100" style={{ background: sl.tone }} />
-                <span className="min-w-0 truncate font-mono text-[12px] text-zinc-800 dark:text-zinc-200">{sl.label}</span>
-                {/* the share as a bar: the room beside a legend says how big */}
-                <span aria-hidden className="col-span-3 col-start-2 row-start-2 h-1 overflow-hidden rounded-full bg-zinc-100 sm:col-span-1 sm:col-start-3 sm:row-start-1 sm:h-1.5 dark:bg-zinc-900">
-                  <span className="block h-full rounded-full text-zinc-900 transition-[width] duration-500 ease-out dark:text-zinc-100" style={{ width: `${Math.min(100, Math.max(1.5, lead * 100))}%`, background: sl.tone, opacity: sl.row ? 0.85 : 0.6 }} />
-                </span>
-                <span className="font-mono text-[12px] tabular-nums text-zinc-900 dark:text-zinc-50">{fmt(sl.value, s.format, sym)}</span>
-                <span className="w-11 text-right font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">{total ? sliceShare(share) : ""}</span>
-              </button>
-              {selecting && canDrill && sl.row && (
-                <button
-                  type="button"
-                  onClick={() => drill(i)}
-                  aria-label={`Open ${sl.label}`}
-                  title="Open"
-                  className="absolute right-1 flex h-6 w-6 items-center justify-center rounded-full text-zinc-400 opacity-0 transition-opacity duration-200 group-hover/row:opacity-100 hover:bg-zinc-100 hover:text-zinc-900 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0061E2]/50 [@media(hover:none)]:opacity-100 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
-                >
-                  <ChevronRight className="h-3.5 w-3.5" strokeWidth={2} />
-                </button>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  );
-}
-
-/** the panel's own rows as a table: its x and its series, sortable, and
-    only the selected rows while a selection stands */
-function PanelTable({ panel, rows, names, sym, canDrill, onPick, hoverKey, onHoverKey, live }: PanelProps) {
-  const x = panel.x!;
-  const [span, zone] = useMemo(() => [spanOf(rows.map((r) => r[x])), zoneOf(rows.map((r) => r[x]))] as const, [rows, x]);
-  const [sort, setSort] = useState<{ col: string; dir: "asc" | "desc" } | null>(null);
-  const kept = useMemo(() => applySelection(rows, live), [rows, live]);
-  const shown = useMemo(() => {
-    if (!sort) return kept;
-    const k = sort.col;
-    return [...kept].sort((a, b) => {
-      const va = a[k];
-      const vb = b[k];
-      const c = typeof va === "number" && typeof vb === "number" ? va - vb : String(va ?? "").localeCompare(String(vb ?? ""));
-      return sort.dir === "asc" ? c : -c;
-    });
-  }, [kept, sort]);
-  const cols = [{ column: x, label: x.replace(/_/g, " "), format: "number" as Format, isX: true }, ...panel.series.map((s) => ({ column: s.column, label: s.label, format: s.format, isX: false }))];
-  const flip = (col: string) => setSort((cur) => (cur?.col === col ? (cur.dir === "desc" ? { col, dir: "asc" } : null) : { col, dir: "desc" }));
-
-  return (
-    <div className="flex flex-col gap-2">
-      {live.length > 0 && (
-        <span className="font-mono text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500">
-          {formatNumber(kept.length)} of {rowCount(rows.length)}
-        </span>
-      )}
-      <div className="max-h-[26rem] overflow-auto">
-        <table className="w-full border-collapse font-mono text-[12px] tabular-nums">
-          <thead className="sticky top-0 bg-white/90 backdrop-blur dark:bg-zinc-950/90">
-            <tr>
-              {cols.map((c) => (
-                <th key={c.column} className={cn("border-b border-zinc-100 px-3 py-2 font-normal dark:border-zinc-900", c.isX ? "text-left" : "text-right")}>
-                  <button type="button" onClick={() => flip(c.column)} className="inline-flex items-center gap-1 rounded text-[10px] uppercase tracking-[0.14em] text-zinc-500 hover:text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0061E2]/50 dark:text-zinc-400 dark:hover:text-zinc-100">
-                    {c.label}
-                    {sort?.col === c.column && (sort.dir === "desc" ? <ArrowDown className="h-3 w-3" /> : <ArrowUp className="h-3 w-3" />)}
-                  </button>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {shown.map((r, i) => (
-              <tr
-                key={i}
-                onClick={() => canDrill && onPick(r)}
-                onMouseEnter={() => onHoverKey?.(r[x])}
-                onMouseLeave={() => onHoverKey?.(undefined)}
-                className={cn("transition-colors", canDrill && "cursor-pointer", hoverKey !== undefined && hoverKey === r[x] ? "bg-zinc-50 dark:bg-zinc-900" : canDrill && "hover:bg-zinc-50 dark:hover:bg-zinc-900")}
-              >
-                {cols.map((c) => (
-                  <td key={c.column} className={cn("px-3 py-1.5", c.isX ? "text-left text-zinc-800 dark:text-zinc-200" : "text-right text-zinc-900 dark:text-zinc-50")}>
-                    {c.isX ? xText(names, x, r[x], span === "other" ? "other" : span, zone) : fmt(r[c.column], c.format, sym)}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
     </div>
   );
 }

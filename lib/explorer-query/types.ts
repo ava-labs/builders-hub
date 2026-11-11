@@ -2,7 +2,8 @@ import type { DrillProfile } from "./drill-profile";
 import type { MonitorSpec } from "./monitor";
 import { z } from "zod";
 import type { Coverage, QueryResult } from "./clickhouse";
-import type { VisualSpec } from "./visual";
+import type { VisualSpec } from "./visual-spec";
+import type { Moves } from "./window-shift";
 
 /* The shapes that cross from the query route to the page. */
 
@@ -93,6 +94,10 @@ export interface QueryAnswer {
   note: string;
   /** the window the answer reads, as a figure over all of it says it ("last 6 hours"), or null for none */
   span?: string | null;
+  /** what the page may do with the answer's window with no model: its buttons, and the period before it */
+  moves?: Moves | null;
+  /** up to three questions a reader may ask next about this answer: the page offers each as a chip */
+  followups?: string[];
   sql: string;
   chart: ChartSpec;
   drill: Drill | null;

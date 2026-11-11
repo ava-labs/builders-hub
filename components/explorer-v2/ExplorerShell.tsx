@@ -96,8 +96,8 @@ export function SearchBox({
   // the P-Chain's tables cover mainnet and Fuji; the network's Query page is mainnet only
   const askable = (ask && (network === "mainnet" || network === "fuji")) || (!!askAt && network === "mainnet");
   const queryPage = askAt ?? `${base}/query`;
-  // the network box asks about any chain: both indexes' recents and starters
-  const starters = (askAt ? [...EXAMPLES.slice(0, 1), ...PCHAIN_EXAMPLES.slice(0, 1)] : PCHAIN_EXAMPLES).flatMap((g) => g.items.map((i) => i.q));
+  // the network box asks about any chain: both indexes' recents and starters. A group's first two lead it
+  const starters = (askAt ? [...EXAMPLES.slice(0, 1), ...PCHAIN_EXAMPLES.slice(0, 1)] : PCHAIN_EXAMPLES).flatMap((g) => g.items.slice(0, 2).map((i) => i.q));
   const [recentAsked, setRecentAsked] = useState<string[]>([]);
 
   useEffect(() => {
