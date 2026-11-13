@@ -93,6 +93,12 @@ export class ValidationError extends Error {
     super(message);
     this.cause = "ValidationError";
     this.details = details;
+
+    // Same reasoning as the ValidationError in server/services/projects.ts:
+    // non-enumerable so `NextResponse.json({ error })` cannot ship the
+    // internal field list to the caller. Server-side reads are unaffected.
+    Object.defineProperty(this, "details", { value: details, enumerable: false, writable: true });
+    Object.defineProperty(this, "cause", { value: "ValidationError", enumerable: false, writable: true });
   }
 }
 

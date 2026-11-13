@@ -169,6 +169,32 @@ export async function canEditEvent(
 }
 
 /**
+ * True when the user may read an event that is not published.
+ */
+export async function canViewPrivateEvent(
+  session:
+    | { user?: { id?: string; email?: string; custom_attributes?: string[] } }
+    | null
+    | undefined,
+  hackathon: { created_by?: string | null; cohosts?: string[] } | null,
+): Promise<boolean> {
+  if (!hackathon || !session?.user?.id) return false;
+
+  if (hasAnyAttribute(session.user.custom_attributes, ["devrel", "team1-admin"])) {
+    return true;
+  }
+
+  if (hackathon.created_by && hackathon.created_by === session.user.id) return true;
+
+  const email = session.user.email;
+  if (email && hackathon.cohosts?.some((c) => c.toLowerCase() === email.toLowerCase())) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * Constant-time bearer-token check for the public projects endpoint.
  * Expects `Authorization: Bearer <token>`. Compares to the
  * HACKATHON_PROJECTS_API_KEY env var. Returns false if the env var is
