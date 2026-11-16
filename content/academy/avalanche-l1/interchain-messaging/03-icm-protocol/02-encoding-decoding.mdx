@@ -34,7 +34,7 @@ When we encode data, we convert it into a byte array. This is useful when we wan
 string memory someString = "test";
 uint someNumber = 42;
 
-bytes message = abi.encode(someString, someNumber);
+bytes memory message = abi.encode(someString, someNumber);
 ```
 
 This single value message here we can now use as a message for Teleporter.
@@ -50,6 +50,119 @@ When we decode data, we convert it from a byte array back into its original form
 ```
 
 This will give us back the original values that we encoded before. Note that we do need to know the types of the values and their order that we encoded to decode them correctly.
+
+## Routing by Action: Double Encoding
+
+A receiving contract gets one single `bytes` value, but it often needs to do different things depending on the message. For example, a bridge may receive a "register" message, a "send tokens" message or a "multi-hop" message, and each one carries different parameters.
+
+The common pattern is to encode the message **twice**:
+
+1. **Inner encoding:** the parameters of the action, encoded into `bytes`.
+2. **Outer encoding:** an enum that identifies the action, together with the inner `bytes`, encoded into a single `bytes` value.
+
+The receiver decodes in the same order. First it decodes the outer layer to learn the action, then it uses the action to know which types to use for the inner layer. The action tells the receiver which parameters follow.
+
+### Sending
+
+```solidity
+enum Action {
+    SetGreeting,
+    SetNumber
+}
+
+function sendSetGreeting(string memory greeting) external {
+    // 1. Inner encoding: the parameters of this action
+    bytes memory params = abi.encode(greeting);
+
+    // 2. Outer encoding: the action plus its (already encoded) parameters
+    bytes memory message = abi.encode(Action.SetGreeting, params);
+
+    // Pass `message` as the `message` field of TeleporterMessageInput
+}
+
+function sendSetNumber(uint256 number, address account) external {
+    bytes memory params = abi.encode(number, account);
+    bytes memory message = abi.encode(Action.SetNumber, params);
+}
+```
+
+Both calls produce a value of type `bytes`, but the content of `params` is different for each action.
+
+### Receiving
+
+```solidity
+function receiveTeleporterMessage(
+    bytes32 originChainID,
+    address originSenderAddress,
+    bytes calldata message
+) external {
+    if (msg.sender != address(teleporterMessenger)) {
+        revert Unauthorized();
+    }
+
+    // 1. Outer decoding: which action is it, and what are its raw parameters?
+    (Action action, bytes memory params) = abi.decode(message, (Action, bytes));
+
+    // 2. Inner decoding: the action decides which types we use
+    if (action == Action.SetGreeting) {
+        string memory greeting = abi.decode(params, (string));
+        _setGreeting(greeting);
+    } else if (action == Action.SetNumber) {
+        (uint256 number, address account) = abi.decode(params, (uint256, address));
+        _setNumber(number, account);
+    }
+}
+```
+
+If the sender and the receiver do not agree on the enum values and on the types of each action, the decoding reverts or returns wrong data. Keep the enum and the parameter types in a shared file that both contracts import.
+
+### Example: Interchain Token Transfer (ICTT)
+
+The token bridges of Avalanche use this exact pattern. In `ITokenTransferrer.sol` the action is the enum `TransferrerMessageType`, and the two layers are wrapped in a struct:
+
+```solidity
+enum TransferrerMessageType {
+    REGISTER_REMOTE,
+    SINGLE_HOP_SEND,
+    SINGLE_HOP_CALL,
+    MULTI_HOP_SEND,
+    MULTI_HOP_CALL
+}
+
+struct TransferrerMessage {
+    TransferrerMessageType messageType;
+    bytes payload;
+}
+
+struct SingleHopSendMessage {
+    address recipient;
+    uint256 amount;
+}
+```
+
+When a `TokenRemote` sends tokens back to its `TokenHome`, it builds the inner payload and wraps it:
+
+```solidity
+TransferrerMessage memory message = TransferrerMessage({
+    messageType: TransferrerMessageType.SINGLE_HOP_SEND,
+    payload: abi.encode(SingleHopSendMessage({recipient: input.recipient, amount: amount}))
+});
+// The Teleporter message field is then abi.encode(message)
+```
+
+On the receiving side, `TokenHome` decodes the outer struct, reads `messageType`, and decodes `payload` with the matching struct:
+
+```solidity
+TransferrerMessage memory transferrerMessage = abi.decode(message, (TransferrerMessage));
+
+if (transferrerMessage.messageType == TransferrerMessageType.SINGLE_HOP_SEND) {
+    SingleHopSendMessage memory payload =
+        abi.decode(transferrerMessage.payload, (SingleHopSendMessage));
+    // ... release the tokens to payload.recipient
+}
+```
+
+Each action has its own struct for the parameters (`RegisterRemoteMessage`, `SingleHopSendMessage`, `MultiHopCallMessage` and so on), but all of them travel through the same Teleporter `message` field.
 
 <Quiz quizId="303"/>
 

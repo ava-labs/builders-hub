@@ -168,7 +168,25 @@ function receiveTeleporterMessage(
 }
 ```
 
-You can encode structs, multiple values, or a function selector plus arguments using `abi.encodeWithSelector`. The rule is that sender and receiver must agree on the exact types and order.
+You can encode structs or several values in the same way. The rule is that sender and receiver must agree on the exact types and order.
+
+When a contract handles more than one kind of message, encode twice: first the parameters of the action, then an enum that identifies the action together with those parameters. The receiver decodes the enum first and uses it to decide how to decode the parameters.
+
+```solidity
+enum Action { SetGreeting, SetNumber }
+
+// Sender
+bytes memory params = abi.encode(uint256(42), account);
+bytes memory payload = abi.encode(Action.SetNumber, params);
+
+// Receiver, inside receiveTeleporterMessage
+(Action action, bytes memory params) = abi.decode(message, (Action, bytes));
+if (action == Action.SetNumber) {
+    (uint256 number, address account) = abi.decode(params, (uint256, address));
+}
+```
+
+ICTT uses this pattern with `TransferrerMessageType`. See [Routing by Action: Double Encoding](/academy/avalanche-l1/interchain-messaging/03-icm-protocol/02-encoding-decoding#routing-by-action-double-encoding).
 
 ## Relayer Incentives
 
