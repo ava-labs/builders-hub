@@ -1,65 +1,47 @@
 ---
 title: L1Beat
 category: Analytics & Data
-available: ["C-Chain", "All Avalanche L1s"]
-description: "L1Beat provides analytics and comparison data for Avalanche L1s, tracking network performance, adoption metrics, and ecosystem growth."
-logo: /images/l1beat.svg
+available: ["C-Chain", "All Avalanche L1s", "P-Chain"]
+description: "Analytics for Avalanche and its L1s, with a free public API: chains, validators, fees, staking, DeFi, bridges, interchain messaging, and AVAX treasuries and ETFs."
+logo: /images/l1beat.png
 developer: L1Beat
 website: https://l1beat.io/
-documentation: https://l1beat.io/
+documentation: https://l1beat.io/api
 ---
 
 ## Overview
 
-L1Beat is an analytics platform for tracking and comparing Avalanche L1 networks. It provides data on network performance, adoption metrics, and ecosystem development across Avalanche L1s.
+L1Beat tracks Avalanche and every L1 on it: activity, validators, fees, interchain messages and money moving in and out of Avalanche. Everything on the site is also available through a free public API.
 
 ## Features
 
-- **L1 Network Analytics**:
-  - Real-time network metrics
-  - Performance benchmarking
-  - Transaction volume tracking
-  - Network activity monitoring
-- **Comparative Analysis**:
-  - Cross-L1 comparisons
-  - Performance rankings
-  - Adoption metrics
-  - Growth trends
-- **Data Visualization**:
-  - Interactive dashboards
-  - Historical charts
-  - Network comparisons
-  - Trend analysis
-- **Ecosystem Insights**:
-  - Developer activity
-  - Protocol deployment
-  - User adoption
-  - Network statistics
+- **L1s and validators**: every Avalanche L1 with its validators, fees paid to the P-Chain, and a risk and decentralization profile for each chain.
+- **Network metrics**: activity, fees and growth across L1s, with side-by-side comparisons of up to four chains.
+- **Interchain**: ICM messages between L1s and the C-Chain, the apps sending them, and the value they move.
+- **Bridges**: value bridged into and out of Avalanche, by bridge, chain and token.
+- **Markets**: DEX volume and top pools, GMX perpetuals, Aave and BENQI lending, and stablecoins on the C-Chain.
+- **AVAX**: staking and liquid staking, AVAX burned, and AVAX held by public companies and spot ETFs.
+- **ACPs**: every Avalanche Community Proposal, searchable.
 
 ## Getting Started
 
-1. **Access Platform**:
-   - Visit [L1Beat](https://l1beat.io/)
-   - Explore L1 network dashboards
-   - View comparative metrics
-2. **Analyze Networks**:
-   - Compare L1 performance
-   - Track network growth
-   - Monitor activity metrics
-3. **Research**:
-   - Access historical data
-   - Identify trends
-   - Evaluate network health
+1. Browse any L1 at [l1beat.io](https://l1beat.io/).
+2. Try the API in the [playground](https://l1beat.io/api), or call it directly:
 
-## Documentation
-
-For more information, visit the [L1Beat website](https://l1beat.io/).
+```bash
+curl "https://api.l1beat.io/api/v1/data/chains?active=true&limit=5"
+```
 
 ## Use Cases
 
-- **L1 Development**: Research and compare L1 networks for development
-- **Network Analysis**: Track and analyze L1 performance and adoption
-- **Investment Research**: Evaluate L1 networks for investment decisions
-- **Competitive Analysis**: Compare network metrics and growth
-- **Ecosystem Monitoring**: Track the overall Avalanche L1 ecosystem
+- **L1 teams**: track your chain's validators, fees and interchain activity, and compare it with other L1s.
+- **Builders**: pull Avalanche data into apps, bots and dashboards without running your own infrastructure.
+- **Researchers and analysts**: follow staking, DeFi, bridge flows and AVAX treasuries over time.
 
+## Documentation
+
+- 50+ REST endpoints plus a live block WebSocket, at `https://api.l1beat.io`.
+- No API key, open CORS, 180 requests a minute per IP.
+- Try every endpoint in the browser at [l1beat.io/api](https://l1beat.io/api), with curl, fetch and Python snippets.
+- OpenAPI 3 spec: [api.l1beat.io/openapi.json](https://api.l1beat.io/openapi.json).
+- EVM, DeFi and interchain data cover the C-Chain; P-Chain, validator and fee data cover every L1.
