@@ -13,9 +13,12 @@ info:
     • **Restricted Methods:**
       - `debug_*` methods: NOT available on public RPCs (require node access)
       - `personal_*` methods: removed from every C-Chain node in AvalancheGo v1.15.0  
+      - `avax.getAtomicTxStatus`: removed in AvalancheGo v1.15.2. Use `avax.getAtomicTx`, which fails until the transaction is accepted and its block is executed
       - `txpool_*` methods: May be restricted or rate-limited
       - Filter methods (`eth_newFilter`, etc.): May have limited functionality
       - `eth_sign`, `eth_signTransaction` and `eth_sendTransaction`: fail on every C-Chain node, because the node holds no accounts. Sign on the client and use `eth_sendRawTransaction`
+    
+    • **Response headers:** From AvalancheGo v1.15.3, HTTP responses from `/ext/bc/C/rpc` carry a `Gas-Used` header with the total gas used by every `eth_call` in the request. It is omitted if no `eth_call` completed.
     
     • **Full Access:** Run your own node or use a dedicated node service for unrestricted access to all methods.
     
@@ -2087,66 +2090,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/JSONRPCError'
 
-  /ext/bc/C/avax#avax.getAtomicTxStatus:
-    post:
-      summary: avax.getAtomicTxStatus
-      description: >-
-        Deprecated. Returns the status of the specified atomic transaction.
-        After the Helicon upgrade, the public API endpoints do not serve this method.
-        Use avax.getAtomicTx instead. When the transaction is accepted, avax.getAtomicTx returns blockHeight.
-      operationId: avax_getAtomicTxStatus
-      deprecated: true
-      tags:
-        - Avalanche
-      requestBody:
-        required: true
-        description: JSON-RPC request
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                jsonrpc:
-                  type: string
-                  example: '2.0'
-                method:
-                  type: string
-                  example: avax.getAtomicTxStatus
-                params:
-                  type: object
-                  properties:
-                    txID:
-                      type: string
-                      description: "Transaction ID in CB58 format"
-                  required:
-                    - txID
-                  description: "{txID}"
-                id:
-                  type: integer
-                  example: 1
-              required:
-                - jsonrpc
-                - method
-                - params
-                - id
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JSONRPCResponse'
-        default:
-          description: Error response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JSONRPCError'
-
   /ext/bc/C/avax#avax.getAtomicTx:
     post:
       summary: avax.getAtomicTx
-      description: Returns the specified atomic transaction.
+      description: >-
+        Returns the specified atomic transaction and the height of the block that accepted it as blockHeight.
+        The call fails until the transaction is accepted and its block is executed, so a successful response
+        means the transaction was accepted. It replaces avax.getAtomicTxStatus, which AvalancheGo v1.15.2 removed.
       operationId: avax_getAtomicTx
       tags:
         - Avalanche

@@ -163,7 +163,7 @@ console.log("XP public key:", pubKeys.xp);
 Wait for a transaction to be confirmed on the network.
 
 <Callout type="warn">
-For C-Chain transactions (`chainAlias: "C"`), `waitForTxn` polls `avax.getAtomicTxStatus`. That method is deprecated, and the public API endpoints do not serve it after the Helicon upgrade. For C-Chain atomic transactions, poll [getAtomicTx](../public-methods/c-chain#getatomictx) until the response includes `blockHeight`.
+For C-Chain transactions (`chainAlias: "C"`), `waitForTxn` polls [getAtomicTx](../public-methods/c-chain#getatomictx) until the call succeeds. `getAtomicTx` fails until the transaction is accepted and its block is executed, and the successful response carries the `blockHeight`. It does not call `avax.getAtomicTxStatus`, which AvalancheGo v1.15.0 deprecated and v1.15.2 removed.
 </Callout>
 
 **Function Signature:**
