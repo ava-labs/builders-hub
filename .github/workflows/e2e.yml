@@ -238,6 +238,8 @@ jobs:
           E2E_BASE_URL: ${{ steps.target.outputs.url }}
           E2E_TELEMETRY_DISABLED: '1'
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+          # Lets the run through the Cloudflare WAF challenge on build.avax.network (tests/e2e/lib/bypass.ts).
+          E2E_WAF_BYPASS_SECRET: ${{ secrets.E2E_WAF_BYPASS_SECRET }}
           # Agent steps (tests/e2e/ai) use Claude. Without this secret they skip.
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |

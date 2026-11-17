@@ -1,4 +1,5 @@
 import type { App } from 'e2e';
+import { bypassHeaders } from '../lib/bypass.ts';
 
 // Same default as e2e.config.ts.
 const DEFAULT_BASE_URL = 'http://localhost:3000';
@@ -10,14 +11,16 @@ export function baseUrl(app: App): URL {
 }
 
 // Sends a request from Node to the site under test.
-// A Vercel preview is behind SSO. When VERCEL_AUTOMATION_BYPASS_SECRET is set, the bypass header opens it.
-// The header goes only to the site's origin. Redirects are not followed, so the secret cannot go to another host.
+// A Vercel preview is behind SSO, and the Cloudflare WAF challenges automated clients on build.avax.network.
+// The bypass headers (lib/bypass.ts) open both when their secrets are set.
+// The headers go only to the site's origin. Redirects are not followed, so a secret cannot go to another host.
 export async function appFetch(app: App, path: string, init: RequestInit = {}): Promise<Response> {
   const base = baseUrl(app);
   const url = new URL(path, base);
   const headers = new Headers(init.headers);
-  const secret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
-  if (secret && url.origin === base.origin) headers.set('x-vercel-protection-bypass', secret);
+  if (url.origin === base.origin) {
+    for (const [name, value] of Object.entries(bypassHeaders() ?? {})) headers.set(name, value);
+  }
   const res = await fetch(url, { ...init, headers, redirect: 'manual' });
   if (res.status >= 300 && res.status < 400) {
     throw new Error(
@@ -29,13 +32,14 @@ export async function appFetch(app: App, path: string, init: RequestInit = {}): 
 }
 
 // Requests a path without following a redirect and returns the status and the Location path.
-// appFetch fails on a redirect, so this sends its own request. The bypass header goes only to the site's origin.
+// appFetch fails on a redirect, so this sends its own request. The bypass headers go only to the site's origin.
 export async function redirectOf(app: App, path: string): Promise<{ status: number; location: string }> {
   const base = baseUrl(app);
   const url = new URL(path, base);
   const headers = new Headers();
-  const secret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
-  if (secret && url.origin === base.origin) headers.set('x-vercel-protection-bypass', secret);
+  if (url.origin === base.origin) {
+    for (const [name, value] of Object.entries(bypassHeaders() ?? {})) headers.set(name, value);
+  }
   const res = await fetch(url, { headers, redirect: 'manual' });
   const location = res.headers.get('location');
   if (!location) return { status: res.status, location: '' };
