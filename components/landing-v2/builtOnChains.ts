@@ -74,7 +74,7 @@ export const BUILT_ON_CHAINS: BuiltOnChain[] = [
   // Flagship brand deployments
   { name: "Kite AI", image: "/logos/partners/tape/kite-ai.svg", chip: "#fef8f0", link: "https://gokite.ai" },
   { name: "FIFA", image: "/logos/partners/tape/fifa.png", chip: "#326295", link: "https://collect.fifa.com/" },
-  { name: "MapleStory", image: "/logos/partners/tape/maplestory.png", chip: "#ffffff", link: "https://maplestoryuniverse.com/" },
+  { name: "MapleStory", image: "/logos/partners/tape/maplestory.png", chip: "#ffffff", link: "https://www.msu.io/" },
   { name: "Gunzilla", image: "/logos/partners/tape/gunzilla.png", chip: "#030102", link: "https://gunzillagames.com/" },
   { name: "Dexalot", image: "/logos/partners/tape/dexalot.png", chip: "#ffffff", link: "https://dexalot.com/" },
   { name: "UPTN", image: "/logos/partners/tape/uptn.png", chip: "#5f46ff", link: "https://uptn.io/" },
