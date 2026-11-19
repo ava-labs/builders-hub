@@ -10,7 +10,8 @@ import {
   getAllTrackedTransfers,
   getLenderTransfers,
 } from '../glacier/transactions'
-import { ADDRESSES, normalizeAddress } from '../constants/addresses'
+import { normalizeAddress } from '../constants/addresses'
+import type { RWAFacility } from '../facilities'
 import type {
   TimeSeriesDataPoint,
   HistoricalData,
@@ -158,13 +159,14 @@ function buildNetCapitalPosition(
 }
 
 export async function calculateHistoricalData(
+  facility: RWAFacility,
   interval: TimeInterval = 'daily',
   forceRefresh = false,
   dateRange?: DateRange
 ): Promise<HistoricalData> {
-  // one cached history per interval; a date window is cut from it per
-  // request and never stored, so a caller's windows cannot grow the cache
-  const cacheKey = CacheKeys.historical('all', interval)
+  // one cached history per facility and interval; a date window is cut from it
+  // per request and never stored, so a caller's windows cannot grow the cache
+  const cacheKey = CacheKeys.historical(facility.slug, 'all', interval)
 
   if (!forceRefresh) {
     const cached = cache.get<HistoricalData>(cacheKey)
@@ -172,12 +174,12 @@ export async function calculateHistoricalData(
   }
 
   const [transfersByAddress, lenderTransfers] = await Promise.all([
-    getAllTrackedTransfers(forceRefresh),
-    getLenderTransfers(forceRefresh),
+    getAllTrackedTransfers(facility, forceRefresh),
+    getLenderTransfers(facility, forceRefresh),
   ])
 
-  const tranchePoolAddress = normalizeAddress(ADDRESSES.TRANCHE_POOL)
-  const borrowerAddress = normalizeAddress(ADDRESSES.BORROWER_OPERATING)
+  const tranchePoolAddress = normalizeAddress(facility.pool.address)
+  const borrowerAddress = normalizeAddress(facility.borrower.address)
 
   const tranchePoolTransfers = transfersByAddress.get(tranchePoolAddress) ?? []
   const borrowerTransfers = transfersByAddress.get(borrowerAddress) ?? []
@@ -248,11 +250,12 @@ function cutToRange(data: HistoricalData, dateRange?: DateRange): HistoricalData
 }
 
 export async function getMetricTimeSeries(
+  facility: RWAFacility,
   metricKey: keyof HistoricalData,
   interval: TimeInterval = 'daily',
   forceRefresh = false,
   dateRange?: DateRange
 ): Promise<TimeSeriesDataPoint[]> {
-  const historical = await calculateHistoricalData(interval, forceRefresh, dateRange)
+  const historical = await calculateHistoricalData(facility, interval, forceRefresh, dateRange)
   return historical[metricKey]
 }

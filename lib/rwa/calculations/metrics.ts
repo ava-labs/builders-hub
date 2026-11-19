@@ -3,7 +3,8 @@ import {
   getUsdcBalance,
   getLenderTransfers,
 } from '../glacier/transactions'
-import { ADDRESSES, normalizeAddress } from '../constants/addresses'
+import { normalizeAddress } from '../constants/addresses'
+import type { RWAFacility } from '../facilities'
 import { aggregateByPeriod, calculateUtilizationSeries } from './aggregations'
 import type {
   GeneralMetrics,
@@ -12,6 +13,7 @@ import type {
   ParsedTransfer,
   LenderBreakdown,
 } from '../types'
+import { bigintDivideAsNumber } from '../utils'
 
 /**
  * Calculates transacted volume by deduplicating transfers across addresses.
@@ -37,15 +39,15 @@ function calculateTransactedVolume(
   return total
 }
 
-function calculateAssetsFinanced(tranchePoolTransfers: ParsedTransfer[]): bigint {
-  const borrowerAddress = normalizeAddress(ADDRESSES.BORROWER_OPERATING)
+function calculateAssetsFinanced(facility: RWAFacility, tranchePoolTransfers: ParsedTransfer[]): bigint {
+  const borrowerAddress = normalizeAddress(facility.borrower.address)
   return tranchePoolTransfers
     .filter((t) => t.to === borrowerAddress)
     .reduce((sum, t) => sum + t.amount, BigInt(0))
 }
 
-function calculateLenderRepayments(borrowerTransfers: ParsedTransfer[]): bigint {
-  const tranchePoolAddress = normalizeAddress(ADDRESSES.TRANCHE_POOL)
+function calculateLenderRepayments(facility: RWAFacility, borrowerTransfers: ParsedTransfer[]): bigint {
+  const tranchePoolAddress = normalizeAddress(facility.pool.address)
   return borrowerTransfers
     .filter((t) => t.to === tranchePoolAddress)
     .reduce((sum, t) => sum + t.amount, BigInt(0))
@@ -55,8 +57,8 @@ function calculateCommittedCapital(lenderTransfers: ParsedTransfer[]): bigint {
   return lenderTransfers.reduce((sum, t) => sum + t.amount, BigInt(0))
 }
 
-function getFirstTransactionDate(tranchePoolTransfers: ParsedTransfer[]): Date | null {
-  const borrowerAddress = normalizeAddress(ADDRESSES.BORROWER_OPERATING)
+function getFirstTransactionDate(facility: RWAFacility, tranchePoolTransfers: ParsedTransfer[]): Date | null {
+  const borrowerAddress = normalizeAddress(facility.borrower.address)
   const outboundToBorrower = tranchePoolTransfers.filter((t) => t.to === borrowerAddress)
 
   if (outboundToBorrower.length === 0) return null
@@ -67,9 +69,9 @@ function getFirstTransactionDate(tranchePoolTransfers: ParsedTransfer[]): Date |
   )
 }
 
-function calculateConvertedUsdc(borrowerTransfers: ParsedTransfer[]): bigint {
-  const tranchePoolAddress = normalizeAddress(ADDRESSES.TRANCHE_POOL)
-  const borrowerAddress = normalizeAddress(ADDRESSES.BORROWER_OPERATING)
+function calculateConvertedUsdc(facility: RWAFacility, borrowerTransfers: ParsedTransfer[]): bigint {
+  const tranchePoolAddress = normalizeAddress(facility.pool.address)
+  const borrowerAddress = normalizeAddress(facility.borrower.address)
 
   return borrowerTransfers
     .filter(
@@ -80,23 +82,15 @@ function calculateConvertedUsdc(borrowerTransfers: ParsedTransfer[]): bigint {
     .reduce((sum, t) => sum + t.amount, BigInt(0))
 }
 
-function bigintDivideAsNumber(numerator: bigint, denominator: bigint): number {
-  if (denominator === BigInt(0)) return 0
-  const scaled = (numerator * BigInt(10000)) / denominator
-  return Number(scaled) / 10000
-}
-
 function calculateLenderBreakdown(
+  facility: RWAFacility,
   lenderTransfers: ParsedTransfer[]
 ): LenderBreakdown[] {
-  const valinorAddress = normalizeAddress(ADDRESSES.LENDER_VALINOR)
-  const avalancheAddress = normalizeAddress(ADDRESSES.LENDER_AVALANCHE)
+  const addressLabels: Record<string, string> = Object.fromEntries(
+    facility.lenders.map((lender) => [normalizeAddress(lender.address), lender.partner])
+  )
 
-  const addressLabels: Record<string, string> = {
-    [valinorAddress]: 'Valinor',
-    [avalancheAddress]: 'Avalanche',
-  }
-
+  // lenders in the order they first appear in the pool's transfers, not the facility's lenders order
   const byLender = new Map<string, bigint>()
   for (const t of lenderTransfers) {
     const current = byLender.get(t.from) ?? BigInt(0)
@@ -113,27 +107,30 @@ function calculateLenderBreakdown(
   }))
 }
 
-export async function calculateAllMetrics(forceRefresh = false): Promise<AllMetrics> {
+export async function calculateAllMetrics(
+  facility: RWAFacility,
+  forceRefresh = false
+): Promise<AllMetrics> {
   const [transfersByAddress, idleCapital, lenderTransfers] = await Promise.all([
-    getAllTrackedTransfers(forceRefresh),
-    getUsdcBalance(ADDRESSES.TRANCHE_POOL),
-    getLenderTransfers(forceRefresh),
+    getAllTrackedTransfers(facility, forceRefresh),
+    getUsdcBalance(facility, facility.pool.address),
+    getLenderTransfers(facility, forceRefresh),
   ])
 
-  const tranchePoolAddress = normalizeAddress(ADDRESSES.TRANCHE_POOL)
-  const borrowerAddress = normalizeAddress(ADDRESSES.BORROWER_OPERATING)
+  const tranchePoolAddress = normalizeAddress(facility.pool.address)
+  const borrowerAddress = normalizeAddress(facility.borrower.address)
 
   const tranchePoolTransfers = transfersByAddress.get(tranchePoolAddress) ?? []
   const borrowerTransfers = transfersByAddress.get(borrowerAddress) ?? []
 
   const transactedVolume = calculateTransactedVolume(transfersByAddress)
-  const assetsFinanced = calculateAssetsFinanced(tranchePoolTransfers)
-  const lenderRepayments = calculateLenderRepayments(borrowerTransfers)
+  const assetsFinanced = calculateAssetsFinanced(facility, tranchePoolTransfers)
+  const lenderRepayments = calculateLenderRepayments(facility, borrowerTransfers)
   const committedCapital = calculateCommittedCapital(lenderTransfers)
 
   const capitalTurnover = bigintDivideAsNumber(assetsFinanced, committedCapital)
 
-  const firstTransactionDate = getFirstTransactionDate(tranchePoolTransfers)
+  const firstTransactionDate = getFirstTransactionDate(facility, tranchePoolTransfers)
   const lifeSinceInception = firstTransactionDate
     ? Math.floor((Date.now() - firstTransactionDate.getTime()) / (1000 * 60 * 60 * 24))
     : 0
@@ -170,7 +167,7 @@ export async function calculateAllMetrics(forceRefresh = false): Promise<AllMetr
   const capitalOutstanding =
     committedCapital > idleCapital ? committedCapital - idleCapital : BigInt(0)
   const principalRepayments = lenderRepayments
-  const convertedUsdc = calculateConvertedUsdc(borrowerTransfers)
+  const convertedUsdc = calculateConvertedUsdc(facility, borrowerTransfers)
 
   const oatfi: OatFiMetrics = {
     capitalOutstanding,
@@ -178,7 +175,7 @@ export async function calculateAllMetrics(forceRefresh = false): Promise<AllMetr
     convertedUsdc,
   }
 
-  const lenderBreakdown = calculateLenderBreakdown(lenderTransfers)
+  const lenderBreakdown = calculateLenderBreakdown(facility, lenderTransfers)
 
   return {
     general,

@@ -7,27 +7,23 @@ import { cn } from "@/lib/utils";
 import { Board, EmptyRow, HEAD, ROW, RowSkeleton, SectionHeader, idInk } from "@/components/explorer-v2/ui";
 import { short } from "@/lib/explorer-query/values";
 import { bigintToNumber } from "@/lib/rwa/utils";
+import { getFacility } from "@/lib/rwa/facilities";
 import type { TransactionRecord } from "@/lib/rwa/types";
 import { CHIP, OFF, ON } from "./ProtocolFilters";
 import { Money } from "./rwa-parts";
+import type { LedgerCopy } from "./rwa-views";
 
-/* The old dashboard's recent transactions: every USDC transfer of the
-   tranche pool and the borrower, one row per transfer, cut by direction,
+/* The old dashboard's recent transactions: one row per entry of the
+   facility's ledger (OatFi's USDC transfers of the tranche pool and the
+   borrower, a line of credit's events on its position), cut by the column
+   the facility's ledger copy names (OatFi's direction, a line's type),
    sorted by date or amount either way, searched by hash, address or name,
    five or twenty rows a page. Each address and hash copies with a click,
    and each hash opens its transaction on the Builder Hub explorer. */
 
-type Direction = TransactionRecord["direction"] | "all";
 type SortField = "date" | "amount";
 type SortDir = "asc" | "desc";
 
-const DIRECTIONS: { key: Direction; label: string }[] = [
-  { key: "all", label: "All" },
-  { key: "inbound", label: "Inbound" },
-  { key: "outbound", label: "Outbound" },
-  { key: "internal", label: "Internal" },
-];
-const DIRECTION_LABEL: Record<TransactionRecord["direction"], string> = { inbound: "Inbound", outbound: "Outbound", internal: "Internal" };
 /* the old table's two page sizes */
 const SIZES = { compact: 5, expanded: 20 } as const;
 /* the route's largest page, so reading every row takes the fewest reads */
@@ -51,26 +47,27 @@ interface Page {
 /** one row per transfer: a transaction can carry several */
 const transferKey = (t: TransactionRecord) => `${t.txHash}-${t.from}-${t.to}`;
 
-async function readPage(slug: string, page: number, size: number, direction: Direction, sort: SortField, dir: SortDir): Promise<Page> {
-  const params = new URLSearchParams({ page: String(page), pageSize: String(size), direction, sortField: sort, sortDirection: dir });
+async function readPage(slug: string, page: number, size: number, cut: string, sort: SortField, dir: SortDir, field: LedgerCopy["field"]): Promise<Page> {
+  // the cut rides under its field's name where the direction always rode, so OatFi's URLs stay as they were
+  const params = new URLSearchParams({ page: String(page), pageSize: String(size), [field]: cut, sortField: sort, sortDirection: dir });
   const res = await fetch(`/api/dapps/rwa/${slug}/transactions?${params}`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const body = (await res.json()) as { transactions: (Omit<TransactionRecord, "amount"> & { amount: string })[]; total: number };
   return { rows: body.transactions.map((t) => ({ ...t, amount: BigInt(t.amount) })), total: body.total };
 }
 
-/** a cut of rows already read: one direction or all, by date or amount either way, as the route sorts */
-export function cutOf(rows: TransactionRecord[], direction: Direction, sort: SortField, dir: SortDir): TransactionRecord[] {
+/** a cut of rows already read: one value of the field (the direction by default) or all, by date or amount either way, as the route sorts */
+export function cutOf(rows: TransactionRecord[], cut: string, sort: SortField, dir: SortDir, field: LedgerCopy["field"] = "direction"): TransactionRecord[] {
   const sign = dir === "asc" ? 1 : -1;
   const order = (a: TransactionRecord, b: TransactionRecord) =>
     sort === "amount" ? (a.amount === b.amount ? 0 : a.amount < b.amount ? -1 : 1) : Date.parse(a.timestamp) - Date.parse(b.timestamp);
-  return (direction === "all" ? [...rows] : rows.filter((t) => t.direction === direction)).sort((a, b) => sign * order(a, b));
+  return (cut === "all" ? [...rows] : rows.filter((t) => t[field] === cut)).sort((a, b) => sign * order(a, b));
 }
 
-/** every row of a cut, a hundred a read; a transfer landing between reads shifts the pages, so each is kept once */
-export async function readAll(slug: string, direction: Direction, sort: SortField, dir: SortDir): Promise<TransactionRecord[]> {
-  const first = await readPage(slug, 1, ALL_PAGE, direction, sort, dir);
-  const rest = await Promise.all(Array.from({ length: Math.ceil(first.total / ALL_PAGE) - 1 }, (_, i) => readPage(slug, i + 2, ALL_PAGE, direction, sort, dir)));
+/** every row of a cut, a hundred a read; a row landing between reads shifts the pages, so each is kept once */
+export async function readAll(slug: string, cut: string, sort: SortField, dir: SortDir, field: LedgerCopy["field"] = "direction"): Promise<TransactionRecord[]> {
+  const first = await readPage(slug, 1, ALL_PAGE, cut, sort, dir, field);
+  const rest = await Promise.all(Array.from({ length: Math.ceil(first.total / ALL_PAGE) - 1 }, (_, i) => readPage(slug, i + 2, ALL_PAGE, cut, sort, dir, field)));
   const listed = new Set<string>();
   return [...first.rows, ...rest.flatMap((p) => p.rows)].filter((t) => {
     const key = transferKey(t);
@@ -138,8 +135,8 @@ function SortHead({ label, field, sort, dir, onSort, className }: { label: strin
   );
 }
 
-export function RwaTransactions({ slug }: { slug: string }) {
-  const [direction, setDirection] = useState<Direction>("all");
+export function RwaTransactions({ slug, ledger }: { slug: string; ledger: LedgerCopy }) {
+  const [cut, setCut] = useState("all");
   const [sort, setSort] = useState<SortField>("date");
   const [dir, setDir] = useState<SortDir>("desc");
   const [query, setQuery] = useState("");
@@ -149,12 +146,11 @@ export function RwaTransactions({ slug }: { slug: string }) {
   const [exporting, setExporting] = useState(false);
   const [exportFailed, setExportFailed] = useState(false);
   const size = expanded ? SIZES.expanded : SIZES.compact;
-  const cut = `${direction}:${sort}:${dir}`;
   const searching = query.trim().length > 0;
-  const pageKey = `${cut}:${page}:${size}`;
+  const pageKey = `${cut}:${sort}:${dir}:${page}:${size}`;
 
-  // the server's page while nothing is searched; while something is, every transfer, read once for the view
-  // and cut here, so a new direction or sort costs no read (each full read is a dozen, against a per-minute limit)
+  // the server's page while nothing is searched; while something is, every row, read once for the view
+  // and cut here, so a new cut or sort costs no read (each full read is a dozen, against a per-minute limit)
   const [served, setServed] = useState<(Page & { key: string }) | null>(null);
   const [everything, setEverything] = useState<TransactionRecord[] | null>(null);
 
@@ -162,7 +158,7 @@ export function RwaTransactions({ slug }: { slug: string }) {
     if (searching) return;
     let cancelled = false;
     setFailed(false);
-    readPage(slug, page, size, direction, sort, dir)
+    readPage(slug, page, size, cut, sort, dir, ledger.field)
       .then((p) => {
         if (!cancelled) setServed({ ...p, key: pageKey });
       })
@@ -172,8 +168,8 @@ export function RwaTransactions({ slug }: { slug: string }) {
     return () => {
       cancelled = true;
     };
-    // pageKey spells out the page, its size and its cut
-  }, [slug, pageKey, searching]);
+    // pageKey spells out the cut, the sort, the page and its size
+  }, [slug, ledger.field, pageKey, searching]);
 
   useEffect(() => {
     if (!searching || everything) return;
@@ -192,8 +188,8 @@ export function RwaTransactions({ slug }: { slug: string }) {
   }, [slug, searching, everything]);
 
   const found = useMemo(
-    () => (searching && everything ? cutOf(everything, direction, sort, dir).filter((t) => matchesSearch(t, query)) : null),
-    [searching, everything, direction, sort, dir, query],
+    () => (searching && everything ? cutOf(everything, cut, sort, dir, ledger.field).filter((t) => matchesSearch(t, query)) : null),
+    [searching, everything, cut, sort, dir, ledger.field, query],
   );
   const rows = searching ? (found ? found.slice((page - 1) * size, page * size) : null) : served?.key === pageKey ? served.rows : null;
   const total = searching ? (found?.length ?? 0) : (served?.total ?? 0);
@@ -217,11 +213,13 @@ export function RwaTransactions({ slug }: { slug: string }) {
     setExporting(true);
     setExportFailed(false);
     try {
+      const facility = getFacility(slug);
+      if (!facility) throw new Error(`Unknown facility: ${slug}`);
       // the same full read search uses, kept for the next export or search
       const rows = everything ?? (await readAll(slug, "all", "date", "desc"));
       setEverything(rows);
       const { exportTransactionsToCSV } = await import("@/lib/rwa/export/csv");
-      exportTransactionsToCSV(cutOf(rows, direction, sort, dir).filter((t) => matchesSearch(t, query)));
+      exportTransactionsToCSV(cutOf(rows, cut, sort, dir, ledger.field).filter((t) => matchesSearch(t, query)), facility);
     } catch {
       setExportFailed(true);
     } finally {
@@ -243,9 +241,9 @@ export function RwaTransactions({ slug }: { slug: string }) {
         />
       </label>
       <span className="mx-1 h-4 w-px bg-zinc-200 dark:bg-zinc-800" aria-hidden />
-      {DIRECTIONS.map((d) => (
-        <button key={d.key} type="button" aria-pressed={direction === d.key} onClick={() => restart(() => setDirection(d.key))} className={cn(CHIP, direction === d.key ? ON : OFF)}>
-          {d.label}
+      {ledger.options.map((o) => (
+        <button key={o.key} type="button" aria-pressed={cut === o.key} onClick={() => restart(() => setCut(o.key))} className={cn(CHIP, cut === o.key ? ON : OFF)}>
+          {o.label}
         </button>
       ))}
       <button type="button" onClick={downloadCsv} disabled={exporting || total === 0} className={cn(CHIP, OFF, "ml-1 uppercase tracking-[0.1em]")} title="Download this cut as CSV">
@@ -263,7 +261,7 @@ export function RwaTransactions({ slug }: { slug: string }) {
       <Board divide={false}>
         <div className={cn(HEAD, GRID, "border-b border-zinc-200 dark:border-zinc-800")}>
           <SortHead label="Date (UTC)" field="date" sort={sort} dir={dir} onSort={onSort} />
-          <span>Direction</span>
+          <span>{ledger.heading}</span>
           <span>From</span>
           <span>To</span>
           <SortHead label="Amount" field="amount" sort={sort} dir={dir} onSort={onSort} className="md:justify-self-end" />
@@ -271,11 +269,11 @@ export function RwaTransactions({ slug }: { slug: string }) {
         </div>
         {!rows && !failed && <RowSkeleton n={size} />}
         {!rows && failed && <EmptyRow>Transactions are unavailable right now</EmptyRow>}
-        {rows && rows.length === 0 && <EmptyRow>{searching ? "No transfer matches this search" : "No transfers in this cut"}</EmptyRow>}
+        {rows && rows.length === 0 && <EmptyRow>{searching ? `No ${ledger.noun.one} matches this search` : `No ${ledger.noun.many} in this cut`}</EmptyRow>}
         {rows?.map((t) => (
           <div key={transferKey(t)} className={cn(ROW, GRID, "border-b border-zinc-100 font-mono text-[11.5px] last:border-b-0 dark:border-zinc-900")}>
             <span className="tabular-nums text-zinc-500 dark:text-zinc-400">{WHEN.format(new Date(t.timestamp))}</span>
-            <span className="text-zinc-600 dark:text-zinc-300">{DIRECTION_LABEL[t.direction]}</span>
+            <span className="text-zinc-600 dark:text-zinc-300">{ledger.options.find((o) => o.key === t[ledger.field])?.label}</span>
             <Party address={t.from} label={t.fromLabel} />
             <Party address={t.to} label={t.toLabel} />
             <span className="tabular-nums text-zinc-900 md:text-right dark:text-zinc-50">
@@ -286,9 +284,7 @@ export function RwaTransactions({ slug }: { slug: string }) {
         ))}
       </Board>
       <div className="flex flex-wrap items-center justify-between gap-3 font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
-        <span>
-          {total.toLocaleString("en-US")} transfer{total === 1 ? "" : "s"}
-        </span>
+        <span>{`${total.toLocaleString("en-US")} ${total === 1 ? ledger.noun.one : ledger.noun.many}`}</span>
         <span className="flex items-center gap-3">
           <button type="button" onClick={() => restart(() => setExpanded((e) => !e))} className={cn(CHIP, OFF)}>
             {expanded ? `Show ${SIZES.compact} rows` : `Show ${SIZES.expanded} rows`}

@@ -1,4 +1,4 @@
-import type { AllMetrics, FenceHistoricalData, FenceMetrics, HistoricalData } from '@/lib/rwa/types';
+import type { AllMetrics, FenceHistoricalData, FenceMetrics, HistoricalData, LineFacilityMetrics } from '@/lib/rwa/types';
 
 /* The RWA view's feeds as the routes served them on 2026-10-01: the pool's
    figures in USDC base units, Fence's latest figures, and short histories. */
@@ -43,4 +43,29 @@ export const HISTORY: HistoricalData = {
 export const FENCE_HISTORY: FenceHistoricalData = {
   paidCollections: [{ date: '2026-09-29', value: 58_000_000 }, { date: '2026-09-30', value: 58_800_000 }],
   expectedCollections: [{ date: '2026-09-29', value: 57_500_000 }, { date: '2026-09-30', value: 57_900_000 }],
+};
+
+/* Rain's feeds as the routes serve them at block 98,617,516 (Task 2's reference values), and a short history */
+export const RAIN_METRICS: LineFacilityMetrics = {
+  general: {
+    assetsFinanced: 17_224_206_832_469n,
+    lenderRepayments: 17_028_947_463_693n,
+    idleCapital: 46_466_510_311n,
+    committedCapital: 250_000_000_000n,
+    capitalTurnover: 68.8968,
+    lifeSinceInception: 255,
+    avgCapitalRecycling: 3.7012,
+    averageCapitalUtilization: 28.68,
+  },
+  line: { capitalOutstanding: 203_533_489_689n, draws: 233 },
+  lastUpdated: '2026-10-26T15:55:14.000Z',
+};
+
+export const RAIN_HISTORY: HistoricalData = {
+  transactedVolume: [],
+  assetsFinanced: [{ date: '2026-02-12', value: 52_713.705714 }, { date: '2026-10-26', value: 82_340.914286 }],
+  lenderRepayments: [{ date: '2026-02-12', value: 50_556.54 }, { date: '2026-10-26', value: 97_072.208769 }],
+  capitalUtilization: [{ date: '2026-02-12', value: 2.16 }, { date: '2026-10-26', value: 81.41 }],
+  committedCapital: [{ date: '2026-02-12', value: 100_000 }, { date: '2026-09-03', value: 250_000 }],
+  netCapitalPosition: [{ date: '2026-02-12', value: 2_159.802888 }, { date: '2026-10-26', value: 203_533.489689 }],
 };

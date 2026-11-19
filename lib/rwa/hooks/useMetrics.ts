@@ -3,16 +3,16 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { parseBigints, BIGINT_METRIC_KEYS } from '../utils'
 import { fetchWithRetry } from '../fetchWithRetry'
-import type { AllMetrics } from '../types'
+import type { FacilityMetrics } from '../types'
 
-async function fetchMetrics(slug: string, forceRefresh = false): Promise<AllMetrics> {
+async function fetchMetrics(slug: string, forceRefresh = false): Promise<FacilityMetrics> {
   const url = forceRefresh
     ? `/api/dapps/rwa/${slug}/metrics?refresh=true`
     : `/api/dapps/rwa/${slug}/metrics`
   const response = await fetchWithRetry(url)
 
   const data = await response.json()
-  return parseBigints(data, BIGINT_METRIC_KEYS) as AllMetrics
+  return parseBigints(data, BIGINT_METRIC_KEYS) as FacilityMetrics
 }
 
 interface UseMetricsOptions {
@@ -21,7 +21,7 @@ interface UseMetricsOptions {
 }
 
 interface UseMetricsResult {
-  metrics: AllMetrics | null
+  metrics: FacilityMetrics | null
   isLoading: boolean
   error: Error | null
   refresh: () => Promise<void>
@@ -29,7 +29,7 @@ interface UseMetricsResult {
 
 export function useMetrics(options: UseMetricsOptions): UseMetricsResult {
   const { slug, refreshInterval = 5 * 60 * 1000 } = options
-  const [metrics, setMetrics] = useState<AllMetrics | null>(null)
+  const [metrics, setMetrics] = useState<FacilityMetrics | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
   const mountedRef = useRef(true)

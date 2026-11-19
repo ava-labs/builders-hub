@@ -1,6 +1,8 @@
-import type { AllMetrics, HistoricalData, TimeSeriesDataPoint, TransactionRecord } from '../types'
-import { bigintToNumber } from '../utils'
-import { ADDRESSES, normalizeAddress } from '../constants/addresses'
+import type { FacilityMetrics, HistoricalData, TimeSeriesDataPoint, TransactionRecord } from '../types'
+import { bigintToNumber, isLineMetrics, LINE_EVENT_LABELS } from '../utils'
+import { normalizeAddress } from '../constants/addresses'
+import { isLineFacility } from '../facilities'
+import type { RWAFacility } from '../facilities'
 
 function escapeCsvValue(value: string | number | bigint | null | undefined): string {
   if (value === null || value === undefined) return ''
@@ -29,12 +31,18 @@ function downloadCSV(content: string, filename: string): void {
   URL.revokeObjectURL(url)
 }
 
-export function exportMetricsToCSV(metrics: AllMetrics): void {
-  const filename = `rwa-metrics-${new Date().toISOString().split('T')[0]}.csv`
+/** a CSV's name for today: OatFi's keep the names they had before a second facility came in, and every other
+ *  facility's carry its slug, so two facilities' exports of one day never share a name */
+function csvFilename(facility: RWAFacility, content: 'metrics' | 'historical' | 'transactions'): string {
+  const prefix = facility.slug === 'oatfi' ? 'rwa' : `rwa-${facility.slug}`
+  return `${prefix}-${content}-${new Date().toISOString().split('T')[0]}.csv`
+}
+
+export function exportMetricsToCSV(metrics: FacilityMetrics, facility: RWAFacility): void {
+  const filename = csvFilename(facility, 'metrics')
 
   const headers = ['Metric', 'Value', 'Category']
-  const rows: (string | number | bigint)[][] = [
-    ['Transacted Volume', metrics.general.transactedVolume, 'General'],
+  const general: (string | number | bigint)[][] = [
     ['Assets Financed', metrics.general.assetsFinanced, 'General'],
     ['Lender Repayments', metrics.general.lenderRepayments, 'General'],
     ['Idle Capital', metrics.general.idleCapital, 'General'],
@@ -43,17 +51,28 @@ export function exportMetricsToCSV(metrics: AllMetrics): void {
     ['Life Since Inception (Days)', metrics.general.lifeSinceInception, 'General'],
     ['Avg Capital Recycling (Days)', metrics.general.avgCapitalRecycling, 'General'],
     ['Avg Capital Utilization (%)', metrics.general.averageCapitalUtilization, 'General'],
-    ['Capital Outstanding', metrics.oatfi.capitalOutstanding, 'OatFi'],
-    ['Principal Repayments', metrics.oatfi.principalRepayments, 'OatFi'],
-    ['Converted USDC', metrics.oatfi.convertedUsdc, 'OatFi'],
   ]
+  // a line of credit has no transacted volume and no OatFi breakdown: the line's own two figures close its rows
+  const rows: (string | number | bigint)[][] = isLineMetrics(metrics)
+    ? [
+        ...general,
+        ['Capital Outstanding', metrics.line.capitalOutstanding, 'Line of credit'],
+        ['Draws', metrics.line.draws, 'Line of credit'],
+      ]
+    : [
+        ['Transacted Volume', metrics.general.transactedVolume, 'General'],
+        ...general,
+        ['Capital Outstanding', metrics.oatfi.capitalOutstanding, 'OatFi'],
+        ['Principal Repayments', metrics.oatfi.principalRepayments, 'OatFi'],
+        ['Converted USDC', metrics.oatfi.convertedUsdc, 'OatFi'],
+      ]
 
   const csv = arrayToCSV(headers, rows)
   downloadCSV(csv, filename)
 }
 
-export function exportHistoricalToCSV(historical: HistoricalData): void {
-  const filename = `rwa-historical-${new Date().toISOString().split('T')[0]}.csv`
+export function exportHistoricalToCSV(historical: HistoricalData, facility: RWAFacility): void {
+  const filename = csvFilename(facility, 'historical')
 
   const allDates = new Set<string>()
   Object.values(historical).forEach((series: TimeSeriesDataPoint[]) => {
@@ -75,12 +94,14 @@ export function exportHistoricalToCSV(historical: HistoricalData): void {
     }
   }
 
-  const headers = ['Date', 'Transacted Volume', 'Assets Financed', 'Lender Repayments', 'Capital Utilization (%)', 'Committed Capital', 'Net Capital Position']
+  // a line of credit has no transacted volume, so its history has no column for it
+  const volume = !isLineFacility(facility)
+  const headers = ['Date', ...(volume ? ['Transacted Volume'] : []), 'Assets Financed', 'Lender Repayments', 'Capital Utilization (%)', 'Committed Capital', 'Net Capital Position']
   const rows = sortedDates.map((date) => {
     const values = valuesByDate.get(date) ?? {}
     return [
       date,
-      values.transactedVolume ?? '',
+      ...(volume ? [values.transactedVolume ?? ''] : []),
       values.assetsFinanced ?? '',
       values.lenderRepayments ?? '',
       values.capitalUtilization ?? '',
@@ -93,29 +114,35 @@ export function exportHistoricalToCSV(historical: HistoricalData): void {
   downloadCSV(csv, filename)
 }
 
-const TX_ADDRESS_LABELS: Record<string, string> = {
-  [normalizeAddress(ADDRESSES.TRANCHE_POOL)]: 'Tranche Pool',
-  [normalizeAddress(ADDRESSES.BORROWER_OPERATING)]: 'Borrower (OatFi)',
-  [normalizeAddress(ADDRESSES.LENDER_VALINOR)]: 'Lender (Valinor)',
-  [normalizeAddress(ADDRESSES.LENDER_AVALANCHE)]: 'Lender (Avalanche)',
+/** the export's name for each of the facility's addresses, by lower-cased address; a line's Spigot included */
+function txAddressLabels(facility: RWAFacility): Record<string, string> {
+  return Object.fromEntries([
+    [normalizeAddress(facility.pool.address), facility.pool.label],
+    [normalizeAddress(facility.borrower.address), `Borrower (${facility.borrower.partner})`],
+    ...facility.lenders.map((lender) => [normalizeAddress(lender.address), `Lender (${lender.partner})`]),
+    ...(isLineFacility(facility) ? [[normalizeAddress(facility.line.spigot.address), facility.line.spigot.label]] : []),
+  ])
 }
 
-function labelForAddress(address: string): string {
-  return TX_ADDRESS_LABELS[normalizeAddress(address)] ?? address
+function labelForAddress(labels: Record<string, string>, address: string): string {
+  return labels[normalizeAddress(address)] ?? address
 }
 
-export function exportTransactionsToCSV(transactions: TransactionRecord[]): void {
-  const filename = `rwa-transactions-${new Date().toISOString().split('T')[0]}.csv`
+export function exportTransactionsToCSV(transactions: TransactionRecord[], facility: RWAFacility): void {
+  const filename = csvFilename(facility, 'transactions')
+  const labels = txAddressLabels(facility)
+  // a line of credit's rows carry their type where OatFi's carry their direction
+  const line = isLineFacility(facility)
 
-  const headers = ['Date', 'From Address', 'From Label', 'To Address', 'To Label', 'Amount (USD)', 'Direction', 'Tx Hash']
+  const headers = ['Date', 'From Address', 'From Label', 'To Address', 'To Label', 'Amount (USD)', line ? 'Type' : 'Direction', 'Tx Hash']
   const rows = transactions.map((tx) => [
     tx.timestamp,
     tx.from,
-    labelForAddress(tx.from),
+    labelForAddress(labels, tx.from),
     tx.to,
-    labelForAddress(tx.to),
+    labelForAddress(labels, tx.to),
     bigintToNumber(typeof tx.amount === 'bigint' ? tx.amount : BigInt(tx.amount)),
-    tx.direction,
+    line ? (tx.kind ? LINE_EVENT_LABELS[tx.kind] : '') : tx.direction,
     tx.txHash,
   ])
 

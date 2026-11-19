@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { RwaDashboard, type RwaFeeds } from '@/components/explorer-v2/defi/RwaDashboard';
 import { EXPORTS } from '@/components/explorer-v2/defi/rwa-export';
+import { RWA_VIEWS } from '@/components/explorer-v2/defi/rwa-views';
 import { FENCE, FENCE_HISTORY, HISTORY, METRICS } from './rwa-fixtures';
 
 const FEEDS: RwaFeeds = {
@@ -16,7 +17,7 @@ const FEEDS: RwaFeeds = {
   fenceHistoryFailed: false,
 };
 
-const render = (feeds: RwaFeeds) => renderToStaticMarkup(<RwaDashboard slug="oatfi" feeds={feeds} onRefresh={async () => undefined} />);
+const render = (feeds: RwaFeeds) => renderToStaticMarkup(<RwaDashboard view={RWA_VIEWS.oatfi} feeds={feeds} onRefresh={async () => undefined} />);
 
 /* every figure, chart and control the old dashboard (fe63440ab^) showed, in the view's copy */
 const OLD_DASHBOARD = [

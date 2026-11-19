@@ -27,5 +27,5 @@ export default async function ChainDefiRwaPage({
 }) {
   const { network, chain } = await params;
   if (network !== "mainnet" || chain !== "c-chain") redirect("/explorer/mainnet/c-chain/defi");
-  return <DefiRwa />;
+  return <DefiRwa slug="oatfi" />;
 }
