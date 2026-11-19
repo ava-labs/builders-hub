@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { NodeRegistration, RegisterSubnetResponse } from "@/components/toolbox/console/testnet-infra/managed-testnet-nodes/types";
 import posthog from 'posthog-js';
+import { readJsonResponse } from '@/lib/read-json-response';
 
 export function useManagedTestnetNodes() {
     const [nodes, setNodes] = useState<NodeRegistration[]>([]);
@@ -22,7 +23,7 @@ export function useManagedTestnetNodes() {
                 },
             });
 
-            const data = await response.json();
+            const data = await readJsonResponse(response);
 
             if (!response.ok || data.error) {
                 throw new Error(data.message || data.error || 'Failed to fetch nodes');
@@ -52,7 +53,7 @@ export function useManagedTestnetNodes() {
                 })
             });
 
-            const data = await response.json();
+            const data = await readJsonResponse(response);
 
             if (!response.ok) {
                 if (response.status === 429) {
@@ -108,7 +109,7 @@ export function useManagedTestnetNodes() {
                 });
             }
 
-            const data = await response.json();
+            const data = await readJsonResponse(response);
 
             if (!response.ok || data.error) {
                 // Track error

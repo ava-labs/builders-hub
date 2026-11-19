@@ -104,7 +104,7 @@ async function handleCreateNode(request: NextRequest): Promise<NextResponse> {
         },
       }, 201);
     } else {
-      return jsonError(502, 'No nodes returned from Builder Hub');
+      return jsonError(503, 'No nodes returned from Builder Hub');
     }
 
   } catch (error) {

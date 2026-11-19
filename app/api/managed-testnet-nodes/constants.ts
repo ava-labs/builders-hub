@@ -1,3 +1,4 @@
+import { withQuickL1WafToken } from '@/lib/quick-l1/waf';
 
 // The OCI deployment. One service replaces the prod/staging EC2 pair, so
 // previews and production share it. MANAGED_NODES_OVERRIDE still wins locally.
@@ -29,8 +30,10 @@ export const ManagedTestnetNodesServiceURLs = {
     return `${MANAGED_TESTNET_NODES_SERVICE_URL}/node_admin/subnets/add/${subnetId}?${params.toString()}`;
   },
 
+  // The avax.network WAF blocks deletes from Vercel without the bypass token
+  // that the Quick L1 calls already send.
   deleteNode: (subnetId: string, nodeIndex: number) =>
-    `${MANAGED_TESTNET_NODES_SERVICE_URL}/node_admin/subnets/delete/${subnetId}/${nodeIndex}`,
+    withQuickL1WafToken(`${MANAGED_TESTNET_NODES_SERVICE_URL}/node_admin/subnets/delete/${subnetId}/${nodeIndex}`),
 
   upgradeJson: (subnetId: string, nodeIndex: number, blockchainId: string) => {
     const params = new URLSearchParams({ blockchainId });
