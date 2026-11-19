@@ -282,6 +282,18 @@ model NodeRegistration {
   @@index([subnet_id])
 }
 
+/// One row per Quick L1 deployment or managed testnet node sent to the upstream service. The
+/// daily per-account caps count these (server/services/provision-quota.ts). No relation to User,
+/// so a stale session cannot fail the insert; only the last 24 hours of rows are ever read.
+model ProvisionAttempt {
+  id         String   @id @default(uuid())
+  user_id    String
+  kind       String
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([user_id, kind, created_at])
+}
+
 model ConsoleLog {
   id          String   @id @default(uuid())
   user_id     String
