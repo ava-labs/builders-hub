@@ -39,7 +39,7 @@ const cChainClient = createCChainClient({
 
 The C-Chain Client provides methods for:
 
-- **Atomic Transaction Operations**: `getAtomicTx`, `getAtomicTxStatus`
+- **Atomic Transaction Operations**: `getAtomicTx` (`getAtomicTxStatus` is also exposed, but AvalancheGo v1.15.2 removed the method it calls)
 - **UTXO Operations**: `getUTXOs`
 - **Transaction Operations**: `issueTx`
 
@@ -61,12 +61,13 @@ console.log("Source chain:", atomicTx.sourceChain);
 console.log("Destination chain:", atomicTx.destinationChain);
 console.log("Transfers:", atomicTx.transfers);
 
-// Get atomic transaction status
-const status = await client.cChain.getAtomicTxStatus({
+// Check that an atomic transaction was accepted.
+// getAtomicTx fails until the transaction is accepted and its block is executed.
+const acceptedTx = await client.cChain.getAtomicTx({
   txID: "2QouvMUbQ6oy7yQ9tLvL3L8tGQG2QK1wJ1q1wJ1q1wJ1q1wJ1q1wJ1q1wJ1",
 });
 
-console.log("Status:", status.status);
+console.log("Block height:", acceptedTx.blockHeight);
 ```
 
 ### Query UTXOs
