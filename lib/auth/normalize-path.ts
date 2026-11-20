@@ -27,3 +27,12 @@ export function normalizePathname(pathname: string): string {
   }
   return `/${segments.join('/')}`;
 }
+
+/**
+ * True when a catch-all slug points into the Team1 Academy. One segment can
+ * hold an encoded slash (`team1%2Fcourse` arrives as `team1/course`), and the
+ * page lookup joins the segments, so join them before the compare.
+ */
+export function isTeam1Slug(slug: readonly string[] | undefined): boolean {
+  return normalizePathname((slug ?? []).join('/')).split('/')[1] === 'team1';
+}
