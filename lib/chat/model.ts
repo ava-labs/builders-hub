@@ -9,12 +9,13 @@ export const CHAT_MODEL = 'claude-sonnet-5-5';
 /** What every request sets.
     maxOutputTokens: the provider sends a model's own cap only for the models it knows and gives every other
     model 4,096 tokens, which the thinking shares with the answer. Studio and Query set their cap for the same
-    reason, and this is Query's.
-    effort: the API runs Sonnet 5.5 at high, where it thinks before almost every reply. Low is Anthropic's
-    starting point for chat and search: the first words come sooner. */
+    reason. 8,000 tokens keep the output of one model step at 8 cents at most, at the list price of $10 per
+    million.
+    effort: the API default is high, and the chat ran at it on Sonnet 5. Medium is one level down, and it is
+    Anthropic's starting point for work with several tool steps. */
 export const CHAT_SETTINGS = {
-  maxOutputTokens: 16_000,
-  providerOptions: { anthropic: { effort: 'low' as const } },
+  maxOutputTokens: 8_000,
+  providerOptions: { anthropic: { effort: 'medium' as const } },
 };
 
 /** The browser's messages without the thinking of the turns they hold. The route writes part of the system prompt

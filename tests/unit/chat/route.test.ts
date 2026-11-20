@@ -134,13 +134,13 @@ const answered = {
 describe('the request the chat route sends to Anthropic', () => {
   it('sets its own output cap: the provider sends 4,096 tokens for a model it does not know', async () => {
     const request = await sentFor([asks('u1', 'What is an L1?')]);
-    expect(request.max_tokens).toBe(16_000);
+    expect(request.max_tokens).toBe(8_000);
   });
 
-  it('runs Sonnet 5.5 at low effort, where the API would run it at high', async () => {
+  it('runs Sonnet 5.5 at medium effort, where the API would run it at high', async () => {
     const request = await sentFor([asks('u1', 'What is an L1?')]);
     expect(request.model).toBe('claude-sonnet-5-5');
-    expect(request.output_config).toEqual({ effort: 'low' });
+    expect(request.output_config).toEqual({ effort: 'medium' });
   });
 
   // The route writes a new system prompt for each question, and Sonnet 5.5 can refuse thinking that comes back
