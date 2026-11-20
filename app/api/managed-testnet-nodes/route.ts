@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { rateLimited, getUserId, validateSubnetId, jsonOk, jsonError } from './utils';
+import { rateLimited, getUserId, validateSubnetId, isLiveRegistration, jsonOk, jsonError } from './utils';
 import {
   builderHubAddNode,
   builderHubDeleteNode,
@@ -152,7 +152,10 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
 
     if (record.node_index !== null && record.node_index !== undefined) {
       try {
-        const { deletedExternally } = await builderHubDeleteNode(record.subnet_id, record.node_index);
+        // Only a live registration still holds its slot in the node service.
+        const deletedExternally = isLiveRegistration(record)
+          ? (await builderHubDeleteNode(record.subnet_id, record.node_index)).deletedExternally
+          : false;
         await prisma.nodeRegistration.update({ where: { id }, data: { status: 'terminated' } });
         return jsonOk({
           success: true,

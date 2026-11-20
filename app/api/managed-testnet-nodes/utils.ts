@@ -29,6 +29,13 @@ export function validateSubnetId(subnetId: string): boolean {
   return typeof subnetId === 'string' && subnetId.length >= 40 && subnetId.length <= 60;
 }
 
+// The node service keys a node on (subnet, node index), reuses a freed slot, and knows
+// nothing about accounts. A registration holds its slot only while it is active and
+// unexpired. Never send a stale one to the service: another account can hold the slot.
+export function isLiveRegistration(row: { status: string; expires_at: Date }): boolean {
+  return row.status === 'active' && row.expires_at.getTime() > Date.now();
+}
+
 export function toDateFromEpoch(epoch: number): Date {
   const ms = epoch > 1e12 ? epoch : epoch * 1000;
   return new Date(ms);

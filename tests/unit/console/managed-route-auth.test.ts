@@ -182,3 +182,40 @@ describe('the owner', () => {
     expect(rows[0].status).toBe('terminated');
   });
 });
+
+// The node service keys a node on (subnet, node index) and reuses a freed slot. A
+// registration that is terminated or expired no longer holds its slot, so it must not
+// reach the service: another account can hold that slot by then.
+describe('a stale registration for a slot that another account now holds', () => {
+  const stale = (patch: Row) => rows.push({ ...rows[0], id: 'row-stale', user_id: OTHER, ...patch });
+  const byId = () => nodes.DELETE(req('/api/managed-testnet-nodes?id=row-stale', { method: 'DELETE' }));
+  beforeEach(() => as(OTHER));
+
+  it.each<[string, Row]>([
+    ['a terminated row', { status: 'terminated' }],
+    ['an expired row', { expires_at: new Date(Date.now() - 1000) }],
+  ])('delete by row id of %s calls no node service', async (_name, patch) => {
+    stale(patch);
+    const res = await byId();
+    expect(res.status).toBe(200);
+    expect((await res.json()).deletedExternally).toBe(false);
+    for (const fn of Object.values(service)) expect(fn).not.toHaveBeenCalled();
+    expect(rows.map((r) => r.status)).toEqual(['active', 'terminated']);
+  });
+
+  it('delete by subnet and node index of an expired row calls no node service', async () => {
+    stale({ expires_at: new Date(Date.now() - 1000) });
+    const res = await node.DELETE(req('/x', { method: 'DELETE' }), nodeParams);
+    expect(res.status).toBe(200);
+    expect((await res.json()).deletedExternally).toBe(false);
+    for (const fn of Object.values(service)) expect(fn).not.toHaveBeenCalled();
+    expect(rows.map((r) => r.status)).toEqual(['active', 'terminated']);
+  });
+
+  it('a live row still deletes the node in the node service', async () => {
+    rows[0].user_id = OTHER;
+    const res = await nodes.DELETE(req('/api/managed-testnet-nodes?id=row-owner', { method: 'DELETE' }));
+    expect((await res.json()).deletedExternally).toBe(true);
+    expect(service.builderHubDeleteNode).toHaveBeenCalledWith(SUBNET, 1);
+  });
+});
