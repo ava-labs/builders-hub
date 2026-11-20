@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { rateLimited, getUserId, validateSubnetId, jsonOk, jsonError } from './utils';
+import {
+  rateLimited,
+  getUserId,
+  validateSubnetId,
+  validateBlockchainId,
+  isLiveRegistration,
+  jsonOk,
+  jsonError,
+} from './utils';
 import {
   builderHubAddNode,
   builderHubDeleteNode,
@@ -67,6 +75,16 @@ async function handleCreateNode(request: NextRequest): Promise<NextResponse> {
         {
           error: 'Bad request',
           message: 'Invalid subnet ID format'
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!validateBlockchainId(blockchainId)) {
+      return NextResponse.json(
+        {
+          error: 'Bad request',
+          message: 'Invalid blockchain ID format'
         },
         { status: 400 }
       );
@@ -152,7 +170,10 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
 
     if (record.node_index !== null && record.node_index !== undefined) {
       try {
-        const { deletedExternally } = await builderHubDeleteNode(record.subnet_id, record.node_index);
+        // Only a live registration still holds its slot in the node service.
+        const deletedExternally = isLiveRegistration(record)
+          ? (await builderHubDeleteNode(record.subnet_id, record.node_index)).deletedExternally
+          : false;
         await prisma.nodeRegistration.update({ where: { id }, data: { status: 'terminated' } });
         return jsonOk({
           success: true,

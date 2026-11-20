@@ -5,7 +5,7 @@ export let MANAGED_TESTNET_NODES_SERVICE_URL =
   process.env.MANAGED_NODES_OVERRIDE || 'https://managed-nodes.avax.network';
 
 // Legacy EC2 box. Still serving chains created before the cutover, so the
-// studio keeps probing it as a fallback candidate — see
+// studio keeps probing it as a fallback candidate: see
 // server/services/studio/quick-l1.ts. Remove once those chains have expired.
 export const MANAGED_NODES_PRODUCTION_URL = 'https://nodes-prod.43.207.73.245.sslip.io';
 
@@ -23,22 +23,23 @@ export const ManagedTestnetNodesServiceURLs = {
   // chains rather than their L1's explorer.
   // The admin password goes in the x-admin-password header, not the URL, so it
   // stays out of request logs.
+  // Each subnet ID is encoded, so a stored value cannot leave its path segment.
   addNode: (subnetId: string, blockchainId: string, chainName: string | null) => {
     const params = new URLSearchParams({ blockchainId });
     if (chainName) params.set('chainName', chainName);
-    return `${MANAGED_TESTNET_NODES_SERVICE_URL}/node_admin/subnets/add/${subnetId}?${params.toString()}`;
+    return `${MANAGED_TESTNET_NODES_SERVICE_URL}/node_admin/subnets/add/${encodeURIComponent(subnetId)}?${params.toString()}`;
   },
 
   deleteNode: (subnetId: string, nodeIndex: number) =>
-    `${MANAGED_TESTNET_NODES_SERVICE_URL}/node_admin/subnets/delete/${subnetId}/${nodeIndex}`,
+    `${MANAGED_TESTNET_NODES_SERVICE_URL}/node_admin/subnets/delete/${encodeURIComponent(subnetId)}/${nodeIndex}`,
 
   upgradeJson: (subnetId: string, nodeIndex: number, blockchainId: string) => {
     const params = new URLSearchParams({ blockchainId });
-    return `${MANAGED_TESTNET_NODES_SERVICE_URL}/node_admin/subnets/${subnetId}/${nodeIndex}/upgrade-json?${params.toString()}`;
+    return `${MANAGED_TESTNET_NODES_SERVICE_URL}/node_admin/subnets/${encodeURIComponent(subnetId)}/${nodeIndex}/upgrade-json?${params.toString()}`;
   },
 
   restartNode: (subnetId: string, nodeIndex: number) =>
-    `${MANAGED_TESTNET_NODES_SERVICE_URL}/node_admin/subnets/${subnetId}/${nodeIndex}/restart`,
+    `${MANAGED_TESTNET_NODES_SERVICE_URL}/node_admin/subnets/${encodeURIComponent(subnetId)}/${nodeIndex}/restart`,
 
   rpcEndpoint: (blockchainId: string) =>
     `${MANAGED_TESTNET_NODES_SERVICE_URL}/ext/bc/${blockchainId}/rpc`
