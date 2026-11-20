@@ -45,7 +45,6 @@ interface StaticChainProps {
   description?: string;
   website?: string;
   rpcUrl?: string;
-  blockchainId?: string;
   socials?: { twitter?: string; linkedin?: string };
   sourcifySupport?: boolean;
   priced?: boolean;
@@ -75,7 +74,6 @@ export function ChainExplorerLayoutClient(props: ChainExplorerLayoutClientProps)
       description,
       website,
       rpcUrl,
-      blockchainId,
       socials,
       sourcifySupport,
       priced,
@@ -109,7 +107,6 @@ export function ChainExplorerLayoutClient(props: ChainExplorerLayoutClientProps)
           description={description}
           website={website}
           rpcUrl={rpcUrl}
-          blockchainId={blockchainId}
           socials={socials}
         >
           {children}
@@ -212,7 +209,6 @@ function CustomChainLoader({
         description={chain.description}
         website={chain.website}
         rpcUrl={chain.rpcUrl}
-        blockchainId={chain.blockchainId}
         socials={chain.socials}
       >
         {children}

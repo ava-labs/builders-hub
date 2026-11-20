@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import l1ChainsData from '@/constants/l1-chains.json';
-import { assertPublicRpcTarget } from '@/lib/rpcUrlValidator';
 
 interface RpcTransaction {
   hash: string;
@@ -56,27 +55,17 @@ async function fetchFromRPC(rpcUrl: string, method: string, params: unknown[] = 
 }
 
 export async function GET(
-  request: Request,
+  _request: Request,
   { params }: { params: Promise<{ chainId: string; blockNumber: string }> }
 ) {
   const { chainId, blockNumber } = await params;
 
-  // Get query params for custom chains
-  const { searchParams } = new URL(request.url);
-  const customRpcUrl = searchParams.get('rpcUrl');
-
-  if (customRpcUrl && !(await assertPublicRpcTarget(customRpcUrl))) {
-    return NextResponse.json(
-      { error: 'Invalid rpcUrl: must use https and must not target private or loopback addresses.' },
-      { status: 400 }
-    );
-  }
-
-  const chain = l1ChainsData.find(c => c.chainId === chainId);
-  const rpcUrl = chain?.rpcUrl || customRpcUrl;
+  // The RPC comes from the chain list only: the server never fetches a URL
+  // that the caller supplies.
+  const rpcUrl = l1ChainsData.find(c => c.chainId === chainId)?.rpcUrl;
 
   if (!rpcUrl) {
-    return NextResponse.json({ error: 'Chain not found or RPC URL missing. Provide rpcUrl query parameter for custom chains.' }, { status: 404 });
+    return NextResponse.json({ error: 'Chain not found or RPC URL missing.' }, { status: 404 });
   }
 
   try {
