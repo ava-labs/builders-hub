@@ -9,14 +9,23 @@ import {
   checkL1Alert,
   sendWelcomeEmail,
 } from '@/server/services/validator-alert-check';
+import {
+  cycleUptime,
+  getAutoRenewPeriods,
+  stakeEndFor,
+  stakeRenews,
+  type AutoRenewPeriods,
+} from '@/server/services/validator-auto-renew';
 import { getAllMainnetSubnetIds } from '@/server/services/l1-chain-metadata';
 import { isValidEmail } from "@/lib/email";
 import { EXPLORER_API_BASE } from '@/lib/pchain-explorer';
 
-const NODE_ID_REGEX = /^NodeID-[A-HJ-NP-Za-km-z1-9]{33,}$/;
+const NODE_ID_REGEX = /^NodeID-[A-HJ-NP-Za-km-z1-9]{32,}$/;
 const P2P_API_URL = `${EXPLORER_API_BASE}/api/mainnet/fleet/validators`;
 const MAX_ALERTS_PER_USER = 20;
 const MAX_CREATES_PER_HOUR = 10;
+// A request waits for the P-Chain read on a cache miss, so it gets a short timeout.
+const LIST_PCHAIN_TIMEOUT_MS = 3000;
 
 export async function GET() {
   try {
@@ -25,8 +34,15 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized, please sign in to continue.' }, { status: 401 });
     }
 
+    // Imported rows have user_id null. Prisma drops a filter whose value is
+    // undefined, so a session without an id must not reach the query.
+    const userId = session.user.id;
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized, please sign in to continue.' }, { status: 401 });
+    }
+
     const alerts = await prisma.validatorAlert.findMany({
-      where: { user_id: session.user.id },
+      where: { user_id: userId },
       include: {
         alert_logs: {
           orderBy: { sent_at: 'desc' },
@@ -36,7 +52,23 @@ export async function GET() {
       orderBy: { created_at: 'desc' },
     });
 
-    return NextResponse.json(alerts);
+    // The cached mainnet map (one P-Chain read per minute). A failed read gives null, not an error.
+    let periods: AutoRenewPeriods | null = null;
+    if (alerts.some((a) => a.subnet_id === 'primary')) {
+      try {
+        periods = await getAutoRenewPeriods({ timeoutMs: LIST_PCHAIN_TIMEOUT_MS });
+      } catch (err) {
+        console.error('Auto-renew read failed (non-fatal):', err);
+      }
+    }
+
+    return NextResponse.json(
+      alerts.map((a) => ({
+        ...a,
+        stake_renews: a.subnet_id === 'primary' ? stakeRenews(a.node_id, periods) : null,
+        cycle_uptime: a.subnet_id === 'primary' ? cycleUptime(a.node_id, periods) : null,
+      })),
+    );
   } catch (error) {
     console.error('Error fetching validator alerts:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -46,7 +78,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const session = await getAuthSession();
-    if (!session?.user) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized, please sign in to continue.' }, { status: 401 });
     }
 
@@ -214,13 +246,20 @@ export async function POST(req: NextRequest) {
     }
 
     // Run immediate checks + welcome email after creation.
-    const [releaseResult] = await Promise.allSettled([fetchLatestRelease()]);
+    const [releaseResult, autoRenewResult] = await Promise.allSettled([
+      fetchLatestRelease(),
+      isL1 ? Promise.resolve(null) : getAutoRenewPeriods({ timeoutMs: LIST_PCHAIN_TIMEOUT_MS }),
+    ]);
     const latestRelease = releaseResult.status === 'fulfilled' ? releaseResult.value : null;
+    // Null when the P-Chain read failed: the stake end is unknown.
+    const autoRenewPeriods = autoRenewResult.status === 'fulfilled' ? autoRenewResult.value : null;
+    // Expiry alerts and the welcome email's expiry date need a known stake end.
+    const primaryStakeEnd = stakeEndFor(body.node_id, autoRenewPeriods, primaryValidator?.p50_uptime ?? 0);
 
     let l1ValidatorForWelcome: L1ValidatorData | null = null;
     try {
       if (!isL1 && primaryValidator) {
-        await checkSingleAlert(txResult.alert, primaryValidator, latestRelease);
+        await checkSingleAlert(txResult.alert, primaryValidator, latestRelease, primaryStakeEnd);
       } else if (isL1) {
         const l1Validators = await fetchL1Validators(detectedSubnetId);
         l1ValidatorForWelcome = l1Validators.find((v) => v.nodeId === body.node_id) ?? null;
@@ -238,6 +277,7 @@ export async function POST(req: NextRequest) {
         await sendWelcomeEmail(txResult.alert, {
           primaryValidator,
           latestRelease,
+          stakeEndIsFinal: primaryStakeEnd === 'final',
         });
       } else {
         await sendWelcomeEmail(txResult.alert, {
@@ -259,7 +299,14 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json(responseAlert ?? txResult.alert, { status: 201 });
+    return NextResponse.json(
+      {
+        ...(responseAlert ?? txResult.alert),
+        stake_renews: isL1 ? null : stakeRenews(body.node_id, autoRenewPeriods),
+        cycle_uptime: isL1 ? null : cycleUptime(body.node_id, autoRenewPeriods),
+      },
+      { status: 201 },
+    );
   } catch (error) {
     console.error('Error creating validator alert:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

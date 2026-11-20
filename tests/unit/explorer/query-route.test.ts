@@ -5,7 +5,8 @@ const checkChatRateLimit = vi.hoisted(() => vi.fn(() => ({ allowed: true, limit:
 const sourceNotes = vi.hoisted(() => vi.fn());
 
 vi.mock('@/lib/explorer-query/answer', () => ({ answerQuestion, drillSql: vi.fn() }));
-vi.mock('@/lib/explorer-query/visual', () => ({ designVisual: vi.fn(), writeReading: vi.fn() }));
+vi.mock('@/lib/explorer-query/visual', () => ({ designVisual: vi.fn() }));
+vi.mock('@/lib/explorer-query/reading', () => ({ writeReading: vi.fn() }));
 vi.mock('@/lib/explorer-query/clickhouse', () => ({ runQuery: vi.fn(), anchored: vi.fn(), indexState: vi.fn(async () => null) }));
 vi.mock('@/lib/explorer-query/sources', () => ({ sourceNotes }));
 vi.mock('@/lib/auth/authSession', () => ({ getAuthSession: vi.fn(async () => null) }));

@@ -38,8 +38,8 @@ import {
  *   (config/config.go:739-743), and signer.key (node/node.go:1838). The default path is ~/.avalanchego/staking
  *   (config/flags.go:50-53). So the new node state syncs with a different Node ID, and it validates only after
  *   the copy.
- * - state-sync-enabled is true by default (vms/saevm/cchain/config.go:130), and a node state syncs only if it has
- *   accepted no block after genesis (vms/saevm/statesync/README.md:28). That is why the new node starts with an
+ * - state-sync-enabled is true by default (vms/evm/imp/cchain/config.go:130), and a node state syncs only if it has
+ *   accepted no block after genesis (vms/evm/statesync/README.md:28). That is why the new node starts with an
  *   empty database.
  *
  * Two drawings of the same content: a wide one (720 units) with time from left to right and the step numbers on

@@ -1,6 +1,7 @@
 import { sendMail } from './mail';
 import { type EventsLang, t } from '@/lib/events/i18n';
 import he from 'he';
+import { BRAND, emailSection, renderEmail } from '@/server/templates/email-layout';
 
 const escapeHtml = he.escape.bind(he);
 
@@ -35,10 +36,9 @@ export async function sendInvitation(
     : t(lang, "invitation.email.body", { inviterName });
   const headline = useHackathonCopy ? hackathon!.title : projectName;
   const ignore = t(lang, "invitation.email.ignore");
-  const footer = t(lang, "invitation.email.footer");
 
   // Plain-text part keeps the raw values; only the HTML part needs escaping.
-  const text = `${body} "${headline}" — ${inviteLink}`;
+  const text = `${body} "${headline}": ${inviteLink}`;
   const safeInviterName = escapeHtml(inviterName);
   const safeHeadline = escapeHtml(headline);
   // inviteLink must be https or a relative path; strip anything else to prevent javascript: injection
@@ -48,32 +48,21 @@ export async function sendInvitation(
   // Same policy as the invite link: only absolute http(s) URLs make it into the email.
   const safeBannerUrl =
     hackathon?.banner && /^https?:\/\//i.test(hackathon.banner) ? hackathon.banner : "";
-  const bannerHtml = safeBannerUrl
-    ? `<img src="${escapeHtml(safeBannerUrl)}" alt="${escapeHtml(hackathon!.title)}" style="width: 100%; max-height: 160px; object-fit: cover; border-radius: 8px 8px 0 0; margin-bottom: 0;">`
-    : "";
-  const html = `
-    <div style="background-color: #18181B; color: white; font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border-radius: 8px; border: 1px solid #EF4444; text-align: center;">
-      ${bannerHtml}
-      <h2 style="color: white; font-size: 20px; margin: ${bannerHtml ? "16px 0" : "0 0 16px"};">${escapeHtml(title)}</h2>
-
-      <div style="background-color: #27272A; border: 1px solid #EF4444; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-        <p style="font-size: 16px; color: #F87171; margin-bottom: 10px;">
-          <strong>${safeInviterName}</strong> ${safeBody.replace(`${safeInviterName} `, '')}
-        </p>
-        <p style="font-size: 20px; font-weight: bold; color: #EF4444; margin: 8px 0;">"${safeHeadline}"</p>
-        <a href="${escapeHtml(safeLinkHref)}" target="_blank" style="display: inline-block; margin-top: 20px; padding: 10px 20px; background-color: #EF4444; color: white; text-decoration: none; border-radius: 4px; font-weight: bold;">
-          ${escapeHtml(cta)}
-        </a>
-      </div>
-
-      <p style="font-size: 12px; color: #A1A1AA;">${escapeHtml(ignore)}</p>
-
-      <div style="margin-top: 20px;">
-        <img src="https://build.avax.network/logo-white.png" alt="Builder Hub" style="max-width: 120px; margin-bottom: 10px;">
-        <p style="font-size: 12px; color: #A1A1AA;">${escapeHtml(footer)}</p>
-      </div>
-    </div>
-    `;
+  const html = renderEmail({
+    title,
+    product: useHackathonCopy ? 'Builder Hub events' : 'Builder Hub',
+    hero: 'team',
+    heroUrl: safeBannerUrl || undefined,
+    accent: BRAND.gray,
+    chip: 'Invitation',
+    content: emailSection(
+      BRAND.red,
+      `<strong style="color: ${BRAND.text};">${safeInviterName}</strong> ${safeBody.replace(`${safeInviterName} `, '')} <span style="color: ${BRAND.red};">${safeHeadline}</span>`,
+      '',
+    ),
+    cta: { label: cta, url: safeLinkHref },
+    reason: escapeHtml(ignore),
+  });
   try {
     await sendMail(email, html, subject, text);
   } catch (error) {

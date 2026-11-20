@@ -8,8 +8,18 @@ if (process.env.SENDGRID_BASE_URL) {
 sgMail.setClient(sgClient);
 
 
-export async function sendMail(email: string, htmlTemplate: string,subject: string,text:string) {
-    console.log('Sending email to:', email);
+/**
+ * `logRecipient: false` keeps the address out of the logs, for scripts that must not
+ * print personal data (scripts/notify-migration/import.ts).
+ */
+export async function sendMail(
+  email: string,
+  htmlTemplate: string,
+  subject: string,
+  text: string,
+  { logRecipient = true }: { logRecipient?: boolean } = {},
+) {
+    if (logRecipient) console.log('Sending email to:', email);
     const from = {
         email: process.env.EMAIL_FROM as string,
         name: "Avalanche Builder's Hub"
@@ -26,7 +36,9 @@ export async function sendMail(email: string, htmlTemplate: string,subject: stri
       try {
         await sgMail.send(msg);
       } catch (error) {
-        console.error('Error sending email:', error);
-        throw new Error(`Error sending email: ${error}`);
+        // A provider error can quote the recipient.
+        const detail = logRecipient ? error : ((error as { code?: unknown })?.code ?? 'unknown');
+        console.error('Error sending email:', detail);
+        throw new Error(`Error sending email: ${detail}`);
       }
 }

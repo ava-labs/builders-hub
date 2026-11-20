@@ -12,6 +12,7 @@ import { getBlockchainInfo } from '../../../components/toolbox/coreViem/utils/gl
 import { CreateNodeRequest, SubnetStatusResponse } from './types';
 import { prisma } from '@/prisma/prisma';
 import { SUBNET_EVM_VM_ID } from '@/constants/console';
+import { reserveDailyProvision, retryAfterSeconds } from '@/server/services/provision-quota';
 
 // Types moved to ./types
 
@@ -76,6 +77,16 @@ async function handleCreateNode(request: NextRequest): Promise<NextResponse> {
     const chainName: string | null = blockchainInfo.blockchainName || null;
     if (blockchainInfo.vmId !== SUBNET_EVM_VM_ID) {
       return jsonError(400, `Unsupported VM for this service. Expected Subnet EVM (vmID ${SUBNET_EVM_VM_ID}), got ${blockchainInfo.vmId}.`);
+    }
+
+    // Daily cap per account (MANAGED_TESTNET_NODES_DAILY_CREATES), counted on
+    // every attempt sent to the node service, so deleting and re-creating
+    // nodes cannot get around the 3-active limit above.
+    const quota = await reserveDailyProvision(userId!, 'managed-testnet-node');
+    if (!quota.allowed) {
+      const response = jsonError(429, quota.message);
+      response.headers.set('retry-after', retryAfterSeconds(quota.resetAt));
+      return response;
     }
 
     // Make the request to Builder Hub API to add node. Pass blockchainId

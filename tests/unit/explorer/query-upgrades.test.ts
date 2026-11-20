@@ -7,7 +7,7 @@ import { literalWindow } from '@/lib/explorer-query/guard';
 import { pchainPrompt, promptVersion, shareTurn, systemPrompt, userTurn } from '@/lib/explorer-query/prompt';
 import { scoped } from '@/lib/explorer-query/scope';
 import { markUpgrades, namedUpgrades, namesUpgrade, upgradeLines, upgradeTurn, upgradesLine } from '@/lib/explorer-query/upgrades';
-import type { VisualSpec } from '@/lib/explorer-query/visual';
+import type { VisualSpec } from '@/lib/explorer-query/visual-spec';
 
 /* Network upgrades in Query. A tester asked the mainnet P-Chain "has the % of circulating avax staked increased
    since the helicon upgrade" and got no chart in 6 of 6 runs: the writer had no upgrade date. */

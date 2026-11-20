@@ -174,9 +174,8 @@ Avalanche has three primary chains:
 const validators = await client.pChain.getCurrentValidators({});
 
 // X-Chain
-const balance = await client.xChain.getBalance({
-  address: "X-avax1example...",
-  assetID: "AVAX",
+const utxos = await client.xChain.getUTXOs({
+  addresses: ["X-avax1example..."],
 });
 
 // C-Chain

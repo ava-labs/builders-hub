@@ -4,7 +4,7 @@
    the hour, 59.3 AVAX, where the 20 paid 6.4. And an extreme of the rows' own averages says average. */
 
 import type { Totals } from "./types";
-import type { Panel, Stat } from "./visual";
+import type { Panel, Stat } from "./visual-spec";
 
 /** a stat's figure over the whole answer, when a LIMIT cut its rows and its totals were read, or null */
 export function wholeFigure(totals: Totals | null | undefined, s: Pick<Stat, "agg" | "column">): number | null {

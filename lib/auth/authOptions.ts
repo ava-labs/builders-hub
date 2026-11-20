@@ -7,6 +7,7 @@ import { encode, JWT } from 'next-auth/jwt';
 import { randomInt, randomUUID } from 'crypto';
 import type { VerifyOTPResult } from '@/types/verifyOTPResult';
 import { upsertUser } from '@/server/services/auth';
+import { claimLegacyValidatorAlerts } from '@/server/services/legacy-validator-alerts';
 import { badgeAssignmentService } from '@/server/services/badgeAssignmentService';
 import { BadgeCategory } from '@/server/services/badge';
 import type { User as PrismaUser } from '@prisma/client';
@@ -257,6 +258,7 @@ export const AuthOptions: NextAuthOptions = {
               data: { last_login: new Date() },
               select: { id: true },
             });
+            await claimLegacyValidatorAlerts(existingUser.id, user.email!);
           }
           // If user doesn't exist, don't create them yet
           // They will be created after accepting terms
@@ -267,6 +269,7 @@ export const AuthOptions: NextAuthOptions = {
         // For OAuth providers (Google, GitHub, Twitter), create/update user immediately
         const dbUser = await upsertUser(user, account, profile);
         user.id = dbUser.id;
+        await claimLegacyValidatorAlerts(dbUser.id, user.email!);
 
         if (account?.provider == 'github') {
           await badgeAssignmentService.assignBadge({

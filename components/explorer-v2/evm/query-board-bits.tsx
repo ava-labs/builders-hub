@@ -10,7 +10,8 @@ import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
 import { cn } from "@/lib/utils";
 import { SIZE_SPAN, sortedTiles, type Board, type Tile } from "@/lib/explorer-query/board";
 import type { QueryResult } from "@/lib/explorer-query/clickhouse";
-import type { Names } from "@/lib/explorer-query/types";
+import { tileVisual } from "@/lib/explorer-query/tile-visual";
+import type { Names, Totals } from "@/lib/explorer-query/types";
 
 /* ------------------------------------------------------------------ */
 /* the refresh queue: the query route is shared and rate limited, so a  */
@@ -44,6 +45,8 @@ export interface SqlRun {
   sql: string;
   result: QueryResult;
   names: Names;
+  /** the whole result's figures, when a LIMIT cut the rows */
+  totals?: Totals | null;
   anchor?: string | null;
 }
 
@@ -213,9 +216,74 @@ function Glyph({ tile }: { tile: Tile }) {
         <line x1="3" y1="16" x2="28" y2="16" className={ink} strokeWidth="1.2" strokeLinecap="round" />
       </svg>
     );
-  // a metric tile draws its first series' mark
-  const panel = tile.kind === "chart" ? (tile.panelIndex !== null ? tile.visual.panels[tile.panelIndex] : tile.visual.panels[0]) : undefined;
-  const kind = tile.kind === "metric" ? (tile.series[0]?.mark ?? "line") : (tile.view ?? panel?.kind ?? "table");
+  // a metric tile draws its first series' mark; a chart tile its first panel, in the kind the tile draws it in
+  const panel = tile.kind === "chart" ? tileVisual(tile).panels[0] : undefined;
+  const kind = tile.kind === "metric" ? (tile.series[0]?.mark ?? "line") : tile.kind === "chart" && tile.figures ? "figures" : (panel?.kind ?? "table");
+  // an answer's figures: a label over each figure
+  if (kind === "figures")
+    return (
+      <svg viewBox="0 0 40 20" className="h-full w-full" preserveAspectRatio="none" aria-hidden>
+        {[3, 15.5, 28].map((x) => (
+          <Fragment key={x}>
+            <line x1={x} y1="7" x2={x + 5} y2="7" className={ink} strokeWidth="1" strokeLinecap="round" />
+            <line x1={x} y1="13" x2={x + 8} y2="13" className="stroke-zinc-500 dark:stroke-zinc-400" strokeWidth="2.6" strokeLinecap="round" />
+          </Fragment>
+        ))}
+      </svg>
+    );
+  // each row's figure before (the light dot) and now, with the line between them
+  if (kind === "dumbbell")
+    return (
+      <svg viewBox="0 0 40 20" className="h-full w-full" preserveAspectRatio="none" aria-hidden>
+        {[[9, 24], [15, 31], [22, 13], [8, 18]].map(([before, now], i) => (
+          <Fragment key={i}>
+            <line x1={before} y1={4 + i * 4} x2={now} y2={4 + i * 4} strokeWidth="1" className={i === 0 ? "stroke-[#E6212F]/45" : "stroke-zinc-300 dark:stroke-zinc-600"} />
+            <circle cx={before} cy={4 + i * 4} r="1.2" className="fill-zinc-300 dark:fill-zinc-600" />
+            <circle cx={now} cy={4 + i * 4} r="1.4" className={i === 0 ? "fill-[#E6212F]/80" : "fill-zinc-500 dark:fill-zinc-400"} />
+          </Fragment>
+        ))}
+      </svg>
+    );
+  // gains to the right of a middle line, losses to its left
+  if (kind === "diverging")
+    return (
+      <svg viewBox="0 0 40 20" className="h-full w-full" preserveAspectRatio="none" aria-hidden>
+        <line x1="20" y1="2" x2="20" y2="18" className={ink} strokeWidth="0.6" />
+        {[13, 8, 3, -6, -11].map((v, i) => (
+          <rect key={i} x={v > 0 ? 20.4 : 19.6 + v} y={2.5 + i * 3.3} width={Math.abs(v)} height="2" rx="0.6" className={v > 0 ? "fill-zinc-300 dark:fill-zinc-600" : "fill-[#E6212F]/80"} />
+        ))}
+      </svg>
+    );
+  // bins side by side, with the median marked
+  if (kind === "histogram")
+    return (
+      <svg viewBox="0 0 40 20" className="h-full w-full" preserveAspectRatio="none" aria-hidden>
+        {[3, 6, 10, 14, 15, 12, 8, 5, 3, 2].map((h, i) => (
+          <rect key={i} x={3 + i * 3.4} y={18 - h} width="3.1" height={h} className="fill-zinc-300 dark:fill-zinc-600" />
+        ))}
+        <line x1="18.3" y1="2" x2="18.3" y2="18" className="stroke-[#0061E2]" strokeWidth="0.7" strokeDasharray="1.5 1.2" />
+      </svg>
+    );
+  // a grid of cells, each as dark as its value
+  if (kind === "heatmap")
+    return (
+      <svg viewBox="0 0 40 20" className="h-full w-full" preserveAspectRatio="none" aria-hidden>
+        {[0, 1, 2, 3].flatMap((r) =>
+          [0, 1, 2, 3, 4, 5, 6, 7].map((c) => (
+            <rect key={`${r}-${c}`} x={3 + c * 4.3} y={2.5 + r * 3.9} width="3.7" height="3.3" rx="0.5" opacity={0.15 + 0.85 * (((r * 5 + c * 3) % 7) / 6)} className="fill-zinc-500 dark:fill-zinc-400" />
+          )),
+        )}
+      </svg>
+    );
+  // the whole as rectangles, the largest part in the accent
+  if (kind === "treemap")
+    return (
+      <svg viewBox="0 0 40 20" className="h-full w-full" preserveAspectRatio="none" aria-hidden>
+        {[[3, 2, 16, 16], [20, 2, 10, 9], [31, 2, 6, 9], [20, 12, 7, 6], [28, 12, 5, 6], [34, 12, 3, 6]].map(([x, y, w, h], i) => (
+          <rect key={i} x={x} y={y} width={w} height={h} rx="0.6" className={i === 0 ? "fill-[#E6212F]/80" : i % 2 ? "fill-zinc-400 dark:fill-zinc-500" : "fill-zinc-300 dark:fill-zinc-600"} />
+        ))}
+      </svg>
+    );
   if (kind === "flow")
     return (
       <svg viewBox="0 0 40 20" className="h-full w-full" preserveAspectRatio="none" aria-hidden>

@@ -13,8 +13,8 @@ import { formatMoment } from "./format";
 
 export const PRIMARY_SUBNET = "primary";
 
-/** the server's NodeID check */
-export const NODE_ID_PATTERN = /^NodeID-[A-HJ-NP-Za-km-z1-9]{33,}$/;
+/** the server's NodeID check. A NodeID is CB58 of 24 bytes: 32 or 33 characters. */
+export const NODE_ID_PATTERN = /^NodeID-[A-HJ-NP-Za-km-z1-9]{32,}$/;
 
 /** a CB58 id: base58 characters only */
 const SUBNET_ID_PATTERN = /^[A-HJ-NP-Za-km-z1-9]{40,60}$/;

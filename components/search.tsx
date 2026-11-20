@@ -24,6 +24,9 @@ import {
 } from "fumadocs-ui/components/dialog/search";
 import { cn } from "@/lib/utils";
 import { dialogRows, type AlgoliaHit } from "@/lib/search/dialog-rows";
+import { highlightTerms, searchIntent, type SearchIntent } from "@/lib/search/intent";
+import { TOOLS } from "@/components/toolbox/console/toolbox/tools";
+import { askAbout } from "@/components/explorer-v2/dig/selection";
 import {
   ChainHitRow,
   EntityHitRow,
@@ -50,13 +53,28 @@ const client = liteClient(appId, apiKey);
 
 // Unlike fumadocs-core's algolia client, the heading/text rows are KEPT, so
 // each page shows the sections that matched under it (lib/search/dialog-rows.ts).
-function highlightRows(hits: AlgoliaHit[], query: string): SortedResult[] {
-  const highlighter = createContentHighlighter(query);
-  return dialogRows(hits).map((row) => ({
+// The vocabulary's pages and the Console tools of lib/search/intent.ts sit
+// above and below the pages Algolia finds.
+function highlightRows(hits: AlgoliaHit[], query: string, intent: SearchIntent): SortedResult[] {
+  // filler words such as "I" and "to" would light up inside other words
+  const highlighter = createContentHighlighter(highlightTerms(query));
+  return dialogRows(hits, intent).map((row) => ({
     ...row,
     contentWithHighlights: highlighter.highlight(row.content),
   }));
 }
+
+/* "Ask AI" sends the query to the chat bubble, or opens /chat with it where
+   no bubble is on screen. A question gets it first; any other query gets it
+   last, once the pages are back, so the list does not jump while loading. */
+const ASK_ITEM_ID = "ask-ai";
+
+const askRow = (
+  <>
+    <p className="truncate text-xs text-fd-popover-foreground/70">Chat</p>
+    <p className="min-w-0 truncate font-medium">Ask AI</p>
+  </>
+);
 
 // fumadocs' highlight color (text-fd-primary, #1F66F4 here) misses 4.5:1 in
 // dark mode and on the selected row in light mode
@@ -138,7 +156,8 @@ function ExplorerListRow({ id, row, onSelect }: { id: string; row: ExplorerRow; 
 
 export default function CustomSearchDialog(props: SharedProps) {
   const [search, setSearch] = useState("");
-  const [results, setResults] = useState<SortedResult[] | null>(null);
+  // the hits of the last Algolia answer; null until the first answer for this search
+  const [hits, setHits] = useState<AlgoliaHit[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { onOpenChange } = props;
@@ -146,6 +165,13 @@ export default function CustomSearchDialog(props: SharedProps) {
   const query = search.trim();
   const entity = useSearchEntity(query, EXPLORER_TARGETS);
   const chains = useMemo(() => matchChains(query, null), [query]);
+  const intent = useMemo(() => searchIntent(query, TOOLS), [query]);
+  // the pinned rows need no answer, so they show while Algolia loads
+  const results = useMemo(
+    () =>
+      hits === null && intent.top.length + intent.bottom.length === 0 ? null : highlightRows(hits ?? [], query, intent),
+    [hits, query, intent],
+  );
 
   // Enter on a hash that is still resolving: keep the dialog open and go
   // once the explorer engine names the chain
@@ -212,15 +238,24 @@ export default function CustomSearchDialog(props: SharedProps) {
       push(list, chainItemId(m), { kind: "chain", match: m }, () => router.push(m.chain.href));
     }
 
-    if (top.length === 0 && bottom.length === 0) return results;
     explorerRows.current = rows;
-    return [...top, ...(results ?? []), ...bottom];
+    const ask: SearchItemType = {
+      id: ASK_ITEM_ID,
+      type: "action",
+      node: askRow,
+      onSelect: () => {
+        if (!askAbout(query)) router.push(`/chat?q=${encodeURIComponent(query)}`);
+      },
+    };
+    if (intent.question) return [...top, ask, ...(results ?? []), ...bottom];
+    if (hits === null) return top.length === 0 && bottom.length === 0 ? results : [...top, ...(results ?? []), ...bottom];
+    return [...top, ...(results ?? []), ...bottom, ask];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, entity, chains, results]);
+  }, [query, entity, chains, results, intent, hits]);
 
   useEffect(() => {
     if (search.trim().length === 0) {
-      setResults(null);
+      setHits(null);
       setIsLoading(false);
       return;
     }
@@ -244,13 +279,9 @@ export default function CustomSearchDialog(props: SharedProps) {
             },
           ],
         });
-        if (!cancelled) {
-          setResults(
-            highlightRows(res.results[0].hits as unknown as AlgoliaHit[], search),
-          );
-        }
+        if (!cancelled) setHits(res.results[0].hits as unknown as AlgoliaHit[]);
       } catch {
-        if (!cancelled) setResults([]);
+        if (!cancelled) setHits([]);
       } finally {
         if (!cancelled) setIsLoading(false);
       }

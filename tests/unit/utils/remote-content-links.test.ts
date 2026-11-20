@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { replaceRelativeLinks } from "@/utils/remote-content/shared.mts";
-import { fixMovedLinks } from "@/utils/remote-content/parsers/pipelines.mts";
+import { MOVED_LINKS, rewriteMovedLinks } from "@/utils/remote-content/moved-links.mts";
 
 const BASE = "https://raw.githubusercontent.com/avalanche-foundation/ACPs/main/README.md";
 
@@ -57,30 +57,35 @@ describe("replaceRelativeLinks markdown destinations", () => {
   });
 });
 
-describe("fixMovedLinks", () => {
-  const meta = { title: "", description: "", sourceBaseUrl: "" };
+describe("rewriteMovedLinks", () => {
 
   it("rewrites a moved upstream link to its current page", () => {
-    expect(fixMovedLinks("[Foundry Book](https://book.getfoundry.sh/reference/cast/cast-send)", meta)).toBe(
+    expect(rewriteMovedLinks("[Foundry Book](https://book.getfoundry.sh/reference/cast/cast-send)")).toBe(
       "[Foundry Book](https://www.getfoundry.sh/reference/cast/send)",
     );
   });
 
   it("rewrites a key in a link, in angle brackets, in a quoted attribute and as bare text", () => {
-    expect(fixMovedLinks("[Avalanche Network](https://www.avax.com).", meta)).toBe(
+    expect(rewriteMovedLinks("[Avalanche Network](https://www.avax.com).")).toBe(
       "[Avalanche Network](https://www.avalanche.com).",
     );
-    expect(fixMovedLinks("<https://www.avax.com>", meta)).toBe("<https://www.avalanche.com>");
-    expect(fixMovedLinks('<a href="https://www.avax.com">', meta)).toBe('<a href="https://www.avalanche.com">');
-    expect(fixMovedLinks("see https://www.avax.com\n", meta)).toBe("see https://www.avalanche.com\n");
+    expect(rewriteMovedLinks("<https://www.avax.com>")).toBe("<https://www.avalanche.com>");
+    expect(rewriteMovedLinks('<a href="https://www.avax.com">')).toBe('<a href="https://www.avalanche.com">');
+    expect(rewriteMovedLinks("see https://www.avax.com\n")).toBe("see https://www.avalanche.com\n");
   });
 
   it("matches a whole URL only", () => {
     const longer =
       "[ACP-194](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/194-streaming-asynchronous-execution/README.md)";
-    expect(fixMovedLinks(longer, meta)).toBe(longer);
+    expect(rewriteMovedLinks(longer)).toBe(longer);
     const archived = "[old](https://web.archive.org/web/2024/https://www.avax.com)";
-    expect(fixMovedLinks(archived, meta)).toBe(archived);
-    expect(fixMovedLinks("[site](https://www.avax.com/about)", meta)).toBe("[site](https://www.avax.com/about)");
+    expect(rewriteMovedLinks(archived)).toBe(archived);
+    expect(rewriteMovedLinks("[site](https://www.avax.com/about)")).toBe("[site](https://www.avax.com/about)");
+  });
+
+  it("points no entry at another dead URL", () => {
+    for (const target of Object.values(MOVED_LINKS)) {
+      expect(MOVED_LINKS[target]).toBeUndefined();
+    }
   });
 });

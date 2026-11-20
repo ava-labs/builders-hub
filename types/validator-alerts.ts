@@ -68,7 +68,8 @@ export interface ValidatorAlertConfig {
 
 export interface ValidatorAlertResponse {
   id: string;
-  user_id: string;
+  /** null only for an imported row that no account has claimed. The API never returns such a row. */
+  user_id: string | null;
   node_id: string;
   subnet_id: string;
   label: string | null;
@@ -82,11 +83,19 @@ export interface ValidatorAlertResponse {
   balance_threshold_days: number;
   security_alert: boolean;
   last_known_ip: string | null;
+  /** null for a row made in Builder Hub, "avalanche-notify" for an import */
+  source: string | null;
   email: string;
   active: boolean;
   created_at: string;
   updated_at: string;
   alert_logs: AlertLogResponse[];
+  /** Primary Network only: true when the stake auto-renews (ACP-236), false when it
+   *  ends at its end time, null when unknown or not primary. Absent from PUT answers. */
+  stake_renews?: boolean | null;
+  /** Primary Network only: uptime percent since the current cycle start (the one the
+   *  P-Chain renews on), null when unknown or not primary. Absent from PUT answers. */
+  cycle_uptime?: number | null;
 }
 
 export interface AlertLogResponse {

@@ -9,19 +9,19 @@ import { Band, FlowArt, FlowLabel, FlowSvg, HatchPattern, type Track } from '@/c
  * state root changes at the last one.
  *
  * Facts, avalanchego@5bf881e (origin/master):
- * - Finality occurs at acceptance: vms/saevm/blocks/access.go:111-114.
- * - AcceptBlock gives the accepted block to the executor: vms/saevm/sae/consensus.go:44-50,110.
- * - Execution makes a receipt for each transaction: vms/saevm/saexec/execution.go:330-386.
+ * - Finality occurs at acceptance: vms/evm/blocks/access.go:111-114.
+ * - AcceptBlock gives the accepted block to the executor: vms/evm/sae/consensus.go:44-50,110.
+ * - Execution makes a receipt for each transaction: vms/evm/saexec/execution.go:330-386.
  * - Tau is 5 s, the minimum time from the end of execution to the later block. It has no effect on finality:
- *   vms/saevm/params/params.go:20-27.
+ *   vms/evm/params/params.go:20-27.
  * - A new block at time t takes the last block that finished execution by t - tau (on the gas clock):
- *   vms/saevm/sae/block_builder.go:408-409, vms/saevm/blocks/settlement.go:188-194,235-242.
- * - The post-execution state root of that block goes into the header Root: vms/saevm/sae/block_builder.go:234.
- *   The header also gets the height of that block: vms/saevm/cchain/hooks.go:571-573.
+ *   vms/evm/sae/block_builder.go:408-409, vms/evm/blocks/settlement.go:188-194,235-242.
+ * - The post-execution state root of that block goes into the header Root: vms/evm/sae/block_builder.go:234.
+ *   The header also gets the height of that block: vms/evm/imp/cchain/hooks.go:553-554.
  * - The new block commits every block after the one its parent committed, up to that block, so the root includes
- *   block N: vms/saevm/blocks/settlement.go:121-135.
+ *   block N: vms/evm/blocks/settlement.go:121-135.
  * - The RPC tags safe and finalized give the last block with a committed state root, not the last accepted
- *   block: vms/saevm/blocks/access.go:102-103, vms/saevm/sae/consensus.go:74-77. Same in v1.15.1.
+ *   block: vms/evm/blocks/access.go:102-103, vms/evm/sae/consensus.go:74-77. Same in v1.15.1.
  * - On Mainnet the gap k was 2 to 6 blocks in live samples on 2026-10-03 and 2026-10-04 (header settledHeight).
  *   The ticks show 5, and only N and N+k have a name, because k changes with the block rate.
  *

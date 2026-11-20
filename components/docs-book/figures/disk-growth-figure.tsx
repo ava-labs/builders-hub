@@ -8,10 +8,10 @@ import { FlowArt, FlowSvg, HatchPattern, fmt, type Point } from '@/components/do
  *
  * Facts from AvalancheGo, the C-Chain after Helicon (ava-labs/avalanchego@5bf881e):
  * - With pruning-enabled false the node is archival, and it commits the state root after every block
- *   (vms/saevm/cchain/config.go:231, vms/saevm/saedb/tracker.go:271-272). So the archival line rises fastest.
+ *   (vms/evm/imp/cchain/config.go:231, vms/evm/saedb/tracker.go:271-272). So the archival line rises fastest.
  * - pruning-enabled is true by default (cchain/config.go:129). Then the node commits the settled state root only
  *   at heights that are a multiple of commit-interval, 4096 (saedb/tracker.go:32 and 274-275, saedb/saedb.go:17),
- *   and serves state sync summaries only at those heights (vms/saevm/statesync/README.md:22). These are the
+ *   and serves state sync summaries only at those heights (vms/evm/statesync/README.md:22). These are the
  *   state sync snapshots of the dashed line.
  * - The C-Chain has no offline pruning (cchain/config.go:84, commented out), and a node state syncs only if it
  *   has accepted no block after genesis (statesync/README.md:28). So on the C-Chain a deletion is a fresh node

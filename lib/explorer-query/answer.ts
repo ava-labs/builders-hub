@@ -22,9 +22,10 @@ import { NETWORK_ID, isCChain, isFuji, targetOf } from "./target";
 import { getRecipe, putRecipe, recipeKey, type Recipe } from "./cache";
 import { fixedRecipe, fixedRoute } from "./fixed";
 import { networkChains, versionLines, withSources } from "./sources";
-import { codeWords, plainLabel, sqlNames, withoutCode } from "./visual";
+import { codeWords, plainLabel, sqlNames, withoutCode } from "./reader-words";
 import { basicVisual } from "./draft";
 import { labelError } from "./stat-label";
+import { kindError } from "./kind-checks";
 import { cutOf, newestSql, totalsOf } from "./cut";
 import { msOf } from "./edges";
 import { asOfWords, scopeError, snapshotSql, sqlWindow, windowSpan, withWindow } from "./scope";
@@ -118,6 +119,12 @@ interface Ask {
   spent?: (call: ModelCall) => void;
 }
 
+/** the questions a writer offers for a reader's next step: each one line, none empty, none twice */
+const asksOf = (asks: string[] | undefined): string[] | undefined => {
+  const out = [...new Set((asks ?? []).map((q) => q.replace(/\s+/g, " ").trim()).filter((q) => q.length >= 8))];
+  return out.length ? out : undefined;
+};
+
 /** what a reader is told when no answer came: a question with no words, one the chain's records cannot
     answer, a writer that ran out of steps, or SQL that kept failing on the database; each with a next step,
     never the database's own words */
@@ -156,7 +163,7 @@ async function fromRecipe(a: Ask, recipe: Recipe, key: string | null, t0: number
     // rows that only reach their LIMIT leave nothing out
     if (totals && totals.rows <= result.rowCount) result.truncated = false;
     // a kept layout that misstates these rows (stats named for the rows a LIMIT kept, a share, a stack) is laid out again
-    const stale = !!key && !!recipe.visual && !!labelError(recipe.visual, result.rows, totals, sql);
+    const stale = !!key && !!recipe.visual && !!(labelError(recipe.visual, result.rows, totals, sql) ?? kindError(recipe.visual.panels, result.columns, result.rows, sql, !!totals && totals.rows > result.rowCount));
     if (stale && key) await putRecipe(key, { ...recipe, sql, visual: null });
     const visual = stale ? null : recipe.visual;
     const said = keptWords(recipe, sql, result.rows, run.anchor, a.chainId);
@@ -178,6 +185,7 @@ async function fromRecipe(a: Ask, recipe: Recipe, key: string | null, t0: number
       // a kept layout holds no marks (cache.ts layoutOnly): an upgrade the question names is marked again on these rows
       visual: showPrice(markUpgrades(visual ?? basicVisual(recipe.chart, result.columns), [a.prompt, ...a.history.map((t) => String(t?.prompt ?? ""))].join("\n"), result.rows, a.chainId), result.rows, a.chainId),
       draftVisual: !visual,
+      followups: recipe.followups,
       coverage: cover,
       key: key ?? undefined,
       model: { steps: 0, ms: Date.now() - t0, tries: 0, writer: recipe.writer, cached: true, timings: [] },
@@ -384,8 +392,9 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
         drill: drillSchema.optional().describe("how one row opens into its records; required when rows are groups"),
         route: z.enum(["p-chain", "c-chain"]).optional().describe("with kind none: the question belongs to this chain's data instead"),
         reason: z.string().max(300).optional().describe("with kind none and no route: why this chain's data cannot answer, one plain sentence for the reader"),
+        followups: z.array(z.string().max(90)).max(3).optional().describe("up to 3 short questions a reader may ask next about this answer, each one these tables can answer: a cause, a breakdown, a comparison. Never a question this answer already answers"),
       }),
-      execute: async ({ title, note, sql, chart, drill, route, reason }) => {
+      execute: async ({ title, note, sql, chart, drill, route, reason, followups }) => {
         if (chart.kind === "none") {
           const routed = !!route && canRoute;
           // an answer with no figure says why, and a question the rows can answer gets its SQL instead
@@ -542,7 +551,7 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
           // what is left of a wrong window's words gives way to the window the query reads, or else its rows cover
           const words = { title: plainLabel(title), note: withoutCode(against.length ? withoutContradictions(note, title, rows) : note, own) };
           const said = fuji ? words : withWindow(words, read, rows.rows, chart.x, now, Date.now());
-          final = { title: said.title, note: said.note, span: fuji ? null : (windowSpan(read, rows.rows, chart.x, now, Date.now()) ?? (await snapshotSpan(ran.sql, a.chainId))), sql: kept, chart: { ...chart, series: chart.series.map((s) => ({ ...s, label: plainLabel(s.label) })) }, drill: drill ?? null, result: rows, names: {}, visual: null, coverage: null, anchor: ran.anchor, sources: ran.sources };
+          final = { title: said.title, note: said.note, span: fuji ? null : (windowSpan(read, rows.rows, chart.x, now, Date.now()) ?? (await snapshotSpan(ran.sql, a.chainId))), sql: kept, chart: { ...chart, series: chart.series.map((s) => ({ ...s, label: plainLabel(s.label) })) }, drill: drill ?? null, result: rows, names: {}, visual: null, coverage: null, anchor: ran.anchor, sources: ran.sources, followups: asksOf(followups) };
           keptSql = kept;
           step("final", Date.now() - q0, true, `${rows.rowCount} rows`);
           return { ok: true, rows: rows.rowCount };
@@ -649,7 +658,7 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
   done.model = { steps, ms: Date.now() - t0, tries, writer: writers[writer].label, cached: false, timings, cacheRead, inputTokens };
   // an answer with no rows is not kept: the next asker may find some
   if (done.result && done.result.rowCount > 0) {
-    await putRecipe(key, { question: a.prompt, title: done.title, note: done.note, sql: done.sql, chart: done.chart, drill: done.drill, visual: null, writer: writers[writer].label, at: Date.now() });
+    await putRecipe(key, { question: a.prompt, title: done.title, note: done.note, sql: done.sql, chart: done.chart, drill: done.drill, visual: null, writer: writers[writer].label, at: Date.now(), followups: done.followups });
   }
   return done;
 }

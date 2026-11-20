@@ -17,7 +17,7 @@ avalanchego/
 ├── node/            # Node wiring and initialization
 ├── chains/          # Chain manager and handlers
 ├── snow/            # Consensus protocols and engines
-├── vms/             # Built-in VMs (saevm/cchain is the C-Chain VM), proposerVM, rpcchainvm
+├── vms/             # Built-in VMs (evm/imp/cchain is the C-Chain VM), proposerVM, rpcchainvm
 ├── network/         # P2P stack
 ├── message/         # Message codecs
 ├── database/        # LevelDB/Pebble/memdb backends
@@ -167,7 +167,7 @@ The `Node` struct is the central coordinator. Here are its key responsibilities:
 // Register built-in VMs
 n.VMManager.RegisterFactory(ctx, constants.PlatformVMID, &platformvm.Factory{})
 n.VMManager.RegisterFactory(ctx, constants.AVMID, &avm.Factory{})
-n.VMManager.RegisterFactory(ctx, constants.EVMID, &saevm.Factory{}) // C-Chain (Continuous Execution)
+n.VMManager.RegisterFactory(ctx, constants.EVMID, &cchain.Factory{}) // C-Chain (Continuous Execution)
 ```
 
 ### Chain Creation

@@ -4,6 +4,7 @@ import { prisma } from '@/prisma/prisma';
 import { syncUserDataToHubSpot } from '@/server/services/hubspotUserData';
 import { recordReferralAttributionFromRequest } from '@/server/services/referrals';
 import { normalizeEmail } from '@/lib/utils';
+import { claimLegacyValidatorAlerts } from '@/server/services/legacy-validator-alerts';
 
 const SIGNUP_ATTRIBUTION_RETRY_WINDOW_MS = 24 * 60 * 60 * 1000;
 
@@ -92,6 +93,9 @@ export const POST = withAuth(async (
         skills: [],
       }
     });
+
+    // Validator alerts imported for this address before the account existed.
+    if (newUser.email) await claimLegacyValidatorAlerts(newUser.id, newUser.email);
 
     // Sync user data to HubSpot (after terms acceptance)
     if (newUser.email) {

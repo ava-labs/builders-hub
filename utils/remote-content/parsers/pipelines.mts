@@ -9,9 +9,17 @@ export interface TransformMeta {
   editUrl?: string;
 }
 
+// Every remote page gets its Mermaid blocks converted. The charts are held out while the transforms run, so no
+// transform rewrites the chart source the upstream README wrote, and the Mermaid components go back in at the end.
+const MERMAID_PLACEHOLDER = /RemoteMermaidChart(\d+)Placeholder/g;
+
 export function createParser(transforms: TransformFunction[]): (content: string, meta: TransformMeta) => string {
   return (content: string, meta: TransformMeta): string => {
-    return transforms.reduce((acc, transform) => transform(acc, meta), content);
+    const charts: string[] = [];
+    const held = content.replace(MERMAID_BLOCK, (_, chart: string) => `RemoteMermaidChart${charts.push(chart) - 1}Placeholder`);
+    return transforms
+      .reduce((acc, transform) => transform(acc, meta), held)
+      .replace(MERMAID_PLACEHOLDER, (_, i: string) => mermaidComponent(charts[Number(i)]));
   };
 }
 
@@ -33,56 +41,6 @@ export const removeFirstHeading: TransformFunction = (content) => {
 
 export const fixRelativeLinks: TransformFunction = (content, meta) => {
   return replaceRelativeLinks(content, meta.sourceBaseUrl);
-};
-
-// Upstream docs that link to a page that has moved. Each key is the dead URL, each value its current home.
-// The nightly link check (link-check.yml) finds these. Fix the upstream file too, then remove the entry.
-const MOVED_LINKS: Record<string, string> = {
-  'https://book.getfoundry.sh/reference/cast/cast-send': 'https://www.getfoundry.sh/reference/cast/send',
-  'https://www.avax.com': 'https://www.avalanche.com',
-  'https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/247-delegation-multiplier-increase-maximum-validator-weight-reduction/README.md':
-    'https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/247-delegation-multiplier-increase/README.md',
-  'https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/62-disable-addvalidatortx-and-adddelegatortx/13-subnet-only-validators.md':
-    'https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/13-subnet-only-validators/README.md',
-  'https://github.com/ava-labs/subnet-evm/blob/master/contracts/contracts/interfaces/IWarpMessenger.sol#L43':
-    'https://github.com/ava-labs/avalanchego/blob/4d4123f67e9aaee2bcecdcb0b8ff6c4bb38606d1/graft/subnet-evm/precompile/contracts/warp/warpbindings/IWarpMessenger.sol#L48',
-  'https://github.com/ava-labs/subnet-evm/blob/master/core/types/block.go#L73':
-    'https://github.com/ava-labs/avalanchego/blob/4d4123f67e9aaee2bcecdcb0b8ff6c4bb38606d1/graft/subnet-evm/plugin/evm/customtypes/header_ext.go#L202',
-  'https://github.com/ava-labs/subnet-evm/blob/master/core/types/receipt.go#L62':
-    'https://github.com/ava-labs/libevm/blob/2c4d255e0a63eb7922d77c6e2163bb03fc0bdf0f/core/types/receipt.go#L52',
-  'https://github.com/ava-labs/subnet-evm/blob/master/core/types/log.go#L39':
-    'https://github.com/ava-labs/libevm/blob/2c4d255e0a63eb7922d77c6e2163bb03fc0bdf0f/core/types/log.go#L29',
-  'https://github.com/ava-labs/subnet-evm/blob/master/x/warp/predicate_test.go#L687':
-    'https://github.com/ava-labs/avalanchego/blob/4d4123f67e9aaee2bcecdcb0b8ff6c4bb38606d1/graft/subnet-evm/precompile/contracts/warp/predicate_test.go#L824',
-  'https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/cancun.md#included-eips':
-    'https://github.com/ethereum/execution-specs/blob/12cc993674d3ffa6e7c4e50647c197ae7148144f/network-upgrades/mainnet-upgrades/cancun.md#included-eips',
-  'https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/shanghai.md#included-eips':
-    'https://github.com/ethereum/execution-specs/blob/12cc993674d3ffa6e7c4e50647c197ae7148144f/network-upgrades/mainnet-upgrades/shanghai.md#included-eips',
-  'https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/194-streaming-asynchronous-execution':
-    'https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/194-continuous-execution',
-  'https://gist.github.com/navillanueva/cdb9c49c411bd89a9480f05a7afbab37':
-    'https://gist.github.com/cdb9c49c411bd89a9480f05a7afbab37',
-  'https://github.com/ava-labs/icm-services/blob/main/icm-contracts/contracts/governance/README.md':
-    'https://github.com/ava-labs/icm-services/blob/main/icm-contracts/avalanche/governance/README.md',
-  'https://github.com/ava-labs/icm-services/blob/main/icm-contracts/contracts/ictt/README.md':
-    'https://github.com/ava-labs/icm-services/blob/main/icm-contracts/avalanche/ictt/README.md',
-  'https://github.com/ava-labs/icm-services/blob/main/icm-contracts/contracts/teleporter/README.md':
-    'https://github.com/ava-labs/icm-services/blob/main/icm-contracts/avalanche/teleporter/README.md',
-  'https://github.com/ava-labs/icm-services/blob/main/icm-contracts/contracts/teleporter/registry/README.md':
-    'https://github.com/ava-labs/icm-services/blob/main/icm-contracts/avalanche/teleporter/registry/README.md',
-  'https://github.com/ava-labs/icm-services/blob/main/icm-contracts/contracts/validator-manager/README.md':
-    'https://github.com/ava-labs/icm-services/blob/main/icm-contracts/avalanche/validator-manager/README.md',
-  'https://github.com/ava-labs/icm-services/blob/main/icm-contracts/CONTRIBUTING.md':
-    'https://github.com/ava-labs/icm-services/blob/main/CONTRIBUTING.md',
-  'https://github.com/ava-labs/icm-services/blob/main/relayer/tests/e2e_test.go#L68':
-    'https://github.com/ava-labs/icm-services/blob/49b0b048d16886076ba9d5ee9aadfe5c960e461f/icm-contracts/tests/suites/services/services_suite_test.go#L209',
-};
-
-// A URL ends at white space, a closing bracket or a quote, so a key never matches the start of a longer URL.
-const URL_PATTERN = /https?:\/\/[^\s)\]>"']+/g;
-
-export const fixMovedLinks: TransformFunction = (content) => {
-  return content.replace(URL_PATTERN, (url) => MOVED_LINKS[url] ?? url);
 };
 
 export const fixGitHubMarkdown: TransformFunction = (content) => {
@@ -225,18 +183,17 @@ export const convertAngleBracketLinks: TransformFunction = (content) => {
   return content.replace(/<((https?:\/\/[^\s>]+))>/g, '[$2]($1)');
 };
 
-export const convertMermaidBlocks: TransformFunction = (content) => {
-  // Convert standard Mermaid code blocks to <Mermaid> component format
-  // This works in conjunction with the shared MDX components in components/mdx/shared-components.tsx
-  // which provides a unified Mermaid component registration across all pages (docs, blog, academy)
-  return content.replace(/```mermaid\n([\s\S]*?)\n```/g, (match, diagramContent) => {
-    // Escape backticks in the diagram content for the template literal
-    const escapedContent = diagramContent.replace(/`/g, '\\`').replace(/\$\{/g, '\\${');
+// A ```mermaid block, also with CRLF line endings or an indented fence.
+const MERMAID_BLOCK = /^[ \t]*```mermaid[ \t]*\r?\n([\s\S]*?)\r?\n[ \t]*```[ \t]*$/gm;
 
-    // Return the Mermaid component with the diagram content
-    return `<Mermaid chart={\`${escapedContent}\`} />`;
-  });
-};
+// The <Mermaid> component of components/mdx/shared-components.tsx, with the chart in a template literal.
+function mermaidComponent(chart: string): string {
+  const escaped = chart.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$\{/g, '\\${');
+  return `<Mermaid chart={\`${escaped}\`} />`;
+}
+
+export const convertMermaidBlocks: TransformFunction = (content) =>
+  content.replace(MERMAID_BLOCK, (_, chart: string) => mermaidComponent(chart));
 
 export const escapeJSXExpressions: TransformFunction = (content) => {
   // Escape problematic JSX-like expressions in markdown that cause acorn parsing errors
@@ -408,7 +365,6 @@ export const basePipeline: TransformFunction[] = [
   addFrontmatter,
   removeFirstHeading,
   fixRelativeLinks,
-  fixMovedLinks,
 ];
 
 export const defaultPipeline: TransformFunction[] = [
@@ -445,14 +401,12 @@ export const apisPipeline: TransformFunction[] = [
 
 export const avalancheL1sPipeline: TransformFunction[] = [
   removeEmoji,
-  convertMermaidBlocks,
   ...defaultPipeline,
 ];
 
 export const acpsPipeline: TransformFunction[] = [
   aggressivelyFixMalformedHTML,
   convertAngleBracketLinks,
-  convertMermaidBlocks,
   fixUnicodeMathSymbols,
   fixCodeBlockLanguage,
   ...defaultPipeline,

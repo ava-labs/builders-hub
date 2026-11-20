@@ -50,7 +50,7 @@ On the destination side, the signed message must be included as a **predicate** 
 
 ## Why Messages Can Only Be Sent Between Avalanche L1s
 
-The C-Chain does not run Subnet-EVM: it ran Coreth until the Helicon upgrade and now runs the C-Chain VM (`vms/saevm/cchain` in AvalancheGo). Two EVMs include the WarpMessenger precompile: Subnet-EVM, the EVM for L1s, and the C-Chain VM. In both, the WarpMessenger precompile has the same interface and the same address. It works by looking up source chain validator sets from the **P-Chain**, which tracks all registered L1s and their validators.
+The C-Chain does not run Subnet-EVM: it ran Coreth until the Helicon upgrade and now runs the C-Chain VM (`vms/evm/imp/cchain` in AvalancheGo). Two EVMs include the WarpMessenger precompile: Subnet-EVM, the EVM for L1s, and the C-Chain VM. In both, the WarpMessenger precompile has the same interface and the same address. It works by looking up source chain validator sets from the **P-Chain**, which tracks all registered L1s and their validators.
 
 This means cross-chain messages work natively between any two Avalanche L1s because they all share the P-Chain as the source of validator set truth. External blockchains like Ethereum mainnet do not run `subnet-evm`, do not have the WarpMessenger precompile, and are not registered on the Avalanche P-Chain, so they cannot participate in AWM natively.
 
@@ -168,7 +168,25 @@ function receiveTeleporterMessage(
 }
 ```
 
-You can encode structs, multiple values, or a function selector plus arguments using `abi.encodeWithSelector`. The rule is that sender and receiver must agree on the exact types and order.
+You can encode structs or several values in the same way. The rule is that sender and receiver must agree on the exact types and order.
+
+When a contract handles more than one kind of message, encode twice: first the parameters of the action, then an enum that identifies the action together with those parameters. The receiver decodes the enum first and uses it to decide how to decode the parameters.
+
+```solidity
+enum Action { SetGreeting, SetNumber }
+
+// Sender
+bytes memory params = abi.encode(uint256(42), account);
+bytes memory payload = abi.encode(Action.SetNumber, params);
+
+// Receiver, inside receiveTeleporterMessage
+(Action action, bytes memory params) = abi.decode(message, (Action, bytes));
+if (action == Action.SetNumber) {
+    (uint256 number, address account) = abi.decode(params, (uint256, address));
+}
+```
+
+ICTT uses this pattern with `TransferrerMessageType`. See [Routing by Action: Double Encoding](/academy/avalanche-l1/interchain-messaging/03-icm-protocol/02-encoding-decoding#routing-by-action-double-encoding).
 
 ## Relayer Incentives
 

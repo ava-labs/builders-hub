@@ -1,3 +1,4 @@
+import { BRAND, emailSection, renderEmail } from "@/server/templates/email-layout";
 import {
   requiredField,
   validateEntity,
@@ -489,25 +490,20 @@ export async function sendConfirmationMail(
   const lang = normalizeEventsLang((hackathon?.content as any)?.language);
   const subject = t(lang, "reg.email.subject");
   const text = `${t(lang, "reg.email.yourRegFor")} ${hackathon?.title} ${t(lang, "reg.email.hasBeenApproved")} ${t(lang, "reg.email.chatLinkText")}.`;
-  const html = `
-    <div style="background-color: #18181B; color: white; font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border-radius: 8px; border: 1px solid #EF4444; text-align: center;">
-      <h2 style="color: white; font-size: 20px; margin-bottom: 16px;">${t(lang, "reg.email.h2")}</h2>
-
-      <div style="background-color: #27272A; border: 1px solid #EF4444; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-        <p style="font-size: 20px; font-weight: bold; color: #ffffff; margin: 8px 0;">${t(lang, "reg.email.yourRegFor")}</p>
-        <p style="font-size: 20px; font-weight: bold; color: #EF4444; margin: 8px 0;">${escapeHtml(hackathon?.title ?? "")}</p>
-        <p style="font-size: 20px; font-weight: bold; color: #ffffff; margin: 8px 0;">${t(lang, "reg.email.hasBeenApproved")} <a href="https://t.me/avalancheacademy" style="color: #3B82F6; text-decoration: underline;">${t(lang, "reg.email.chatLinkText")}</a>.</p>
-        <p style="font-size: 10px; font-weight: bold; color: #ffffff; margin: 8px 0;">${t(lang, "reg.email.automated")}</p>
-      </div>
-
-      <p style="font-size: 12px; color: #A1A1AA;">${t(lang, "reg.email.ignore")}</p>
-
-      <div style="margin-top: 20px;">
-        <img src="https://build.avax.network/logo-white.png" alt="Company Logo" style="max-width: 120px; margin-bottom: 10px;">
-        <p style="font-size: 12px; color: #A1A1AA;">${t(lang, "reg.email.footer")}</p>
-      </div>
-    </div>
-    `;
+  const html = renderEmail({
+    title: t(lang, "reg.email.h2"),
+    product: "Builder Hub events",
+    hero: "event",
+    accent: BRAND.gray,
+    chip: "Approved",
+    content: emailSection(
+      BRAND.red,
+      `${t(lang, "reg.email.yourRegFor")} <span style="color: ${BRAND.red};">${escapeHtml(hackathon?.title ?? "")}</span> ${t(lang, "reg.email.hasBeenApproved")} <a href="https://t.me/avalancheacademy" style="color: ${BRAND.text}; text-decoration: underline;">${t(lang, "reg.email.chatLinkText")}</a>`,
+      `<p style="margin: 0 0 18px 0; font-size: 12px; color: ${BRAND.gray};">${t(lang, "reg.email.automated")}</p>`,
+    ),
+    cta: { label: t(lang, "reg.email.chatLinkText"), url: "https://t.me/avalancheacademy" },
+    reason: t(lang, "reg.email.ignore"),
+  });
   try {
     await sendMail(email, html, subject, text);
   } catch (error) {
@@ -527,27 +523,21 @@ export async function sendSubmissionConfirmationMail(
   const lang = normalizeEventsLang((hackathon?.content as any)?.language);
   const subject = t(lang, "submission.email.subject", { projectName });
   const text = `${t(lang, "submission.email.congrats")} ${t(lang, "submission.email.body")} "${projectName}" ${t(lang, "submission.email.body2")} ${hackathon?.title}. ${t(lang, "submission.email.body3")}`;
-  const html = `
-    <div style="background-color: #18181B; color: white; font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border-radius: 8px; border: 1px solid #EF4444; text-align: center;">
-      <h2 style="color: white; font-size: 20px; margin-bottom: 16px;">${t(lang, "submission.email.h2")}</h2>
-
-      <div style="background-color: #27272A; border: 1px solid #EF4444; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-        <p style="font-size: 22px; font-weight: bold; color: #EF4444; margin: 8px 0;">${t(lang, "submission.email.congrats")}</p>
-        <p style="font-size: 16px; color: #ffffff; margin: 8px 0;">
-          ${t(lang, "submission.email.body")} <strong style="color: #EF4444;">${escapeHtml(projectName)}</strong> ${t(lang, "submission.email.body2")} <strong>${escapeHtml(hackathon?.title ?? "")}</strong>.
-        </p>
-        <p style="font-size: 14px; color: #A1A1AA; margin: 12px 0;">${t(lang, "submission.email.body3")}</p>
-        <p style="font-size: 10px; font-weight: bold; color: #A1A1AA; margin: 8px 0;">${t(lang, "submission.email.automated")}</p>
-      </div>
-
-      <p style="font-size: 12px; color: #A1A1AA;">${t(lang, "submission.email.ignore")}</p>
-
-      <div style="margin-top: 20px;">
-        <img src="https://build.avax.network/logo-white.png" alt="Company Logo" style="max-width: 120px; margin-bottom: 10px;">
-        <p style="font-size: 12px; color: #A1A1AA;">${t(lang, "submission.email.footer")}</p>
-      </div>
-    </div>
-  `;
+  const html = renderEmail({
+    title: t(lang, "submission.email.h2"),
+    product: "Builder Hub events",
+    hero: "event",
+    accent: BRAND.gray,
+    chip: "Submitted",
+    content: emailSection(
+      BRAND.red,
+      t(lang, "submission.email.congrats"),
+      `<p style="margin: 0 0 14px 0;">${t(lang, "submission.email.body")} <strong style="color: ${BRAND.text};">${escapeHtml(projectName)}</strong> ${t(lang, "submission.email.body2")} <strong style="color: ${BRAND.text};">${escapeHtml(hackathon?.title ?? "")}</strong>.</p>` +
+        `<p style="margin: 0 0 14px 0;">${t(lang, "submission.email.body3")}</p>` +
+        `<p style="margin: 0 0 18px 0; font-size: 12px; color: ${BRAND.gray};">${t(lang, "submission.email.automated")}</p>`,
+    ),
+    reason: t(lang, "submission.email.ignore"),
+  });
   try {
     await sendMail(email, html, subject, text);
   } catch (error) {

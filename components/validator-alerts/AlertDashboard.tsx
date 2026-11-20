@@ -40,6 +40,7 @@ import {
   TEXT_TONE,
   type Tone,
 } from './ui';
+import { expiryReading, expiryWarning } from './expiry';
 import type { ValidatorAlertResponse, CreateAlertRequest, UpdateAlertRequest } from '@/types/validator-alerts';
 
 interface ValidatorP2P {
@@ -72,8 +73,8 @@ function subscriptionStatus(
   if (validator) {
     if (alert.uptime_alert && validator.p50_uptime < alert.uptime_threshold)
       return { tone: 'alerting', label: 'Uptime below threshold' };
-    if (alert.expiry_alert && validator.days_left <= alert.expiry_days)
-      return { tone: 'warning', label: 'Stake expiring soon' };
+    const warning = expiryWarning(alert, validator.days_left, alert.cycle_uptime ?? validator.p50_uptime);
+    if (warning) return { tone: 'warning', label: warning };
     return { tone: 'healthy', label: 'Healthy' };
   }
   if (dataLoaded) return { tone: 'warning', label: 'Not in active set' };
@@ -81,7 +82,6 @@ function subscriptionStatus(
 }
 
 const uptimeTone = (u: number): Tone => (u >= 99 ? 'healthy' : u >= 80 ? 'warning' : 'alerting');
-const expiryTone = (d: number): Tone | null => (d <= 7 ? 'alerting' : d <= 30 ? 'warning' : null);
 
 /** One alert type in the row: a filled square when on, hollow and gray when off. */
 function AlertToken({ on, children }: { on: boolean; children: React.ReactNode }) {
@@ -249,8 +249,8 @@ export function AlertDashboard() {
       body: JSON.stringify(data),
     });
     if (res.ok) {
-      const updated = await res.json();
-      setAlerts((prev) => prev.map((a) => (a.id === id ? updated : a)));
+      const updated: ValidatorAlertResponse = await res.json();
+      setAlerts((prev) => prev.map((a) => (a.id === id ? { ...a, ...updated } : a)));
       toast.success('Preferences saved');
     } else {
       toast.error('Failed to save preferences');
@@ -265,8 +265,8 @@ export function AlertDashboard() {
       body: JSON.stringify({ active }),
     });
     if (res.ok) {
-      const updated = await res.json();
-      setAlerts((prev) => prev.map((a) => (a.id === id ? updated : a)));
+      const updated: ValidatorAlertResponse = await res.json();
+      setAlerts((prev) => prev.map((a) => (a.id === id ? { ...a, ...updated } : a)));
       toast.success(active ? 'Alerts resumed' : 'Alerts paused');
     } else {
       toast.error('Failed to update alert status');
@@ -428,6 +428,9 @@ export function AlertDashboard() {
                 const validator = validatorData.get(alert.node_id);
                 const isL1 = alert.subnet_id !== 'primary';
                 const state = subscriptionStatus(alert, validator, validatorData.size > 0);
+                const expires = validator
+                  ? expiryReading(validator.days_left, alert.stake_renews, alert.cycle_uptime ?? validator.p50_uptime)
+                  : null;
                 const name = alert.label ?? alert.node_id;
                 return (
                   <div key={alert.id}>
@@ -474,13 +477,8 @@ export function AlertDashboard() {
                               {validator.p50_uptime.toFixed(1)}%
                             </Reading>
                             <Reading label="Version">{validator.version || 'N/A'}</Reading>
-                            <Reading
-                              label="Expires"
-                              className={cn(
-                                expiryTone(validator.days_left) && TEXT_TONE[expiryTone(validator.days_left)!],
-                              )}
-                            >
-                              {validator.days_left}d
+                            <Reading label="Expires" className={cn(expires?.tone && TEXT_TONE[expires.tone])}>
+                              {expires?.text}
                             </Reading>
                           </span>
                         ) : !isL1 && validatorData.size > 0 ? (

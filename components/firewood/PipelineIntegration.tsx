@@ -104,7 +104,7 @@ export function PipelineIntegration({ colors }: { colors: Colors }) {
         Where Firewood fits.
       </h3>
       <p className={`text-xs ${colors.textMuted} font-mono mb-6`}>
-        Firewood is an optional, experimental state store for the C-Chain Continuous Execution VM (vms/saevm). The default state scheme is hash.
+        Firewood is an optional, experimental state store for the C-Chain Continuous Execution VM (vms/evm). The default state scheme is hash.
       </p>
 
       {/* Pipeline diagram */}

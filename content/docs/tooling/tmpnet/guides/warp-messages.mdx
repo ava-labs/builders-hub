@@ -140,7 +140,7 @@ func ConstructSignedWarpMessage(
 
 ```go
 // Put the signed Warp message in the access list as a predicate.
-// predicate is github.com/ava-labs/avalanchego/vms/evm/predicate.
+// predicate is github.com/ava-labs/avalanchego/graft/evm/predicate.
 tx := types.NewTx(&types.DynamicFeeTx{
     ChainID:   l1.EVMChainID,
     Nonce:     nonce,

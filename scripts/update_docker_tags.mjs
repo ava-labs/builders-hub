@@ -2,6 +2,7 @@ import https from 'https';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { pickReleaseVersion } from './pick-release-version.mjs';
 
 /**
  * Updates the container image pins in versions.json.
@@ -18,7 +19,8 @@ import { fileURLToPath } from 'url';
  * risks pinning the console to something that was never released; we look up
  * one exact tag instead.
  *
- * Release candidates are never pinned, on mainnet or fuji.
+ * Release candidates are never pinned, on mainnet or fuji. Testnet pins the
+ * highest of the stable and -fuji releases (see pick-release-version.mjs).
  *
  * Set GITHUB_TOKEN to avoid unauthenticated API rate limits (needed in CI).
  */
@@ -71,34 +73,6 @@ async function fetchGithubReleases(owner, repo) {
         throw new Error(`Unexpected GitHub response for ${owner}/${repo}`);
     }
     return releases;
-}
-
-/**
- * Newest release version for a network, or null. Releases come back
- * newest-first.
- *
- * `prefix` is the product prefix some monorepos put on a tag, e.g.
- * "icm-relayer-v1.7.5". It is stripped before the version is inspected and
- * before the version is returned, because the image tag does not carry it.
- * Inspecting the raw tag would be wrong: the mainnet rule rejects a version
- * carrying any suffix, and the hyphen inside "icm-relayer-" would trip it.
- *
- * Drafts and release candidates are always excluded. Mainnet additionally
- * excludes prereleases and suffixed versions; fuji requires -fuji.
- */
-function pickReleaseVersion(releases, { isFuji, prefix = '' }) {
-    const candidate = releases.find((r) => {
-        const tag = r.tag_name;
-        if (!tag || r.draft || !tag.startsWith(prefix)) return false;
-
-        const version = tag.slice(prefix.length);
-        if (!/^v\d+\.\d+\.\d+/.test(version) || version.includes('-rc.')) return false;
-
-        return isFuji
-            ? version.includes('-fuji')
-            : !r.prerelease && !version.includes('-');
-    });
-    return candidate ? candidate.tag_name.slice(prefix.length) : null;
 }
 
 /**

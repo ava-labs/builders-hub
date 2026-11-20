@@ -36,10 +36,7 @@ on:
         required: false
         default: 'https://build.avax.network'
 
-permissions:
-  contents: read
-  deployments: read
-  pull-requests: read
+permissions: {}
 
 concurrency:
   group: e2e-${{ github.ref }}
@@ -51,17 +48,25 @@ jobs:
   # Browser and API tests live in tests/e2e. This job fails when the old Playwright harness comes back (a root e2e/
   # folder, or a file that uses the Playwright test runner). It needs no secrets, so it runs on fork PRs too.
   location:
+    permissions:
+      contents: read
     name: E2E test location
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
+        with:
+          persist-credentials: false
 
       - name: Check the test location
         run: ./scripts/check-e2e-location.sh
 
   plan:
+    permissions:
+      contents: read
+      deployments: read
+      pull-requests: read
     name: E2E plan
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -91,13 +96,14 @@ jobs:
       # the newer tests of master. On other events the value is empty, and checkout keeps its default.
       - name: Checkout
         if: steps.access.outputs.testable == 'true'
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
 
       - name: Setup Node.js
         if: steps.access.outputs.testable == 'true'
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
           cache: 'npm'
@@ -137,6 +143,10 @@ jobs:
         run: node select/plan.ts
 
   e2e:
+    permissions:
+      contents: read
+      deployments: read
+      pull-requests: read
     name: E2E (${{ matrix.leg.name }})
     needs: plan
     if: needs.plan.outputs.testable == 'true' && needs.plan.outputs.legs != '[]'
@@ -153,12 +163,13 @@ jobs:
     steps:
       # The commit that the plan job read and the target deploys (see the plan job).
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
           cache: 'npm'
@@ -245,7 +256,7 @@ jobs:
       # request headers, the Vercel bypass secret included, and anyone can download the artifacts of a public repo.
       - name: Upload artifacts
         if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: e2e-report-${{ strategy.job-index }}
           path: |
@@ -259,6 +270,7 @@ jobs:
   # The one check to require. It fails when the test location check failed, on every PR. A PR that the plan found
   # untestable (fork or Dependabot) then passes with a notice: its tests run on the master push after the merge.
   result:
+    permissions: {}
     name: E2E result
     needs: [location, plan, e2e]
     if: always()

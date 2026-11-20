@@ -8,7 +8,7 @@ import { TipPlate } from "@/components/explorer-v2/staking/bits";
 import { truncate } from "@/components/explorer-v2/format";
 import type { Names } from "@/lib/explorer-query/types";
 import { matches, type Selection } from "@/lib/explorer-query/selection";
-import type { Format, Panel } from "@/lib/explorer-query/visual";
+import type { Format, Panel } from "@/lib/explorer-query/visual-spec";
 import { rowBase } from "@/lib/explorer-query/target";
 import { FADE_CLASS, useNarrow } from "./motion";
 import { flowOf, type Flow, type FlowNode } from "./flow";

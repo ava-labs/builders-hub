@@ -31,6 +31,7 @@ export function getSelection() {
 /** the event the chat bubble listens for: open with this question typed */
 export const ASK_EVENT = "explorer:ask";
 
-export function askAbout(prompt: string) {
-  window.dispatchEvent(new CustomEvent(ASK_EVENT, { detail: { prompt } }));
+/** Sends the question to the chat bubble. False when no bubble on screen took it. */
+export function askAbout(prompt: string): boolean {
+  return !window.dispatchEvent(new CustomEvent(ASK_EVENT, { detail: { prompt }, cancelable: true }));
 }

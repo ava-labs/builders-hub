@@ -343,31 +343,39 @@ export async function runQuery(sql: string, chainId?: number): Promise<QueryResu
 /* ------------------------------------------------------------------ */
 /* the schema card                                                     */
 
-const schemaCache = new Map<string, { at: number; text: string }>();
+export interface TableSchema {
+  name: string;
+  columns: ColumnMeta[];
+}
+
+const schemaCache = new Map<string, { at: number; tables: TableSchema[] }>();
 const SCHEMA_TTL_MS = 60 * 60_000;
 
-/** the tables as the database describes them, one line per table, then
-    the reference tables this network has (sources.ts) */
-export async function schemaCard(chainId: number): Promise<string> {
+/** this target's chain tables as the database describes them, each with its typed columns, kept an hour */
+export async function schemaTables(chainId: number): Promise<TableSchema[]> {
   const { kind, tables } = targetOf(chainId);
-  const refs = refSchema(chainId);
   const hit = schemaCache.get(kind);
-  if (hit && Date.now() - hit.at < SCHEMA_TTL_MS) return [hit.text, ...refs].join("\n");
+  if (hit && Date.now() - hit.at < SCHEMA_TTL_MS) return hit.tables;
   const list = tables.map((t) => `'${t}'`).join(", ");
   const r = await runQuery(
     `SELECT table, name, type FROM system.columns WHERE database = currentDatabase() AND table IN (${list}) ORDER BY table, position`,
   );
-  const by = new Map<string, string[]>();
+  const by = new Map<string, ColumnMeta[]>();
   for (const row of r.rows) {
     const t = String(row.table);
-    (by.get(t) ?? by.set(t, []).get(t)!).push(`${row.name} ${row.type}`);
+    (by.get(t) ?? by.set(t, []).get(t)!).push({ name: String(row.name), type: String(row.type) });
   }
-  const text = tables.filter((t) => by.has(t))
-    .map((t) => `${t}(${by.get(t)!.join(", ")})`)
-    .join("\n");
-  if (!text) throw new Error("schema card empty");
-  schemaCache.set(kind, { at: Date.now(), text });
-  return [text, ...refs].join("\n");
+  const found = tables.filter((t) => by.has(t)).map((t) => ({ name: t, columns: by.get(t)! }));
+  if (!found.length) throw new Error("schema card empty");
+  schemaCache.set(kind, { at: Date.now(), tables: found });
+  return found;
+}
+
+/** the tables as the database describes them, one line per table, then
+    the reference tables this network has (sources.ts) */
+export async function schemaCard(chainId: number): Promise<string> {
+  const tables = await schemaTables(chainId);
+  return [...tables.map((t) => `${t.name}(${t.columns.map((c) => `${c.name} ${c.type}`).join(", ")})`), ...refSchema(chainId)].join("\n");
 }
 
 export interface Coverage {

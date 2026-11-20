@@ -1,6 +1,6 @@
 import type { ColumnMeta } from "./clickhouse";
 import type { ChartSpec } from "./types";
-import type { Panel, Series, VisualSpec } from "./visual";
+import type { Panel, Series, VisualSpec } from "./visual-spec";
 
 /* The layout an answer carries from the writer's chart spec until the
    designer's arrives. The page waits for the designer's and draws this

@@ -18,6 +18,16 @@ export interface AlgoliaHit {
   _highlightResult?: { content?: { matchLevel: 'none' | 'partial' | 'full' } };
 }
 
+/** A row besides the pages Algolia finds: a vocabulary page or a Console tool (lib/search/intent.ts). */
+export interface PinnedPage {
+  url: string;
+  title: string;
+  /** where it lives; the label of its URL when left out */
+  label?: string[];
+  /** one line under the title */
+  note?: string;
+}
+
 const MAX_PAGES = 12;
 const MAX_SECTIONS = 2;
 // shorter text rows are table cells and labels, not sentences
@@ -141,26 +151,44 @@ function pageLabels(pages: Page[]): string[][] {
 
 const sameLabel = (a: string[], b: string[]) => a.length === b.length && a.every((part, i) => part === b[i]);
 
+/** A pinned page with its label, and its note as the one row under it. */
+function pinnedPage(page: PinnedPage) {
+  const note: SortedResult[] = page.note
+    ? [{ id: `${page.url}#pinned`, type: 'text', url: page.url, content: page.note }]
+    : [];
+  return { url: page.url, title: page.title, label: page.label ?? sectionLabel(page.url, page.title), sections: note };
+}
+
 /**
- * The dialog's rows: the first 12 pages, leaving out the explorer's Accounts
- * pages, each with up to 2 sections. A page row carries its label as
- * breadcrumbs when the label differs from the page row above, so a run of
- * results from one section shares one label.
+ * The dialog's rows: the top pinned pages, then the first 12 pages found,
+ * leaving out the pinned pages and the explorer's Accounts pages, each with
+ * up to 2 sections, then the bottom pinned pages. A page row carries its
+ * label as breadcrumbs when the label differs from the page row above, so a
+ * run of results from one section shares one label.
  */
-export function dialogRows(hits: AlgoliaHit[]): SortedResult[] {
-  const listed = hits.filter((hit) => !ACCOUNTS_PAGE.test(hit.url));
-  const pages = [...new Set(listed.map((hit) => hit.url))].slice(0, MAX_PAGES).map((url) => {
+export function dialogRows(
+  hits: AlgoliaHit[],
+  { top = [], bottom = [] }: { top?: PinnedPage[]; bottom?: PinnedPage[] } = {},
+): SortedResult[] {
+  const pinned = new Set([...top, ...bottom].map((page) => page.url));
+  const listed = hits.filter((hit) => !ACCOUNTS_PAGE.test(hit.url) && !pinned.has(hit.url));
+  const found = [...new Set(listed.map((hit) => hit.url))].slice(0, MAX_PAGES).map((url) => {
     const pageHits = listed.filter((hit) => hit.url === url);
     return { url, title: pageHits[0].title, sections: sectionRows(pageHits) };
   });
-  const labels = pageLabels(pages);
+  const labels = pageLabels(found);
+  const pages = [
+    ...top.map(pinnedPage),
+    ...found.map((page, i) => ({ ...page, label: labels[i] })),
+    ...bottom.map(pinnedPage),
+  ];
   return pages.flatMap((page, i): SortedResult[] => [
     {
       id: page.url,
       type: 'page',
       url: page.url,
       content: page.title,
-      breadcrumbs: i > 0 && sameLabel(labels[i], labels[i - 1]) ? undefined : labels[i],
+      breadcrumbs: i > 0 && sameLabel(page.label, pages[i - 1].label) ? undefined : page.label,
     },
     ...page.sections,
   ]);

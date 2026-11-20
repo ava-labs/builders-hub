@@ -1,6 +1,7 @@
 import axios from 'axios';
 import * as fs from 'fs';
 import * as path from 'path';
+import { rewriteMovedLinks } from './moved-links.mts';
 // Intentionally no global MDX fixer; section parsers handle transformations
 
 export interface FileConfig {
@@ -204,7 +205,8 @@ export async function processFile(fileConfig: FileConfig, parser?: SectionParser
     const outputDir = path.dirname(fileConfig.outputPath);
     fs.mkdirSync(outputDir, { recursive: true });
 
-    fs.writeFileSync(fileConfig.outputPath, transformedContent);
+    // Every remote file gets the dead-link rewrites, also the generated release notes that skip the parser.
+    fs.writeFileSync(fileConfig.outputPath, rewriteMovedLinks(transformedContent));
     console.log(`Processed and saved: ${fileConfig.outputPath}`);
   }
 } 
