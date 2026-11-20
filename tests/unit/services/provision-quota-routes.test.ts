@@ -100,7 +100,10 @@ describe('POST /api/quick-l1/deploy daily cap', () => {
 });
 
 describe('POST /api/managed-testnet-nodes daily cap', () => {
-  const valid = { subnetId: 'x'.repeat(48), blockchainId: 'chain-1' };
+  const valid = {
+    subnetId: '2EhsmhGYMffVMk3cRG1vaQJGSbmw7krjv2dfXfpWa2ZNjEcGJL',
+    blockchainId: 'yPsWyyCvzM5vkvwRHKxiXYRwAXAQMfgMd3mhKXnt1u1GEkfW4',
+  };
 
   beforeEach(() => {
     getUserNodes.mockResolvedValue([]);

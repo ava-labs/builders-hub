@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthSession } from '@/lib/auth/authSession';
 import { rateLimit } from '@/lib/rateLimit';
+import { isValidAvalancheId } from '@/lib/console/l1-upgrade-selection';
 import { ServiceErrorSchema } from './types';
 
 export async function getUserId(): Promise<{ userId: string | null; error?: NextResponse }> {
@@ -24,10 +25,14 @@ export async function getUserId(): Promise<{ userId: string | null; error?: Next
   return { userId: session.user.id };
 }
 
-// we should have this in avalanche-sdk-ts
+// Subnet and blockchain IDs go into upstream URL paths. Only base58 text of an ID's
+// length may pass: that alphabet has no '/', '.', '%', '?' or '#', so the value cannot
+// change the path. The checksum is not verified here: the node service refuses a subnet
+// that does not exist.
 export function validateSubnetId(subnetId: string): boolean {
-  return typeof subnetId === 'string' && subnetId.length >= 40 && subnetId.length <= 60;
+  return typeof subnetId === 'string' && subnetId === subnetId.trim() && isValidAvalancheId(subnetId);
 }
+export const validateBlockchainId = validateSubnetId;
 
 // The node service keys a node on (subnet, node index), reuses a freed slot, and knows
 // nothing about accounts. A registration holds its slot only while it is active and

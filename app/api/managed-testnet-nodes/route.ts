@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { rateLimited, getUserId, validateSubnetId, isLiveRegistration, jsonOk, jsonError } from './utils';
+import {
+  rateLimited,
+  getUserId,
+  validateSubnetId,
+  validateBlockchainId,
+  isLiveRegistration,
+  jsonOk,
+  jsonError,
+} from './utils';
 import {
   builderHubAddNode,
   builderHubDeleteNode,
@@ -67,6 +75,16 @@ async function handleCreateNode(request: NextRequest): Promise<NextResponse> {
         {
           error: 'Bad request',
           message: 'Invalid subnet ID format'
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!validateBlockchainId(blockchainId)) {
+      return NextResponse.json(
+        {
+          error: 'Bad request',
+          message: 'Invalid blockchain ID format'
         },
         { status: 400 }
       );

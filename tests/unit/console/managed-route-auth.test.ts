@@ -64,12 +64,23 @@ vi.mock('@/app/api/managed-testnet-nodes/service', async (importOriginal) => ({
 vi.mock('@/lib/console/my-l1s', () => ({
   aggregateL1s: vi.fn(async (nodes: Row[]) => nodes.map((n) => ({ subnetId: n.subnet_id }))),
 }));
+// Create passes the chain lookup and the daily cap, so only its own ID checks can refuse a request.
+vi.mock('@/components/toolbox/coreViem/utils/glacier', async () => {
+  const { SUBNET_EVM_VM_ID } = await import('@/constants/console');
+  return { getBlockchainInfo: vi.fn(async () => ({ vmId: SUBNET_EVM_VM_ID, blockchainName: 'test' })) };
+});
+vi.mock('@/server/services/provision-quota', () => ({
+  reserveDailyProvision: vi.fn(async () => ({ allowed: true })),
+  retryAfterSeconds: () => '1',
+}));
 
 const nodes = await import('@/app/api/managed-testnet-nodes/route');
 const node = await import('@/app/api/managed-testnet-nodes/[subnetId]/[nodeIndex]/route');
 const managed = await import('@/app/api/console/l1-upgrade/managed/route');
 const restart = await import('@/app/api/console/l1-upgrade/managed/restart/route');
 const myL1s = await import('@/app/api/console/my-l1s/route');
+const { ManagedTestnetNodesServiceURLs } = await import('@/app/api/managed-testnet-nodes/constants');
+const { validateSubnetId } = await import('@/app/api/managed-testnet-nodes/utils');
 
 const OWNER = 'user-owner';
 const OTHER = 'user-other';
@@ -217,5 +228,51 @@ describe('a stale registration for a slot that another account now holds', () =>
     const res = await nodes.DELETE(req('/api/managed-testnet-nodes?id=row-owner', { method: 'DELETE' }));
     expect((await res.json()).deletedExternally).toBe(true);
     expect(service.builderHubDeleteNode).toHaveBeenCalledWith(SUBNET, 1);
+  });
+});
+
+// Subnet and blockchain IDs go into the node service URL path. A value with dot
+// segments would leave the node's own path, so only base58 text may pass.
+describe('ids that go into the node service URL', () => {
+  const NOT_AN_ID = [
+    `../../relayers/reserve/${'./'.repeat(9)}`,
+    `%2e%2e/%2e%2e/relayers/reserve?${'a'.repeat(10)}`,
+    `%252e%252e/%252e%252e/relayers/reserve/x`,
+    `${SUBNET}/../x`,
+    `${SUBNET}?x`,
+    ` ${SUBNET}`,
+  ];
+  const create = (body: Row) => nodes.POST(req('/api/managed-testnet-nodes', { method: 'POST', body }));
+  beforeEach(() => as(OWNER));
+
+  it('accepts a CB58 ID', () => {
+    expect(validateSubnetId(SUBNET)).toBe(true);
+    expect(validateSubnetId(CHAIN)).toBe(true);
+  });
+
+  it.each(NOT_AN_ID)('create refuses the subnet ID %j', async (subnetId) => {
+    expect((await create({ subnetId, blockchainId: CHAIN })).status).toBe(400);
+    for (const fn of Object.values(service)) expect(fn).not.toHaveBeenCalled();
+  });
+
+  it.each(NOT_AN_ID)('create refuses the blockchain ID %j', async (blockchainId) => {
+    expect((await create({ subnetId: SUBNET, blockchainId })).status).toBe(400);
+    for (const fn of Object.values(service)) expect(fn).not.toHaveBeenCalled();
+  });
+
+  it.each(NOT_AN_ID)('the node routes refuse the subnet ID %j', async (subnetId) => {
+    const params = { params: Promise.resolve({ subnetId, nodeIndex: '1' }) };
+    expect((await node.GET(req('/x'), params)).status).toBe(400);
+    expect((await node.DELETE(req('/x', { method: 'DELETE' }), params)).status).toBe(400);
+  });
+
+  it('a stored subnet ID cannot leave its path segment', () => {
+    const { addNode, deleteNode, upgradeJson, restartNode } = ManagedTestnetNodesServiceURLs;
+    const id = '../../relayers';
+    const path = (url: string) => new URL(url).pathname;
+    expect(path(addNode(id, CHAIN, null))).toBe('/node_admin/subnets/add/..%2F..%2Frelayers');
+    expect(path(deleteNode(id, 1))).toBe('/node_admin/subnets/delete/..%2F..%2Frelayers/1');
+    expect(path(upgradeJson(id, 1, CHAIN))).toBe('/node_admin/subnets/..%2F..%2Frelayers/1/upgrade-json');
+    expect(path(restartNode(id, 1))).toBe('/node_admin/subnets/..%2F..%2Frelayers/1/restart');
   });
 });
