@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { documentation, academy, integration, blog } from '@/lib/source';
 import { getLLMText } from '@/lib/llm-utils';
+import { getToken } from 'next-auth/jwt';
+import { hasTeam1AcademyAccess } from '@/lib/auth/roles';
 
 const markdownHeaders = {
   'Content-Type': 'text/markdown; charset=utf-8',
   'Cache-Control': 'public, max-age=3600, s-maxage=3600',
   'Vary': 'Accept',
+};
+
+// Team1 pages are for signed-in members only: never store them in a shared cache.
+const privateMarkdownHeaders = {
+  ...markdownHeaders,
+  'Cache-Control': 'private, no-store',
 };
 
 type Source = typeof documentation | typeof academy | typeof integration | typeof blog;
@@ -41,7 +49,7 @@ function buildSectionIndex(source: Source, label: string): string {
   return content;
 }
 
-export async function GET(_request: NextRequest, { params }: { params: Promise<{ slug: string[] }> }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ slug: string[] }> }) {
   const { slug } = await params;
 
   if (!slug || slug.length === 0) {
@@ -53,6 +61,19 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 
   if (!entry) {
     return NextResponse.json({ error: 'Invalid content type' }, { status: 400 });
+  }
+
+  // Team1 Academy: defense-in-depth gating (proxy.ts already covers this).
+  // `slug` is already decoded, so encoded variants of the path land here too.
+  const isTeam1 = contentType === 'academy' && restPath[0]?.toLowerCase() === 'team1';
+  if (isTeam1) {
+    const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (!hasTeam1AcademyAccess(token.custom_attributes as string[] | undefined)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
   }
 
   try {
@@ -70,7 +91,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 
     const content = await getLLMText(page);
 
-    return new NextResponse(content, { status: 200, headers: markdownHeaders });
+    return new NextResponse(content, { status: 200, headers: isTeam1 ? privateMarkdownHeaders : markdownHeaders });
   } catch (error) {
     console.error('Error fetching page:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
