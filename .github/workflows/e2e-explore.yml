@@ -127,6 +127,8 @@ jobs:
         env:
           E2E_BASE_URL: ${{ inputs.target_url || 'https://build.avax.network' }}
           E2E_TELEMETRY_DISABLED: '1'
+          # Lets the run through the Cloudflare WAF challenge on build.avax.network (tests/e2e/lib/bypass.ts).
+          E2E_WAF_BYPASS_SECRET: ${{ secrets.E2E_WAF_BYPASS_SECRET }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           KEY: ${{ matrix.charter.key }}
           TARGET: ${{ matrix.charter.target }}

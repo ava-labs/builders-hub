@@ -54,6 +54,8 @@ A failed test writes a readable report to `.e2e/failures/`. It shows each step, 
 
 To test a Vercel preview, set `E2E_BASE_URL` to the preview URL and `VERCEL_AUTOMATION_BYPASS_SECRET` to the bypass secret.
 
+The Cloudflare WAF challenges automated browsers on `build.avax.network`. To run against production from a machine it challenges, set `E2E_WAF_BYPASS_SECRET`: the tests then send it in the `x-builders-hub-e2e` header, which a WAF skip rule matches. CI sets it from the repository secret of the same name.
+
 The `npm` scripts turn telemetry off (`E2E_TELEMETRY_DISABLED=1`). If you call `npx e2e` directly, set that variable yourself.
 
 ## Write a test
