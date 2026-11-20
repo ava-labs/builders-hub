@@ -6,8 +6,11 @@ import { appFetch } from './app-fetch';
 // does not serve chain 1, so no request in this file runs a query.
 const HASH = `0x${'0'.repeat(63)}1`;
 const CRAWLER = 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)';
+// The agent of the browser tests. On build.avax.network, the Cloudflare WAF challenges an automated client that sends
+// a desktop browser's agent (403, cf-mitigated: challenge). The browser tests' HeadlessChrome agent passes, so this
+// request reaches the route as they do.
 const BROWSER =
-  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36';
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/145.0.0.0 Safari/537.36';
 
 describe('trace route gate', { platforms: ['api'], tags: ['api', 'explorer'] }, () => {
   test('robots.txt disallows the trace route, and the API routes for Baidu only', async ({ app }) => {
