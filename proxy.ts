@@ -5,9 +5,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { hasTeam1AcademyAccess } from "@/lib/auth/roles";
 import { PROTECTED_PATHS } from "@/lib/auth/protected-paths";
 import { getAuthCallbackUrl } from "@/lib/auth/callback-url";
+import { normalizePathname } from "@/lib/auth/normalize-path";
 
 export async function proxy(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
+  // Decoded, lower case, no dot segments: what the router actually serves.
+  const normalizedPath = normalizePathname(pathname);
   const response = NextResponse.next();
   response.headers.set("Access-Control-Allow-Origin", "*");
   response.headers.set(
@@ -29,7 +32,7 @@ export async function proxy(req: NextRequest) {
   // in scope. Everything else for Team1 (HTML pages, markdown negotiation)
   // is handled by adding /academy/team1 to PROTECTED_PATHS + the
   // authenticated branch below.
-  if (pathname.startsWith('/api/raw/academy/team1')) {
+  if (normalizedPath.startsWith('/api/raw/academy/team1')) {
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -39,6 +42,11 @@ export async function proxy(req: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     // Access OK: fall through to the normal flow.
+  }
+
+  // The rest of this function handles pages, not the raw markdown API.
+  if (normalizedPath.startsWith('/api/raw/')) {
+    return NextResponse.next();
   }
 
   // Content negotiation: serve markdown when Accept: text/markdown is requested
@@ -54,7 +62,7 @@ export async function proxy(req: NextRequest) {
   // protected-paths block which returns x-auth-required.
   const protectedAcademySuffixes = ['/get-certificate', '/certificate'];
   const isProtectedAcademyPath =
-    pathname.startsWith('/academy/team1') ||
+    normalizedPath.startsWith('/academy/team1') ||
     (pathname.startsWith('/academy/') &&
       protectedAcademySuffixes.some(suffix => pathname.endsWith(suffix)));
 
@@ -79,7 +87,7 @@ export async function proxy(req: NextRequest) {
   const isSendNotifications = pathname.startsWith("/send-notifications");
   const custom_attributes = token?.custom_attributes as string[] ?? []
 
-  const isProtectedPath = PROTECTED_PATHS.some(path => pathname.startsWith(path));
+  const isProtectedPath = PROTECTED_PATHS.some(path => normalizedPath.startsWith(path));
 
   // Protect routes: block unauthenticated access to protected paths without redirecting
   // The client-side component (AutoLoginModalTrigger) will detect this and show the login modal
@@ -105,7 +113,7 @@ export async function proxy(req: NextRequest) {
     if (isSendNotifications && !(custom_attributes.includes('devrel') || custom_attributes.includes('notify_event')))
       return NextResponse.redirect(new URL("/", req.url))
 
-    if (pathname.startsWith("/academy/team1") && !hasTeam1AcademyAccess(custom_attributes))
+    if (normalizedPath.startsWith("/academy/team1") && !hasTeam1AcademyAccess(custom_attributes))
       return NextResponse.redirect(new URL("/", req.url))
 
     // Protect hackathons/edit and events/edit routes - only team1-admin and hackathonCreator can access
@@ -163,7 +171,8 @@ export const config = {
     "/academy/:path*",
     "/blog/:path*",
     "/integrations/:path*",
-    // Team1 raw markdown API
-    "/api/raw/academy/team1/:path*",
+    // Raw markdown API: every path, so encoded variants of the Team1 prefix
+    // reach the check above
+    "/api/raw/:path*",
   ],
 };
