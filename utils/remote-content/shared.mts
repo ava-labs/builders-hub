@@ -14,10 +14,9 @@ export interface FileConfig {
   embeds?: EmbedConfig[];
 }
 
-// Another upstream file whose sections replace the body of a section of the page, so the page keeps every option
-// when upstream splits its options across files. A page without the section is left as it is.
+// Another upstream file whose sections replace the body of the page's `##` section that links to it, so the page
+// keeps every option when upstream splits its options across files. A page that doesn't link to it is left as it is.
 export interface EmbedConfig {
-  heading: string;
   sourceUrl: string;
   contentUrl: string;
 }
@@ -205,23 +204,37 @@ function linesWithFences(content: string): { line: string; code: boolean }[] {
   });
 }
 
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 /**
- * Replaces the body of the page's `## <heading>` section with the sections of the embedded file (from its first
- * `##` heading on, one level deeper), and points the page's links to the embedded file at the embedded headings.
+ * Replaces the body of the page's first `##` section that links to the embedded file with the sections of the
+ * embedded file (from its first `##` heading on, one level deeper), and points the page's links to the embedded
+ * file at the embedded headings.
  */
 export function embedSections(
   content: string,
   embedded: string,
-  meta: { heading: string; contentUrl: string; embedContentUrl: string; embedSourceUrl: string },
+  meta: { contentUrl: string; embedContentUrl: string; embedSourceUrl: string },
 ): string {
-  const lines = linesWithFences(content);
-  const start = lines.findIndex(({ line, code }) => !code && line.trim() === `## ${meta.heading}`);
-  if (start === -1) return content;
-  const next = lines.findIndex(({ line, code }, i) => i > start && !code && /^##\s/.test(line));
-  const end = next === -1 ? lines.length : next;
+  const embedDir = new URL('.', meta.embedContentUrl).href;
+  const embeddedPage = escapeRegExp(new URL(path.basename(new URL(meta.embedSourceUrl).pathname), embedDir).href);
+  const linksToEmbedded = new RegExp(`\\]\\(${embeddedPage}(#[^)]*)?\\)`);
 
-  const embeddedLines = linesWithFences(replaceRelativeLinks(embedded, new URL('.', meta.embedContentUrl).href));
-  const first = embeddedLines.findIndex(({ line, code }) => !code && /^##\s/.test(line));
+  const lines = linesWithFences(replaceRelativeLinks(content, new URL('.', meta.contentUrl).href));
+  const isSection = ({ line, code }: { line: string; code: boolean }) => !code && /^##\s/.test(line);
+  const sectionEnd = (start: number) => {
+    const next = lines.findIndex((l, i) => i > start && isSection(l));
+    return next === -1 ? lines.length : next;
+  };
+  const start = lines.findIndex(
+    (l, i) => isSection(l) && lines.slice(i + 1, sectionEnd(i)).some(({ line }) => linksToEmbedded.test(line)),
+  );
+  if (start === -1) return content;
+
+  const embeddedLines = linesWithFences(replaceRelativeLinks(embedded, embedDir));
+  const first = embeddedLines.findIndex(isSection);
   if (first === -1) return content;
   const body = embeddedLines
     .slice(first)
@@ -234,25 +247,20 @@ export function embedSections(
     '',
     body,
     '',
-    ...lines.slice(end).map(({ line }) => line),
+    ...lines.slice(sectionEnd(start)).map(({ line }) => line),
   ].join('\n');
 
-  const embeddedPage = new URL(path.basename(new URL(meta.embedSourceUrl).pathname), new URL('.', meta.embedContentUrl)).href;
-  const escaped = embeddedPage.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return replaceRelativeLinks(page, new URL('.', meta.contentUrl).href)
-    .replace(new RegExp(`\\(${escaped}(#[^)]+)\\)`, 'g'), '($1)')
-    .replace(new RegExp(`\\(${escaped}\\)`, 'g'), `(#${headingSlug(meta.heading)})`);
+  return page
+    .replace(new RegExp(`\\]\\(${embeddedPage}(#[^)]+)\\)`, 'g'), ']($1)')
+    .replace(new RegExp(`\\]\\(${embeddedPage}\\)`, 'g'), `](#${headingSlug(lines[start].line.replace(/^##\s+/, ''))})`);
 }
 
 async function applyEmbeds(content: string, fileConfig: FileConfig): Promise<string> {
   let page = content;
   for (const embed of fileConfig.embeds ?? []) {
-    const hasSection = linesWithFences(page).some(({ line, code }) => !code && line.trim() === `## ${embed.heading}`);
-    if (!hasSection) continue;
     const embedded = await fetchFileContent(embed.sourceUrl);
     if (!embedded) throw new Error(`Failed to fetch ${embed.sourceUrl}, embedded in ${fileConfig.outputPath}`);
     page = embedSections(page, embedded, {
-      heading: embed.heading,
       contentUrl: fileConfig.contentUrl,
       embedContentUrl: embed.contentUrl,
       embedSourceUrl: embed.sourceUrl,

@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { embedSections } from "@/utils/remote-content/shared.mts";
 
 const META = {
-  heading: "Shared Options",
   contentUrl: "https://github.com/ava-labs/avalanchego/blob/master/vms/evm/imp/cchain/",
   embedContentUrl: "https://github.com/ava-labs/avalanchego/blob/master/vms/evm/imp/vmconfig/",
   embedSourceUrl: "https://raw.githubusercontent.com/ava-labs/avalanchego/master/vms/evm/imp/vmconfig/config.md",
@@ -56,8 +55,14 @@ describe("embedSections", () => {
     expect(out).toContain("[Go](https://pkg.go.dev/time)");
   });
 
-  it("leaves a page without the section unchanged", () => {
-    const page = "Intro.\n\n## Warp\n\nText.\n";
+  it("finds the section by its link, not its heading", () => {
+    const renamed = embedSections(PAGE.replace("## Shared Options", "## Common Options"), EMBEDDED, META);
+    expect(renamed).toContain("## Common Options\n\n### APIs\n");
+    expect(renamed).toContain("[shared options](#common-options)");
+  });
+
+  it("leaves a page that doesn't link to the embedded file unchanged", () => {
+    const page = "Intro.\n\n## Warp\n\nSee [the docs](https://build.avax.network/docs).\n";
     expect(embedSections(page, EMBEDDED, META)).toBe(page);
   });
 });
