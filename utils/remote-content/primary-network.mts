@@ -18,6 +18,13 @@ export function getPrimaryNetworkConfigs(): FileConfig[] {
       title: "C-Chain Configs",
       description: "This page describes the configuration options available for the C-Chain.",
       contentUrl: "https://github.com/ava-labs/avalanchego/blob/master/vms/evm/imp/cchain/",
+      embeds: [
+        {
+          heading: "Shared Options",
+          sourceUrl: "https://raw.githubusercontent.com/ava-labs/avalanchego/master/vms/evm/imp/vmconfig/config.md",
+          contentUrl: "https://github.com/ava-labs/avalanchego/blob/master/vms/evm/imp/vmconfig/",
+        },
+      ],
     },
     {
       sourceUrl: "https://raw.githubusercontent.com/ava-labs/avalanchego/master/vms/avm/config.md",
