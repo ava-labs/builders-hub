@@ -180,7 +180,8 @@ export async function updateGitignore(fileConfigs: FileConfig[]): Promise<void> 
   missingPaths.forEach(path => console.log(`  Added: ${path}`));
 }
 
-export async function processFile(fileConfig: FileConfig, parser?: SectionParser): Promise<void> {
+/** Writes the page of one remote file. Returns false when the source gave no content, so no page was written. */
+export async function processFile(fileConfig: FileConfig, parser?: SectionParser): Promise<boolean> {
   // Use provided content or fetch from sourceUrl
   const content = fileConfig.content || await fetchFileContent(fileConfig.sourceUrl);
   if (content) {
@@ -208,5 +209,7 @@ export async function processFile(fileConfig: FileConfig, parser?: SectionParser
     // Every remote file gets the dead-link rewrites, also the generated release notes that skip the parser.
     fs.writeFileSync(fileConfig.outputPath, rewriteMovedLinks(transformedContent));
     console.log(`Processed and saved: ${fileConfig.outputPath}`);
+    return true;
   }
-} 
+  return false;
+}
