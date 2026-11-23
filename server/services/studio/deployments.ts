@@ -651,7 +651,7 @@ export async function nextAction(
             };
           try {
             const request = quickL1Request(prepared.inputs);
-            assertLaunchQuota(userId);
+            await assertLaunchQuota(userId);
             const jobId = await startQuickL1(userId, request);
             await record({
               status: 'done',

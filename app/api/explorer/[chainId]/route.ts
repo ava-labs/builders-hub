@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { getCumulativeTxs, getDailyTxsByChain } from "@/lib/explorer-clickhouse";
-import { assertPublicRpcTarget } from "@/lib/rpcUrlValidator";
 import { readNewBlocks } from "./new-blocks";
 
 interface Block {
@@ -807,31 +806,17 @@ export async function GET(
     const lastFetchedBlockParam = searchParams.get('lastFetchedBlock');
     const lastFetchedBlock = lastFetchedBlockParam ? parseInt(lastFetchedBlockParam, 10) : undefined;
 
-    // Support custom chains by accepting rpcUrl as query parameter
-    const customRpcUrl = searchParams.get('rpcUrl');
-    const customTokenSymbol = searchParams.get('tokenSymbol');
-    const customBlockchainId = searchParams.get('blockchainId');
-
-    // Find chain config from static data
+    // The RPC comes from the chain list only. The server never fetches a URL
+    // that the caller supplies. A chain outside the list (one a user added
+    // in the browser) gets the price call only, with its own token symbol.
     const chain = l1ChainsData.find(c => c.chainId === chainId) as ChainConfig | undefined;
-    
-    // Determine effective RPC URL - prefer static config, fallback to query param
-    const rpcUrl = chain?.rpcUrl || customRpcUrl;
-    const tokenSymbol = chain?.networkToken?.symbol || customTokenSymbol || undefined;
-    const blockchainId = chain?.blockchainId || customBlockchainId || undefined;
+    const rpcUrl = chain?.rpcUrl;
+    const tokenSymbol = chain?.networkToken?.symbol || searchParams.get('tokenSymbol') || undefined;
+    const blockchainId = chain?.blockchainId;
     const coingeckoId = chain?.coingeckoId;
-    
-    // If no chain found and no custom rpcUrl provided, return 404
-    if (!chain && !customRpcUrl) {
-      return NextResponse.json({ error: "Chain not found. Provide rpcUrl query parameter for custom chains." }, { status: 404 });
-    }
 
-    // Validate custom RPC URL: must be https and must not point to private/loopback addresses.
-    if (customRpcUrl && !(await assertPublicRpcTarget(customRpcUrl))) {
-      return NextResponse.json(
-        { error: "Invalid rpcUrl: must use https and must not target private or loopback addresses." },
-        { status: 400 }
-      );
+    if (!chain && !priceOnly) {
+      return NextResponse.json({ error: "Chain not found." }, { status: 404 });
     }
 
     // priceOnly returns the token price and symbol. The response is the same
@@ -850,7 +835,7 @@ export async function GET(
     }
 
     if (!rpcUrl) {
-      return NextResponse.json({ error: "RPC URL not configured. Provide rpcUrl query parameter for custom chains." }, { status: 400 });
+      return NextResponse.json({ error: "RPC URL not configured for this chain." }, { status: 400 });
     }
 
     // If blocksOnly, return just the newest block headers: the All Networks

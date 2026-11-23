@@ -45,7 +45,7 @@ interface ExplorerContextValue {
   // Refresh function
   refreshTokenData: () => Promise<void>;
   
-  // Helper to build API URL with rpcUrl for custom chains
+  // Helper to build API URLs (adds the token symbol for custom chains)
   buildApiUrl: (endpoint: string, additionalParams?: Record<string, string>) => string;
 }
 
@@ -66,7 +66,6 @@ interface ExplorerProviderProps {
   description?: string;
   website?: string;
   rpcUrl?: string;
-  blockchainId?: string;
   socials?: {
     twitter?: string;
     linkedin?: string;
@@ -84,7 +83,6 @@ export function ExplorerProvider({
   description,
   website,
   rpcUrl,
-  blockchainId,
   socials,
 }: ExplorerProviderProps) {
   const [chainInfo, setChainInfo] = useState<ChainInfo>({
@@ -111,21 +109,14 @@ export function ExplorerProvider({
     return !l1ChainsData.some((c: { chainId: string }) => c.chainId === chainId);
   }, [chainId]);
   
-  // Helper to build API URLs with rpcUrl for custom chains only
+  // Helper to build API URLs. A custom chain (not in l1-chains.json) sends
+  // its token symbol. It never sends its RPC URL: the server reads RPCs from
+  // the chain list only.
   const buildApiUrl = useCallback((endpoint: string, additionalParams?: Record<string, string>): string => {
     const params = new URLSearchParams();
     
-    // Only add rpcUrl, tokenSymbol, and blockchainId for custom chains (not in l1-chains.json)
-    if (isCustomChain) {
-      if (rpcUrl) {
-        params.set('rpcUrl', rpcUrl);
-      }
-      if (nativeToken) {
-        params.set('tokenSymbol', nativeToken);
-      }
-      if (blockchainId) {
-        params.set('blockchainId', blockchainId);
-      }
+    if (isCustomChain && nativeToken) {
+      params.set('tokenSymbol', nativeToken);
     }
     
     // Add any additional params
@@ -137,7 +128,7 @@ export function ExplorerProvider({
     
     const queryString = params.toString();
     return queryString ? `${endpoint}?${queryString}` : endpoint;
-  }, [isCustomChain, rpcUrl, nativeToken, blockchainId]);
+  }, [isCustomChain, nativeToken]);
   
   const fetchTokenData = useCallback(async (forceRefresh = false) => {
     // Check cache first
