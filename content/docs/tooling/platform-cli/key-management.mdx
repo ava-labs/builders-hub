@@ -3,7 +3,7 @@ title: Key Management
 description: Generate, import, export, and encrypt private keys with Platform CLI
 ---
 
-Platform CLI stores keys in `~/.platform/keys/` with AES-256-GCM encryption enabled by default. Keys are encrypted using Argon2id key derivation with a user-provided password.
+Platform CLI stores keys in `~/.platform/keys/` with AES-256-GCM encryption enabled by default. The encryption uses Argon2id key derivation and a password that you provide.
 
 ## Generating Keys
 
@@ -84,7 +84,7 @@ platform-cli keys export --name mykey --format hex --output-file ./mykey.hex
 platform-cli keys export --name mykey --unsafe-stdout
 ```
 
-If the key is encrypted, you'll be prompted for the password. Set `PLATFORM_CLI_KEY_PASSWORD` to skip the prompt in scripts.
+If the key is encrypted, Platform CLI prompts you for the password. Set `PLATFORM_CLI_KEY_PASSWORD` to skip the prompt in scripts.
 
 ## Deleting Keys
 
@@ -96,7 +96,7 @@ platform-cli keys delete --name mykey
 platform-cli keys delete --name mykey --force
 ```
 
-Deletion is irreversible. Ensure you have a backup first.
+Deletion cannot be undone. Make sure that you have a backup first.
 
 ## Default Key
 
@@ -122,7 +122,7 @@ The ewoq key is pre-funded on local networks. Platform CLI blocks its use on mai
 
 ## Ledger Hardware Wallet
 
-Build with Ledger support and use the `--ledger` flag:
+Build the CLI with Ledger support. Then use the `--ledger` flag:
 
 ```bash
 go build -tags ledger -o platform-cli .
@@ -137,7 +137,7 @@ platform-cli wallet balance --ledger --ledger-index 1
 
 ## Security Best Practices
 
-1. **Keys are encrypted by default** - only use `--encrypt=false` for throwaway test keys
+1. **Platform CLI encrypts keys by default**: only use `--encrypt=false` for throwaway test keys
 2. **Use strong passwords** (minimum 8 characters required)
 3. **Back up keys** immediately after generation
 4. **Use environment variables** (`AVALANCHE_PRIVATE_KEY`, `PLATFORM_CLI_KEY_PASSWORD`) for CI/CD
