@@ -10,7 +10,7 @@
 
 import { truncate } from "@/components/explorer-v2/format";
 import type { Names } from "@/lib/explorer-query/types";
-import type { Stat } from "@/lib/explorer-query/visual";
+import type { Stat } from "@/lib/explorer-query/visual-spec";
 import { msOf } from "@/lib/explorer-query/edges";
 import { DAY, MONTHS_SHORT, isHash, isTime } from "@/lib/explorer-query/values";
 import { rowBase } from "@/lib/explorer-query/target";

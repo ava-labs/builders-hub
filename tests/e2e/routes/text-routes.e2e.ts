@@ -106,6 +106,35 @@ describe('site text routes answer with content', { tags: ['sweep'] }, () => {
   });
 });
 
+describe('Team1 raw markdown needs a session', { tags: ['sweep'] }, () => {
+  // The index page of the first Team1 course. These requests carry no session.
+  const PAGE = 'team1-fundamentals';
+  // Each path is a way to ask for the raw markdown of that page: the API, the `.md` URL, and both with an encoded
+  // letter or an encoded slash in the path.
+  const PATHS = [
+    `/api/raw/academy/team1/${PAGE}`,
+    `/api/raw/academy/te%61m1/${PAGE}`,
+    `/api/raw/academy/team1%2F${PAGE}`,
+    `/academy/team1/${PAGE}.md`,
+    `/academy/te%61m1/${PAGE}.md`,
+    `/academy/team1%2F${PAGE}.md`,
+  ];
+
+  for (const path of PATHS) {
+    test(`GET ${path} answers 401`, { timeout: TEXT_ROUTE_TIMEOUT }, async ({ app }) => {
+      const res = await appFetch(app, path);
+      expect(res.status, `status of ${path}`).toBe(401);
+      expect(res.headers.get('cache-control') ?? '', `cache header of ${path}`).not.toContain('s-maxage');
+    });
+  }
+
+  test('a public Academy page still answers with markdown', { timeout: TEXT_ROUTE_TIMEOUT }, async ({ app }) => {
+    const res = await appFetch(app, '/academy/avalanche-l1/avalanche-fundamentals.md');
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type') ?? '').toMatch(/^text\/markdown/);
+  });
+});
+
 describe('pages that only redirect send their redirect', { tags: ['sweep'] }, () => {
   // Pages that redirect to the explorer or the docs, which other suites open. A dynamic one gets one real slug
   // from its data file. Read from app/ when the runner collects the tests.

@@ -19,8 +19,14 @@ import { generateText } from 'ai';
 import { answerQuestion } from '@/lib/explorer-query/answer';
 import { EXAMPLES, L1_EXAMPLES, NETWORK_EXAMPLES, PCHAIN_EXAMPLES } from '@/lib/explorer-query/examples';
 import { fixedRecipe, fixedRoute } from '@/lib/explorer-query/fixed';
+import { CCHAIN as CCHAIN_FIXED } from '@/lib/explorer-query/fixed/cchain';
+import { L1 as L1_FIXED } from '@/lib/explorer-query/fixed/l1';
+import { NETWORK as NETWORK_FIXED } from '@/lib/explorer-query/fixed/network';
+import { PCHAIN as PCHAIN_FIXED } from '@/lib/explorer-query/fixed/pchain';
 import { guardSql } from '@/lib/explorer-query/guard';
+import { collapseMacros } from '@/lib/explorer-query/macros';
 import { NETWORK_ID } from '@/lib/explorer-query/target';
+import { visualSpecSchema } from '@/lib/explorer-query/visual-spec';
 
 const CCHAIN = EXAMPLES.flatMap((g) => g.items.map((i) => i.q));
 const PCHAIN = PCHAIN_EXAMPLES.flatMap((g) => g.items.map((i) => i.q));
@@ -30,6 +36,17 @@ const NETWORK = NETWORK_EXAMPLES.flatMap((g) => g.items.map((i) => i.q));
 const GUNZILLA = 43419;
 const DEXALOT = 432204;
 const DEXALOT_FUJI = 432201;
+/** each page's suggestions and fixed answers, with a chain that answers them and its token */
+const PAGES = [
+  { examples: EXAMPLES, fixed: CCHAIN_FIXED, chainId: 43114, symbol: 'AVAX' },
+  { examples: PCHAIN_EXAMPLES, fixed: PCHAIN_FIXED, chainId: 1, symbol: 'AVAX' },
+  { examples: L1_EXAMPLES, fixed: L1_FIXED, chainId: GUNZILLA, symbol: 'GUN' },
+  { examples: NETWORK_EXAMPLES, fixed: NETWORK_FIXED, chainId: NETWORK_ID, symbol: '' },
+] as const;
+/** whether a query selects a column: under its own name, or as an alias */
+const selects = (sql: string, column: string) => new RegExp(`\\bAS ${column}\\b|(?:SELECT|,)\\s+(?:\\w+\\.)?${column}\\s*(?:,|FROM\\b)`).test(sql);
+/** a figure, a date, a time of day or an address: what a stat's sub line must not hold on a layout every chain and day shares */
+const FIGURE = /\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b|0x|\d[\d,.]*[kMB%]|\d:\d\d|\b\d{2,} days\b/;
 const ROWS = { columns: [{ name: 'n', type: 'UInt64' }], rows: [{ n: 1 }], rowCount: 1, elapsedMs: 1, rowsRead: 1, truncated: false };
 const ask = (chainId: number, prompt: string) =>
   answerQuestion({ chainId, chainName: chainId === 1 ? 'P-Chain' : 'Avalanche C-Chain', symbol: 'AVAX', prompt, history: [], baseUrl: 'http://localhost:3000', emit: () => {} });
@@ -42,6 +59,90 @@ describe('the suggested questions', () => {
         expect(r, q).not.toBeNull();
         expect(guardSql(r!.sql, chainId).ok, q).toBe(true);
         expect(r!.visual, q).not.toBeNull();
+      }
+    }
+  });
+
+  it('are in three to six groups a page, which the page filters by, each asked once and each fixed answer suggested', () => {
+    for (const page of PAGES) {
+      const groups = page.examples.map((g) => g.group);
+      expect(groups.length, String(page.chainId)).toBeGreaterThanOrEqual(3);
+      expect(groups.length, String(page.chainId)).toBeLessThanOrEqual(6);
+      expect(new Set(groups).size, String(page.chainId)).toBe(groups.length);
+      // a group is known by its colour too
+      expect(new Set(page.examples.map((g) => g.hue)).size, String(page.chainId)).toBe(groups.length);
+      const asked = page.examples.flatMap((g) => g.items.map((i) => i.q));
+      expect([...asked].sort(), String(page.chainId)).toEqual(page.fixed.map((f) => f.q).sort());
+    }
+  });
+
+  it('each have three short questions to ask next', () => {
+    for (const page of PAGES) {
+      for (const q of page.examples.flatMap((g) => g.items.map((i) => i.q))) {
+        const r = fixedRecipe(page.chainId, q, page.symbol);
+        expect(r?.followups, q).toHaveLength(3);
+        for (const next of r?.followups ?? []) expect(next.length, next).toBeLessThanOrEqual(60);
+      }
+    }
+  });
+
+  it('each have a layout that parses, over columns the SQL selects', () => {
+    for (const page of PAGES) {
+      for (const q of page.examples.flatMap((g) => g.items.map((i) => i.q))) {
+        const r = fixedRecipe(page.chainId, q, page.symbol)!;
+        const v = visualSpecSchema.safeParse(r.visual);
+        expect(v.success, q).toBe(true);
+        if (!v.success) continue;
+        // the sheet holds at most four stats and three panels, and no sentence about one day's rows
+        expect(v.data.stats.length, q).toBeLessThanOrEqual(4);
+        expect(v.data.panels.length, q).toBeLessThanOrEqual(3);
+        expect(v.data.callouts, q).toEqual([]);
+        const columns = [...v.data.stats.map((s) => s.column), ...v.data.panels.flatMap((p) => [p.x, p.y, p.target, p.sortBy, ...p.series.map((s) => s.column)]), r.chart.x, ...r.chart.series.map((s) => s.column)];
+        for (const c of new Set(columns.filter((x): x is string => !!x))) expect(selects(r.sql, c), `${q}: ${c}`).toBe(true);
+      }
+    }
+  });
+
+  it('written after the first eight draw one ranking of each set of names', () => {
+    for (const page of PAGES) {
+      for (const f of page.fixed.slice(8)) {
+        const ranked = f.visual!.panels.filter((p) => p.kind === 'hbar' || p.kind === 'dumbbell' || p.kind === 'treemap').map((p) => p.x);
+        expect(new Set(ranked).size, f.q).toBe(ranked.length);
+      }
+    }
+  });
+
+  // the fixed path runs a recipe's SQL with no guard before it, and only the guard writes a shorthand out
+  it('have the shorthand their query opens with written out, and keep the one their drill opens with', () => {
+    for (const [q, name, value] of [
+      ['DEX volume by protocol this week', 'DEX', "'pharaoh'"],
+      ['DEX volume by protocol, last 7 days against the 7 days before', 'DEX', "'pharaoh'"],
+      ['Lending deposits, withdrawals, borrows and repayments per day', 'LEND', "'2026-11-09'"],
+      ['Liquidations per day over the last 30 days', 'LIQUIDATIONS', "'2026-11-09'"],
+    ] as const) {
+      const r = fixedRecipe(43114, q)!;
+      expect(r.sql, q).toMatch(/^WITH /);
+      expect(r.sql, q).not.toContain('$');
+      // the window buttons read the query in its shorthand form again
+      expect(collapseMacros(r.sql, 43114).startsWith(`$${name}(`), q).toBe(true);
+      // a drill is written out when a row opens: filled from the row, then guarded
+      expect(r.drill!.sql, q).toMatch(/^\$(POOLS|LEND|LIQUIDATIONS)\(/);
+      const opened = guardSql(r.drill!.sql.replace(/\{\{\w+\}\}/g, value), 43114);
+      expect(opened.ok, q).toBe(true);
+      if (opened.ok) expect(opened.sql, q).not.toContain('$');
+    }
+    // stats-api writes $ICTT out: it leaves as typed, on the network
+    expect(fixedRecipe(NETWORK_ID, 'ICTT token transfers between chains in the last 7 days')!.sql.startsWith('$ICTT(now() - INTERVAL 7 DAY) SELECT ')).toBe(true);
+    // a query with no shorthand leaves as it is kept
+    expect(fixedRecipe(43114, 'Fees burned per 5 minutes')!.sql.startsWith('SELECT toStartOfFiveMinutes(block_time) AS t, ')).toBe(true);
+  });
+
+  it("on an L1 and on the network say nothing of one day's rows: no dated mark, no shaded window, no figure under a stat", () => {
+    for (const page of PAGES.slice(2)) {
+      for (const q of page.examples.flatMap((g) => g.items.map((i) => i.q))) {
+        const v = fixedRecipe(page.chainId, q, page.symbol)!.visual!;
+        for (const p of v.panels) expect([p.markers, p.bands], q).toEqual([[], []]);
+        for (const s of v.stats) expect(s.sub ?? '', `${q}: ${s.label}`).not.toMatch(FIGURE);
       }
     }
   });
@@ -106,11 +207,14 @@ describe('a suggestion asked', () => {
     for (const [chainId, qs] of [[43114, CCHAIN], [1, PCHAIN], [GUNZILLA, L1], [NETWORK_ID, NETWORK]] as const) {
       for (const q of qs) {
         const a = await ask(chainId, q);
-        expect(a?.sql, q).toBe(fixedRecipe(chainId, q)!.sql);
+        // an L1's query names its fee column for the asked chain's token, which ask() gives as AVAX
+        expect(a?.sql, q).toBe(fixedRecipe(chainId, q, 'AVAX')!.sql);
         expect(a?.model?.cached, q).toBe(true);
         // no key and a kept layout: the page asks the designer for nothing
         expect(a?.key, q).toBeUndefined();
         expect(a?.draftVisual, q).toBe(false);
+        // its three questions to ask next come with it
+        expect(a?.followups, q).toEqual(fixedRecipe(chainId, q)!.followups);
       }
     }
     expect(generateText).not.toHaveBeenCalled();

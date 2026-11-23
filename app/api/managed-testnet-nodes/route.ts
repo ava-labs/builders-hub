@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { rateLimited, getUserId, validateSubnetId, jsonOk, jsonError } from './utils';
+import {
+  rateLimited,
+  getUserId,
+  validateSubnetId,
+  validateBlockchainId,
+  isLiveRegistration,
+  jsonOk,
+  jsonError,
+} from './utils';
 import {
   builderHubAddNode,
   builderHubDeleteNode,
@@ -12,6 +20,7 @@ import { getBlockchainInfo } from '../../../components/toolbox/coreViem/utils/gl
 import { CreateNodeRequest, SubnetStatusResponse } from './types';
 import { prisma } from '@/prisma/prisma';
 import { SUBNET_EVM_VM_ID } from '@/constants/console';
+import { reserveDailyProvision, retryAfterSeconds } from '@/server/services/provision-quota';
 
 // Types moved to ./types
 
@@ -71,11 +80,31 @@ async function handleCreateNode(request: NextRequest): Promise<NextResponse> {
       );
     }
 
+    if (!validateBlockchainId(blockchainId)) {
+      return NextResponse.json(
+        {
+          error: 'Bad request',
+          message: 'Invalid blockchain ID format'
+        },
+        { status: 400 }
+      );
+    }
+
     // Fetch chain information and enforce Subnet EVM VM check
     const blockchainInfo = await getBlockchainInfo(blockchainId);
     const chainName: string | null = blockchainInfo.blockchainName || null;
     if (blockchainInfo.vmId !== SUBNET_EVM_VM_ID) {
       return jsonError(400, `Unsupported VM for this service. Expected Subnet EVM (vmID ${SUBNET_EVM_VM_ID}), got ${blockchainInfo.vmId}.`);
+    }
+
+    // Daily cap per account (MANAGED_TESTNET_NODES_DAILY_CREATES), counted on
+    // every attempt sent to the node service, so deleting and re-creating
+    // nodes cannot get around the 3-active limit above.
+    const quota = await reserveDailyProvision(userId!, 'managed-testnet-node');
+    if (!quota.allowed) {
+      const response = jsonError(429, quota.message);
+      response.headers.set('retry-after', retryAfterSeconds(quota.resetAt));
+      return response;
     }
 
     // Make the request to Builder Hub API to add node. Pass blockchainId
@@ -141,7 +170,10 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
 
     if (record.node_index !== null && record.node_index !== undefined) {
       try {
-        const { deletedExternally } = await builderHubDeleteNode(record.subnet_id, record.node_index);
+        // Only a live registration still holds its slot in the node service.
+        const deletedExternally = isLiveRegistration(record)
+          ? (await builderHubDeleteNode(record.subnet_id, record.node_index)).deletedExternally
+          : false;
         await prisma.nodeRegistration.update({ where: { id }, data: { status: 'terminated' } });
         return jsonOk({
           success: true,

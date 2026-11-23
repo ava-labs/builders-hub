@@ -14,6 +14,7 @@
     "---ICM Contracts---",
     "icm-contracts/overview",
     "icm-contracts/deep-dive",
+    "icm-contracts/encoding-decoding-messages",
     "icm-contracts/cli",
     "icm-contracts/upgradeability",
     "icm-contracts/addresses",

@@ -4,6 +4,7 @@ import type { DeployRequest, DeployResponse } from '@/lib/quick-l1/types';
 import { getUserId, rateLimited } from '@/app/api/managed-testnet-nodes/utils';
 import { getAuthSession } from '@/lib/auth/authSession';
 import { withQuickL1WafToken } from '@/lib/quick-l1/waf';
+import { reserveDailyProvision, retryAfterSeconds } from '@/server/services/provision-quota';
 
 /**
  * POST /api/quick-l1/deploy
@@ -25,7 +26,9 @@ import { withQuickL1WafToken } from '@/lib/quick-l1/waf';
  * Rate limit: 5 deploys/min per account in prod. Each deploy provisions
  * a managed validator node, deploys ~7 contracts, and (optionally) bridges
  * tokens — this caps abusive bursts while staying well above legitimate
- * "I made a typo, retry" use.
+ * "I made a typo, retry" use. That limit lives in each instance's memory;
+ * the daily cap (QUICK_L1_DAILY_DEPLOYS, server/services/provision-quota.ts)
+ * is kept in the database and shared with Studio's Quick L1 launches.
  */
 async function rateLimitIdentifier(): Promise<string> {
   if (process.env.NODE_ENV === 'development') return 'dev-user';
@@ -137,6 +140,15 @@ async function handlePost(
       return NextResponse.json(
         { error: 'BUILDER_HUB_URL not configured on this server' },
         { status: 503 },
+      );
+    }
+    // Daily cap per account, in the database so it holds across instances.
+    // Counted here, after validation and right before the upstream call.
+    const quota = await reserveDailyProvision(userId, 'quick-l1-deploy');
+    if (!quota.allowed) {
+      return NextResponse.json(
+        { error: quota.message },
+        { status: 429, headers: { 'retry-after': retryAfterSeconds(quota.resetAt) } },
       );
     }
     const res = await fetch(withQuickL1WafToken(`${upstream.replace(/\/$/, '')}/deploy`), {

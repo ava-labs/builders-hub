@@ -68,6 +68,7 @@ import posthog from 'posthog-js';
 import { useTheme } from 'next-themes';
 import { useSession } from 'next-auth/react';
 import { useLoginModalTrigger } from '@/hooks/useLoginModal';
+import { ASK_EVENT } from '@/components/explorer-v2/dig/selection';
 
 import { ShareButton } from '@/components/chat/share-button';
 import { ShareModal } from '@/components/chat/share-modal';
@@ -1250,6 +1251,19 @@ function ChatPageInner() {
       sendMessage({ text: initialQuery });
     }
   }, [initialQuery, messages.length, status, sendMessage]);
+
+  // "Ask AI" in the docs search, used on this page: the question goes into the open chat. ?q= only
+  // starts an empty chat, and this page has no chat bubble to take it.
+  useEffect(() => {
+    const onAsk = (e: Event) => {
+      const prompt = (e as CustomEvent<{ prompt: string }>).detail?.prompt;
+      if (!prompt || e.defaultPrevented || (status !== 'ready' && status !== 'error')) return;
+      e.preventDefault();
+      sendMessage({ text: prompt });
+    };
+    window.addEventListener(ASK_EVENT, onAsk);
+    return () => window.removeEventListener(ASK_EVENT, onAsk);
+  }, [status, sendMessage]);
 
   const handleNewChat = () => {
     // Track conversation start

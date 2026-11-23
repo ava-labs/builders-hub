@@ -5,7 +5,7 @@ import type { QueryResult } from '@/lib/explorer-query/clickhouse';
 import { cutOf, newestSql } from '@/lib/explorer-query/cut';
 import { guardSql } from '@/lib/explorer-query/guard';
 import type { Totals } from '@/lib/explorer-query/types';
-import { figures } from '@/lib/explorer-query/visual';
+import { figures } from '@/lib/explorer-query/figures';
 
 const SERIES = 'SELECT toStartOfFiveMinutes(block_time) AS t, count() AS txs FROM raw_txs WHERE chain_id = 43114 AND block_time >= now() - INTERVAL 7 DAY GROUP BY t ORDER BY t\nLIMIT 2000';
 const at = (i: number) => new Date(Date.UTC(2026, 8, 20) + i * 300_000).toISOString().slice(0, 19).replace('T', ' ');

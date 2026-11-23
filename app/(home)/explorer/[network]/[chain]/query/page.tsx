@@ -4,14 +4,20 @@ import { L1Chain } from "@/types/stats";
 import { QueryPageClient } from "./page.client";
 import { chainCardMetadata } from "@/utils/explorer-metadata";
 import { queryTarget } from "@/lib/explorer-query/target";
+import { answerMetadata } from "@/lib/explorer-query/share-answer";
 import { indexState } from "@/lib/explorer-query/clickhouse";
 
 interface PageProps {
   params: Promise<{ network: string; chain: string }>;
+  searchParams: Promise<{ q?: string | string[]; then?: string | string[] }>;
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
   const { network, chain: chainSlug } = await params;
+  // a link to an answer (?q=) is named by the answer: its title, its note and its own share image
+  const { q, then } = await searchParams;
+  const shared = await answerMetadata({ network, slug: chainSlug, q, then, path: `/explorer/${network}/${chainSlug}/query` });
+  if (shared) return shared;
   const chain = l1ChainsData.find((c) => c.slug === chainSlug) as L1Chain | undefined;
   const name = chain?.chainName ?? "Chain";
   return chainCardMetadata({

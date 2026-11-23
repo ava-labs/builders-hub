@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { recipeKey } from '@/lib/explorer-query/cache';
 import { mixedChains } from '@/lib/explorer-query/checks';
-import { figures } from '@/lib/explorer-query/visual';
+import { figures } from '@/lib/explorer-query/figures';
 import { guardSql } from '@/lib/explorer-query/guard';
 import { networkPrompt, networkVersion } from '@/lib/explorer-query/network-prompt';
 import { promptVersion } from '@/lib/explorer-query/prompt';

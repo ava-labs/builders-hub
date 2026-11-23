@@ -46,7 +46,7 @@ const CASES: Case[] = [
   {
     name: "Intain Market",
     line: "Permissioned structured finance on an L1. Its gateway serves 2,000+ regional banks.",
-    href: "/explorer/mainnet/intainmkt",
+    href: "/integrations/intain",
     mark: { src: "/logos/partners/tape/intain.png", chip: "#ffffff" },
   },
   {

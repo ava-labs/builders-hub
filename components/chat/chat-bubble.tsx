@@ -40,6 +40,7 @@ export function ChatBubble() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const pulseIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
 
   const { messages, sendMessage, status, setMessages, error } = useChat({
     id: 'chat-bubble',
@@ -101,12 +102,15 @@ export function ChatBubble() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // "Ask about this" on an explorer visual: open and send the question
-  // with the selection attached
+  // "Ask about this" on an explorer visual, or "Ask AI" in the docs search:
+  // open and send the question with the selection attached. A bubble that is
+  // not on screen (none on /chat and /console, hidden on phones on /stats and
+  // /explorer) leaves the question to the caller, which opens /chat.
   useEffect(() => {
     const onAsk = (e: Event) => {
       const prompt = (e as CustomEvent<{ prompt: string }>).detail?.prompt;
-      if (!prompt) return;
+      if (!prompt || !boxRef.current?.getClientRects().length) return;
+      e.preventDefault();
       setState('expanded');
       sendMessage({ text: prompt }, { body: { page: { path: pathname, selection: getSelection()?.brief } } });
     };
@@ -188,6 +192,7 @@ export function ChatBubble() {
 
   return (
     <div
+      ref={boxRef}
       className={cn(
         'chatbot-container fixed bottom-6 right-6 z-50 flex-col items-end gap-3',
         hideOnMobile ? 'hidden md:flex' : 'flex',

@@ -5,13 +5,16 @@ import { L1Chain } from "@/types/stats";
 import { createMetadata } from "@/utils/metadata";
 import { NETWORK_SLUG, queryTarget } from "@/lib/explorer-query/target";
 import { indexState } from "@/lib/explorer-query/clickhouse";
+import { answerMetadata } from "@/lib/explorer-query/share-answer";
+import { shareChain } from "@/lib/explorer-query/share";
+import { networkAsked } from "@/components/explorer-v2/network/ask-route";
 import type { NetworkQueryChain } from "@/components/explorer-v2/evm/network-query";
 import { NetworkQueryClient } from "./page.client";
 
 const PCHAIN_LOGO =
   "https://images.ctfassets.net/gcj8jwzm6086/42aMwoCLblHOklt6Msi6tm/1e64aa637a8cead39b2db96fe3225c18/pchain-square.svg";
 
-export const metadata: Metadata = createMetadata({
+const PAGE_METADATA: Metadata = createMetadata({
   title: "Query | Avalanche Explorer",
   description: "Ask an Avalanche chain a question in plain words and get a chart with its SQL.",
   openGraph: {
@@ -20,6 +23,16 @@ export const metadata: Metadata = createMetadata({
     url: "/explorer/mainnet/query",
   },
 });
+
+/* A link to an answer (?q=) is named by the answer: its title, its note and its own share image. The chain is the
+   link's (?chain=), else the one the page opens on: All chains for a question about every chain, else the C-Chain */
+export async function generateMetadata({ params, searchParams }: { params: Promise<{ network: string }>; searchParams: Promise<{ q?: string | string[]; then?: string | string[]; chain?: string | string[] }> }): Promise<Metadata> {
+  const [{ network }, { q, then, chain }] = await Promise.all([params, searchParams]);
+  const picked = typeof chain === "string" && shareChain(network, chain) ? chain : null;
+  const slug = picked ?? (networkAsked(typeof q === "string" ? q : "") ? NETWORK_SLUG : "c-chain");
+  const shared = await answerMetadata({ network, slug, q, then, path: "/explorer/mainnet/query", params: picked ? { chain: picked } : undefined });
+  return shared ?? PAGE_METADATA;
+}
 
 /* The chains the picker offers: All chains (the C-Chain and every L1 the
    database holds, asked as one), then every chain the per-chain Query tab

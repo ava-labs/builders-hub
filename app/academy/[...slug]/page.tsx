@@ -28,6 +28,7 @@ import posthog from "posthog-js";
 
 import { getAuthSession } from "@/lib/auth/authSession";
 import { hasTeam1AcademyAccess } from "@/lib/auth/roles";
+import { isTeam1Slug } from "@/lib/auth/normalize-path";
 import { AuthLoading } from "@/components/ui/auth-loading";
 import { AccessDenied } from "@/components/ui/access-denied";
 import { CourseOutlineProvider } from "@/components/academy/course/course-outline-context";
@@ -97,8 +98,11 @@ export default async function Page(props: {
 }) {
   const params = await props.params;
 
+  const page = academy.getPage(params.slug);
+
   // Team1 Academy: defense-in-depth gating (proxy.ts already covers this).
-  if (params.slug?.[0] === "team1") {
+  // Check the requested slug and the page it resolves to (see isTeam1Slug).
+  if (isTeam1Slug(params.slug) || isTeam1Slug(page?.slugs)) {
     const session = await getAuthSession();
     if (!session?.user?.id) return <AuthLoading />;
     if (!hasTeam1AcademyAccess(session.user.custom_attributes)) {
@@ -107,8 +111,6 @@ export default async function Page(props: {
       );
     }
   }
-
-  const page = academy.getPage(params.slug);
 
   if (!page) notFound();
 
