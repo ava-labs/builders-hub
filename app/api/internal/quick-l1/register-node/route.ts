@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { timingSafeEqual } from 'node:crypto';
+import { z } from 'zod';
+import { readJsonBody } from '@/lib/api/json-body';
 import { createDbNode, selectNewestNode } from '@/app/api/managed-testnet-nodes/service';
 import { jsonError, jsonOk, validateSubnetId } from '@/app/api/managed-testnet-nodes/utils';
 import { checkRateLimit } from '@/lib/rateLimit';
@@ -45,18 +47,18 @@ const BLS_HEX_RE = /^(0x)?[0-9a-fA-F]+$/;
 // to 5/min upstream), so 20/min/user is generous.
 const PER_USER_RATE_LIMIT = { windowMs: 60_000, maxRequests: 20 } as const;
 
-interface RegisterNodeRequest {
-  userId: string;
-  subnetId: string;
-  blockchainId: string;
-  chainName: string | null;
-  nodeIndex: number;
+const registerNodeSchema = z.object({
+  userId: z.string(),
+  subnetId: z.string(),
+  blockchainId: z.string(),
+  chainName: z.string().nullish(),
+  nodeIndex: z.number().int(),
   /** Epoch seconds (or ms — `toDateFromEpoch` normalises both). */
-  dateCreated: number;
-  nodeId: string;
-  publicKey: string;
-  proofOfPossession: string;
-}
+  dateCreated: z.number(),
+  nodeId: z.string(),
+  publicKey: z.string(),
+  proofOfPossession: z.string(),
+});
 
 function authorizedAsQuickL1(presented: string | null): boolean {
   const configured = process.env.QUICK_L1_INTERNAL_SECRET;
@@ -72,12 +74,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return jsonError(401, 'Unauthorized');
   }
 
-  let body: RegisterNodeRequest;
-  try {
-    body = (await request.json()) as RegisterNodeRequest;
-  } catch {
-    return jsonError(400, 'Invalid JSON body');
-  }
+  const body = await readJsonBody(request, registerNodeSchema);
+  if (!body) return jsonError(400, 'Invalid request body');
 
   // Cheap shape checks before hitting the DB. The orchestrator already
   // produced these from successful upstream calls, but we don't trust

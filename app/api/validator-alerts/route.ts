@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthSession } from '@/lib/auth/authSession';
 import { prisma } from '@/prisma/prisma';
-import type { CreateAlertRequest, ValidatorP2P, L1ValidatorData } from '@/types/validator-alerts';
+import type { ValidatorP2P, L1ValidatorData } from '@/types/validator-alerts';
 import {
   fetchLatestRelease,
   checkSingleAlert,
@@ -19,6 +19,8 @@ import {
 import { getAllMainnetSubnetIds } from '@/server/services/l1-chain-metadata';
 import { isValidEmail } from "@/lib/email";
 import { EXPLORER_API_BASE } from '@/lib/pchain-explorer';
+import { z } from 'zod';
+import { readJsonBody } from '@/lib/api/json-body';
 
 const NODE_ID_REGEX = /^NodeID-[A-HJ-NP-Za-km-z1-9]{32,}$/;
 const P2P_API_URL = `${EXPLORER_API_BASE}/api/mainnet/fleet/validators`;
@@ -26,6 +28,22 @@ const MAX_ALERTS_PER_USER = 20;
 const MAX_CREATES_PER_HOUR = 10;
 // A request waits for the P-Chain read on a cache miss, so it gets a short timeout.
 const LIST_PCHAIN_TIMEOUT_MS = 3000;
+
+// CreateAlertRequest in types/validator-alerts.ts. The NodeID and range checks stay in the handler.
+const createAlertSchema = z.object({
+  node_id: z.string(),
+  subnet_id: z.string().optional(),
+  label: z.string().optional(),
+  uptime_alert: z.boolean().optional(),
+  uptime_threshold: z.number().optional(),
+  version_alert: z.boolean().optional(),
+  expiry_alert: z.boolean().optional(),
+  expiry_days: z.number().optional(),
+  balance_alert: z.boolean().optional(),
+  balance_threshold: z.number().optional(),
+  balance_threshold_days: z.number().optional(),
+  security_alert: z.boolean().optional(),
+});
 
 export async function GET() {
   try {
@@ -82,7 +100,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized, please sign in to continue.' }, { status: 401 });
     }
 
-    const body: CreateAlertRequest = await req.json();
+    const body = await readJsonBody(req, createAlertSchema);
+    if (!body) {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    }
 
     if (!body.node_id || !NODE_ID_REGEX.test(body.node_id)) {
       return NextResponse.json(

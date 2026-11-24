@@ -1,4 +1,6 @@
 import { after, NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { readJsonBody } from "@/lib/api/json-body";
 import { getClientId } from "@/lib/mcp-rate-limit";
 import { isAddress, knownChain } from "@/lib/verification/chains";
 import { submitVerification } from "@/lib/verification/service";
@@ -17,6 +19,13 @@ import { findVerified, getJob } from "@/lib/verification/store";
 export const runtime = "nodejs";
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
+
+// The standard JSON input stays loose: submitVerification checks its shape.
+const submitSchema = z.object({
+  stdJsonInput: z.unknown().optional(),
+  compilerVersion: z.string().nullish(),
+  contractIdentifier: z.string().nullish(),
+});
 
 function error(status: number, customCode: string, message: string, headers?: Record<string, string>) {
   return NextResponse.json({ customCode, message, errorId: crypto.randomUUID() }, { status, headers });
@@ -39,15 +48,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return error(400, "invalid_parameter", "Not a contract address.");
   }
 
-  let body: {
-    stdJsonInput?: unknown;
-    compilerVersion?: string;
-    contractIdentifier?: string;
-    creationTransactionHash?: string;
-  };
-  try {
-    body = (await request.json()) as typeof body;
-  } catch {
+  const body = await readJsonBody(request, submitSchema);
+  if (!body) {
     return error(400, "missing_or_invalid_source", "Body must be JSON.");
   }
 

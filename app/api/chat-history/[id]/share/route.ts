@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthSession } from '@/lib/auth/authSession';
 import { prisma } from '@/prisma/prisma';
 import * as crypto from 'crypto';
+import { z } from 'zod';
+import { readJsonBody } from '@/lib/api/json-body';
+
+// The body is optional: with no body, or one that does not match, the share lasts the default 7 days
+const shareBodySchema = z.object({
+  expiresInDays: z.number().optional(),
+});
 
 // Generate a cryptographically secure, URL-safe token
 function generateShareToken(): string {
@@ -25,13 +32,9 @@ export async function POST(
 
     // Parse optional expiration from body
     let expiresInDays = 7; // Default: 7 days
-    try {
-      const body = await req.json();
-      if (body.expiresInDays && typeof body.expiresInDays === 'number') {
-        expiresInDays = Math.min(Math.max(body.expiresInDays, 1), 365); // Clamp 1-365 days
-      }
-    } catch {
-      // No body or invalid JSON - use default
+    const body = await readJsonBody(req, shareBodySchema);
+    if (body?.expiresInDays) {
+      expiresInDays = Math.min(Math.max(body.expiresInDays, 1), 365); // Clamp 1-365 days
     }
 
     // Verify ownership

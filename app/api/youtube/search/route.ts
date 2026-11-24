@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { readJsonBody } from '@/lib/api/json-body';
 
 // Avalanche YouTube channel ID
 // Official Avalanche channel: https://www.youtube.com/@Aboratory
@@ -41,6 +43,12 @@ interface YouTubeAPIResponse {
 // Cache for search results (in-memory, resets on cold start)
 const searchCache = new Map<string, { results: YouTubeSearchResult[]; timestamp: number }>();
 const CACHE_DURATION = 60 * 60 * 1000; // 1 hour
+
+// The GET handler parses the limit, so a number or a numeric string both work.
+const postBodySchema = z.object({
+  query: z.string().optional(),
+  limit: z.union([z.number(), z.string()]).optional(),
+});
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -107,7 +115,10 @@ export async function GET(request: NextRequest) {
 // Also support POST for more complex queries
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const body = await readJsonBody(request, postBodySchema);
+    if (!body) {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    }
     const { query, limit = 5 } = body;
 
     if (!query) {

@@ -28,7 +28,7 @@ export const GET = withAuth<RouteParams<{ project_id: string }>>(async (request,
       );
     }
 
-    const members = await GetMembersByProjectId(project_id);
+    const members = await GetMembersByProjectId(project_id, session.user.id);
     return NextResponse.json(members ?? []);
   } catch (error: any) {
     console.error("Error getting members:", error);

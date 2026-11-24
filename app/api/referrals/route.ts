@@ -17,6 +17,14 @@ import {
   BUILDER_HUB_SIGNUP_TARGET,
   getGrantReferralTarget,
 } from "@/lib/referrals/targets";
+import { z } from "zod";
+import { readJsonBody } from "@/lib/api/json-body";
+
+const postBodySchema = z.object({
+  targetType: z.string().optional(),
+  targetId: z.string().nullish(),
+  destinationUrl: z.string().nullish(),
+});
 
 function getOrigin(request: NextRequest): string {
   return request.nextUrl.origin;
@@ -128,8 +136,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 401 });
   }
 
-  const body = await request.json();
-  const targetType = body?.targetType;
+  const body = await readJsonBody(request, postBodySchema);
+  if (!body) {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+  const targetType = body.targetType;
 
   if (!isReferralTargetType(targetType)) {
     return NextResponse.json({ error: "Invalid referral target type" }, { status: 400 });

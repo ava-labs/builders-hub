@@ -2,6 +2,27 @@ import { NextRequest, NextResponse } from 'next/server';
 import SafeApiKit from '@safe-global/api-kit';
 import { getAddress, isAddress } from 'viem';
 import { withAuth } from '@/lib/protectedRoute';
+import { z } from 'zod';
+import { readJsonBody } from '@/lib/api/json-body';
+
+// The route reads the fields below. The rest of proposalData goes to the Safe transaction service as it is.
+const bodySchema = z.object({
+  action: z.string().optional(),
+  chainId: z.string(),
+  safeAddress: z.string().optional(),
+  safeTxHash: z.string().optional(),
+  ownerAddress: z.string().optional(),
+  safeAddresses: z.array(z.string()).optional(),
+  proposalData: z
+    .looseObject({
+      safeAddress: z.string(),
+      senderAddress: z.string(),
+      safeTransactionData: z.looseObject({ to: z.string() }),
+    })
+    .optional(),
+});
+
+type ProposeTransactionProps = Parameters<SafeApiKit['proposeTransaction']>[0];
 
 interface ChainConfig {
   chainId: string;
@@ -50,7 +71,13 @@ const getSupportedChain = async (chainId: string): Promise<{ txServiceUrl: strin
 
 export const POST = withAuth(async (request: NextRequest) => {
   try {
-    const body = await request.json();
+    const body = await readJsonBody(request, bodySchema);
+    if (!body) {
+      return NextResponse.json(
+        { error: 'Invalid request body' },
+        { status: 400 }
+      );
+    }
     const { action, chainId, safeAddress, ...params } = body;
 
     if (!action) {
@@ -71,12 +98,13 @@ export const POST = withAuth(async (request: NextRequest) => {
 
     switch (action) {
       case 'getSafeInfo': {
-        const safeInfo = await apiKit.getSafeInfo(safeAddress);
+        // The SDK refuses an empty address, as it refused a missing one before.
+        const safeInfo = await apiKit.getSafeInfo(safeAddress ?? '');
         return NextResponse.json({ success: true, data: safeInfo });
       }
 
       case 'getNextNonce': {
-        const nonce = await apiKit.getNextNonce(safeAddress);
+        const nonce = await apiKit.getNextNonce(safeAddress ?? '');
         return NextResponse.json({ success: true, data: { nonce: Number(nonce) } });
       }
 
@@ -100,14 +128,14 @@ export const POST = withAuth(async (request: NextRequest) => {
             to: getAddress(proposalData.safeTransactionData.to),
             nonce: Number(proposalData.safeTransactionData.nonce),
           }
-        };
+        } as ProposeTransactionProps;
 
         await apiKit.proposeTransaction(formattedProposalData);
         return NextResponse.json({ success: true, data: { proposed: true } });
       }
 
       case 'getPendingTransactions': {
-        const transactions = await apiKit.getPendingTransactions(safeAddress);
+        const transactions = await apiKit.getPendingTransactions(safeAddress ?? '');
         return NextResponse.json({ success: true, data: transactions });
       }
 

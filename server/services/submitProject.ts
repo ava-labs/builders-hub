@@ -7,6 +7,7 @@ import {
 import { REQUIRED_SUBMISSION_FIELDS, fieldComplete } from "@/lib/hackathons/submission-progress";
 import { revalidatePath } from "next/cache";
 import { ValidationError } from "./hackathons";
+import { memberEmailFor } from "./projectMembership";
 import { prisma } from "@/prisma/prisma";
 import { acquireAdvisoryLock } from '@/lib/db/advisoryLock';
 import { MemberStatus, Project } from "@/types/project";
@@ -357,7 +358,7 @@ export async function createProject(
     role: m.role,
     status: m.status,
     name: m.user?.name ?? null,
-    email: m.user?.email ?? m.email ?? null,
+    email: memberEmailFor(projectData.user_id ?? "", m),
   }));
 
   return { ...(savedProject as unknown as Project), members } as ProjectCreateResult;

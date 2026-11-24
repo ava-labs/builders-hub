@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/prisma/prisma";
 import { withAuth, type RouteParams } from "@/lib/protectedRoute";
 import { canManageHackathonJudges } from "@/lib/auth/permissions";
+import { z } from "zod";
+import { readJsonBody } from "@/lib/api/json-body";
+
+const postBodySchema = z.object({
+  userId: z.string().optional(),
+});
 
 type Params = RouteParams<{ id: string }>;
 
@@ -45,7 +51,10 @@ export const POST = withAuth<Params>(
         { status: 403 },
       );
     }
-    const body = (await request.json().catch(() => ({}))) as { userId?: string };
+    const body = await readJsonBody(request, postBodySchema);
+    if (!body) {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
     const userId = body.userId?.trim();
     if (!userId) {
       return NextResponse.json({ error: "userId is required" }, { status: 400 });

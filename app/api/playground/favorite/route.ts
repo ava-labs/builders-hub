@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthSession } from '@/lib/auth/authSession';
 import { prisma } from '@/prisma/prisma';
+import { z } from 'zod';
+import { readJsonBody } from '@/lib/api/json-body';
+
+const favoriteBodySchema = z.object({
+  playgroundId: z.string().min(1),
+});
 
 // POST /api/playground/favorite - Favorite a playground
 export async function POST(req: NextRequest) {
@@ -10,12 +16,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized, please sign in to continue.' }, { status: 401 });
     }
 
-    const body = await req.json();
-    const { playgroundId } = body;
-
-    if (!playgroundId) {
+    const body = await readJsonBody(req, favoriteBodySchema);
+    if (!body) {
       return NextResponse.json({ error: 'Playground ID is required.' }, { status: 400 });
     }
+    const { playgroundId } = body;
 
     // Verify playground exists and is public or owned by user
     const playground = await prisma.statsPlayground.findFirst({

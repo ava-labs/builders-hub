@@ -8,6 +8,18 @@ import {
 } from "@/lib/auth/permissions";
 import { MINI_GRANT_KEY } from "@/lib/grants/programs";
 import { VERDICTS as ALLOWED_VERDICTS, isVerdict } from "@/lib/evaluate/verdicts";
+import { z } from "zod";
+import { readJsonBody } from "@/lib/api/json-body";
+
+const bodySchema = z.object({
+  formDataId: z.string().optional(),
+  projectId: z.string().optional(),
+  verdict: z.string().optional(),
+  comment: z.string().nullish(),
+  scoreOverall: z.number().optional(),
+  scores: z.record(z.string(), z.number()).nullish(),
+  stage: z.number().optional(),
+});
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,7 +28,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
+    const body = await readJsonBody(request, bodySchema);
+    if (!body) {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
     const {
       formDataId,
       projectId,
@@ -25,15 +40,7 @@ export async function POST(request: NextRequest) {
       scoreOverall,
       scores,
       stage = 0,
-    } = body as {
-      formDataId?: string;
-      projectId?: string;
-      verdict: string;
-      comment?: string;
-      scoreOverall?: number;
-      scores?: Record<string, number>;
-      stage?: number;
-    };
+    } = body;
 
     if (!formDataId && !projectId) {
       return NextResponse.json(

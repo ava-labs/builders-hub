@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { readJsonBody } from '@/lib/api/json-body';
 import { getUserId, jsonError, jsonOk } from '@/app/api/managed-testnet-nodes/utils';
 import { builderHubRestartManagedNode } from '@/app/api/managed-testnet-nodes/service';
 import { ManagedTestnetNodesServiceURLs } from '@/app/api/managed-testnet-nodes/constants';
 import { isValidAvalancheId } from '@/lib/console/l1-upgrade-selection';
 import { getActiveManagedUpgradeNodes } from '../utils';
 
-type RestartBody = {
-  subnetId?: string;
-  blockchainId?: string;
-};
+const bodySchema = z.object({
+  subnetId: z.string().optional(),
+  blockchainId: z.string().optional(),
+});
 
 // Between node restarts, wait (bounded) for the chain to be producing blocks
 // again before touching the next node, so a multi-node managed set is rolled
@@ -41,12 +43,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const { userId, error } = await getUserId();
   if (error) return error;
 
-  let body: RestartBody;
-  try {
-    body = (await request.json()) as RestartBody;
-  } catch {
-    return jsonError(400, 'Invalid JSON body');
-  }
+  const body = await readJsonBody(request, bodySchema);
+  if (!body) return jsonError(400, 'Invalid request body');
 
   const { subnetId, blockchainId } = body;
   if (!subnetId || !blockchainId) {

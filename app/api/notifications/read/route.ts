@@ -1,13 +1,21 @@
 import { getServerSession } from "next-auth";
 import { AuthOptions } from "@/lib/auth/authOptions";
 import { NextResponse } from "next/server";
+import { z } from "zod";
+import { readJsonBody } from "@/lib/api/json-body";
+
+// The ids of the notifications to mark as read.
+const bodySchema = z.array(z.union([z.number().int(), z.string().min(1)]));
 
 export async function POST(req: any): Promise<Response> {
   try {
     const session = await getServerSession(AuthOptions);
     if (!session) return new Response("Unauthorized", { status: 401 });
 
-    const body: any = await req.json();
+    const body = await readJsonBody(req, bodySchema);
+    if (!body) {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
 
     const baseUrl: string | undefined = process.env.NEXT_PUBLIC_AVALANCHE_WORKERS_URL;
     const avalancheWorkersApiKey: string | undefined =

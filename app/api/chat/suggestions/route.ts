@@ -1,4 +1,10 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
+import { readJsonBody } from '@/lib/api/json-body';
+
+const suggestionsBodySchema = z.object({
+  message: z.string().nullish(),
+});
 
 async function loadLLMsContent() {
   try {
@@ -235,7 +241,11 @@ function generateSuggestionsFromContent(keywords: string[], sections: Array<{ ti
 
 export async function POST(request: Request) {
   try {
-    const { message } = await request.json();
+    const body = await readJsonBody(request, suggestionsBodySchema);
+    if (!body) {
+      return NextResponse.json({ suggestions: [] }, { status: 400 });
+    }
+    const { message } = body;
     
     if (!message) {
       return NextResponse.json({ suggestions: [] });
