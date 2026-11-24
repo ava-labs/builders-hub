@@ -62,7 +62,7 @@ function extractTextFromMessage(message: UIMessage): string {
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import dynamic from 'next/dynamic';
 import React, { useMemo } from 'react';
-import { marked } from 'marked';
+import { markdownToSafeHtml } from '@/utils/sanitizeMarkdown';
 import 'katex/dist/katex.min.css';
 import posthog from 'posthog-js';
 import { useTheme } from 'next-themes';
@@ -271,7 +271,7 @@ function StreamingMarkdown({ text }: { text: string }) {
   useEffect(() => {
     const tick = () => {
       try {
-        setHtml(marked.parse(textRef.current, { async: false }) as string);
+        setHtml(markdownToSafeHtml(textRef.current, { breaks: false }));
       } catch { /* keep last good render */ }
     };
     tick();
