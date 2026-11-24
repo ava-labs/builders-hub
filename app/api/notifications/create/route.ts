@@ -17,7 +17,7 @@ const bodySchema = z.object({
           users: z.array(z.string()),
         })
         .optional(),
-      content: z.unknown(),
+      content: z.unknown().optional(),
     }),
   ),
 });

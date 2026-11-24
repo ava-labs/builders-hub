@@ -11,7 +11,7 @@ import { checkedSpec, monitorTokens, readMonitor } from "@/lib/explorer-query/mo
 
 // spec is checked whole by checkedSpec; from is a block number, as a number or as its digits
 const bodySchema = z.object({
-  spec: z.unknown(),
+  spec: z.unknown().optional(),
   from: z.union([z.number(), z.string()]).nullish(),
 });
 

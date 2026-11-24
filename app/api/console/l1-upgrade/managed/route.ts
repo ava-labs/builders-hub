@@ -11,7 +11,7 @@ import { getActiveManagedUpgradeNodes } from './utils';
 const writeManagedSchema = z.object({
   subnetId: z.string().optional(),
   blockchainId: z.string().optional(),
-  upgradeJson: z.unknown(),
+  upgradeJson: z.unknown().optional(),
 });
 
 export async function GET(request: NextRequest): Promise<NextResponse> {

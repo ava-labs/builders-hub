@@ -67,7 +67,7 @@ const bodySchema = z.object({
   /** read an answer's query over the period before its window */
   prior: z.object({ sql: z.string(), x: z.string().optional().catch(undefined) }).optional().catch(undefined),
   /** open one row of an answer into its records; span is the opened mark's bucket, in unix seconds (binsOf checks it) */
-  drill: z.object({ sql: z.string(), row: z.record(z.string(), z.unknown()), span: z.unknown() }).optional().catch(undefined),
+  drill: z.object({ sql: z.string(), row: z.record(z.string(), z.unknown()), span: z.unknown().optional() }).optional().catch(undefined),
   /** lay out a kept answer, by its key */
   key: z.string().optional().catch(undefined),
   /** with key: write the kept layout's reading again from fresh rows */

@@ -9,7 +9,7 @@ import { readJsonBody } from '@/lib/api/json-body';
 const createLogSchema = z.object({
   status: z.string().optional(),
   actionPath: z.string().optional(),
-  data: z.unknown(),
+  data: z.unknown().optional(),
 });
 
 // GET /api/console-log - Get user's console logs

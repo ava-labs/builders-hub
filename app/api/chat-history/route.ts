@@ -41,7 +41,7 @@ const MAX_CONTENT_LENGTH = 100_000; // Max characters per message
 // stored content size. The id is checked by hand below, so that a wrong id
 // keeps its own answer.
 const saveBodySchema = z.object({
-  id: z.unknown(),
+  id: z.unknown().optional(),
   title: z.string().min(1),
   messages: z.array(
     z.object({
