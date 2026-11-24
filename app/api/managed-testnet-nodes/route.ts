@@ -137,6 +137,9 @@ async function handleCreateNode(request: NextRequest): Promise<NextResponse> {
     }
 
   } catch (error) {
+    if (error instanceof ManagedTestnetNodeServiceRequestError) {
+      return jsonError(error.status, error.message, error);
+    }
     return jsonError(500, error instanceof Error ? error.message : 'Failed to create node', error);
   }
 }

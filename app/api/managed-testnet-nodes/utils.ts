@@ -79,6 +79,16 @@ export function jsonError(status: number, message: string, error?: unknown) {
   return NextResponse.json({ error: 'Error', message }, { status });
 }
 
+// The message for a reply that is not JSON from the node service. A proxy in front of
+// the service can answer with an HTML page: never show that page to the user.
+export function serviceStatusMessage(status: number): string {
+  return `The managed node service did not accept the request (HTTP ${status}). Try again later.`;
+}
+
+function looksLikeHtml(text: string): boolean {
+  return /^\s*</.test(text);
+}
+
 // Extracts a useful error message from a non-OK Response from the external service
 export async function extractServiceErrorMessage(response: Response): Promise<string | null> {
   const contentType = response.headers.get('content-type') || '';
@@ -93,6 +103,10 @@ export async function extractServiceErrorMessage(response: Response): Promise<st
   } else {
     try {
       const text = await response.text();
+      if (text && looksLikeHtml(text)) {
+        console.error(`Managed node service returned HTML (HTTP ${response.status}):`, text.slice(0, 300));
+        return serviceStatusMessage(response.status);
+      }
       if (text) return text.slice(0, 200);
     } catch {}
   }

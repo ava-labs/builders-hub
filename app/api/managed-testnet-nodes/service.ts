@@ -1,7 +1,7 @@
 import { prisma } from '@/prisma/prisma';
 import { ManagedTestnetNodesServiceURLs } from './constants';
 import { SubnetStatusResponse, NodeInfo, SubnetStatusResponseSchema, ServiceErrorSchema } from './types';
-import { toDateFromEpoch, NODE_TTL_MS, extractServiceErrorMessage } from './utils';
+import { toDateFromEpoch, NODE_TTL_MS, extractServiceErrorMessage, serviceStatusMessage } from './utils';
 
 export class ManagedTestnetNodeServiceRequestError extends Error {
   status: number;
@@ -22,17 +22,26 @@ export async function builderHubAddNode(
   if (!password) throw new Error('MANAGED_TESTNET_NODE_SERVICE_PASSWORD not configured');
 
   const url = ManagedTestnetNodesServiceURLs.addNode(subnetId, blockchainId, chainName);
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'x-admin-password': password, 'Content-Type': 'application/json', 'Accept': 'application/json' },
-    body: JSON.stringify({}) // we need an empty body to satisfy the POST request
-  });
-
-  let json: JSON;
+  let response: Response;
   try {
-    json = await response.json();
+    response = await fetch(url, {
+      method: 'POST',
+      headers: { 'x-admin-password': password, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({}) // we need an empty body to satisfy the POST request
+    });
   } catch {
-    throw new Error('Invalid JSON response from Managed Testnet Node Service');
+    throw new ManagedTestnetNodeServiceRequestError(503, 'The managed node service is unreachable. Try again later.');
+  }
+
+  // Read the body as text first: a proxy in front of the service can answer with
+  // an HTML page, and the user must see the status, not a JSON parse error.
+  const text = await response.text().catch(() => '');
+  let json: unknown;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    console.error(`Managed node service returned a reply that is not JSON (HTTP ${response.status}):`, text.slice(0, 300));
+    throw new ManagedTestnetNodeServiceRequestError(502, serviceStatusMessage(response.status));
   }
 
   if (!response.ok) {
@@ -40,7 +49,7 @@ export async function builderHubAddNode(
     const message = parsedErr.success
       ? (parsedErr.data.error || parsedErr.data.message || `Managed Testnet Node Service error ${response.status}`)
       : `Managed Testnet Node Service error ${response.status}`;
-    throw new Error(message);
+    throw new ManagedTestnetNodeServiceRequestError(502, message);
   }
 
   const parsed = SubnetStatusResponseSchema.safeParse(json);
