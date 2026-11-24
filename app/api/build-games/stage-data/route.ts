@@ -68,7 +68,9 @@ export const POST = withAuth(
         form_data: { build_games: Record<string, unknown> };
       };
 
-      if (!project_id) {
+      // An ID is text. Prisma reads a JSON object in its place as a filter
+      // (for example { not: "" }), which matches rows of other projects.
+      if (!project_id || typeof project_id !== "string") {
         return NextResponse.json(
           { error: "project_id is required" },
           { status: 400 },
@@ -98,8 +100,9 @@ export const POST = withAuth(
       }
 
       const result = await prisma.$transaction(async (tx) => {
+        // Every query below uses the ID of the project the membership check returned
         const existing = await tx.formData.findFirst({
-          where: { project_id, origin: "build_games" },
+          where: { project_id: project.id, origin: "build_games" },
         });
 
         if (existing) {
@@ -129,7 +132,7 @@ export const POST = withAuth(
 
         return tx.formData.create({
           data: {
-            project_id,
+            project_id: project.id,
             origin: "build_games",
             form_data: {
               build_games: form_data.build_games as Prisma.InputJsonValue,

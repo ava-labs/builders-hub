@@ -46,11 +46,17 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { id, title, messages } = body;
 
-    if (!title || !messages || !Array.isArray(messages)) {
+    if (!title || typeof title !== 'string' || !messages || !Array.isArray(messages)) {
       return NextResponse.json(
         { error: 'Title and messages are required' },
         { status: 400 }
       );
+    }
+
+    // An ID is text. Prisma reads a JSON object in its place as a filter
+    // (for example { not: '' }), which matches rows the caller does not own.
+    if (id !== undefined && id !== null && typeof id !== 'string') {
+      return NextResponse.json({ error: 'Invalid conversation id' }, { status: 400 });
     }
 
     // Validate each message: role must be allowlisted and content must be a
@@ -86,13 +92,14 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Delete old messages and create new ones (simpler than diffing)
+      // Delete old messages and create new ones (simpler than diffing).
+      // Both writes use the ID of the row the ownership check returned.
       await prisma.chatMessage.deleteMany({
-        where: { conversation_id: id },
+        where: { conversation_id: existing.id },
       });
 
       const conversation = await prisma.chatConversation.update({
-        where: { id },
+        where: { id: existing.id },
         data: {
           title,
           messages: {
