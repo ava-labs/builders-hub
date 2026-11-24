@@ -3,14 +3,8 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { SubmissionRow, EvaluationData, Verdict } from "./types";
-
-const VERDICT_SCORES: Record<string, number> = {
-  top: 5, strong: 4, maybe: 3, weak: 2, reject: 1,
-};
-const SCORE_TO_VERDICT: Record<number, Verdict> = {
-  5: "top", 4: "strong", 3: "maybe", 2: "weak", 1: "reject",
-};
+import { evaluateExportCsv } from "./export-csv";
+import type { SubmissionRow, EvaluationData } from "./types";
 
 interface Props {
   rows: SubmissionRow[];
@@ -30,64 +24,7 @@ export function ExportModal({ rows, hackathonTitle, getEvaluations, getCurrentSt
     : 0;
 
   const handleDownload = () => {
-    const headers: string[] = [
-      "Project", "Applicant", "Email", "Area", "Country", "Current Stage", "Team Size",
-    ];
-
-    if (includeMembers) {
-      for (let i = 0; i < maxMembers; i++) {
-        headers.push(`Member ${i + 1} Email`, `Member ${i + 1} Name`);
-      }
-    }
-
-    if (includeStages) {
-      for (let s = 0; s <= maxStage; s++) {
-        headers.push(`Stage ${s} Verdict`, `Stage ${s} Score`);
-      }
-    }
-
-    const csvRows = rows.map((row) => {
-      const evals = getEvaluations(row.formDataId, row.evaluations);
-      const cs = getCurrentStage(row.formDataId, row.currentStage);
-
-      const cols: string[] = [
-        row.projectName,
-        row.applicantName,
-        row.applicantEmail,
-        row.areaOfFocus ?? "",
-        row.country,
-        `Stage ${cs}`,
-        String(row.project?.members.length ?? 0),
-      ];
-
-      if (includeMembers) {
-        for (let i = 0; i < maxMembers; i++) {
-          const m = row.memberApplications[i];
-          cols.push(m?.email ?? "", m?.name ?? "");
-        }
-      }
-
-      if (includeStages) {
-        for (let s = 0; s <= maxStage; s++) {
-          const stageEvals = evals.filter((e) => e.stage === s);
-          if (stageEvals.length === 0) {
-            cols.push("", "");
-          } else {
-            const avg = stageEvals.reduce((sum, e) => sum + (e.verdict ? VERDICT_SCORES[e.verdict] ?? 0 : 0), 0) / stageEvals.length;
-            const consensus = SCORE_TO_VERDICT[Math.round(avg)] ?? "";
-            const withScores = stageEvals.filter((e) => e.scoreOverall !== null);
-            const avgScore = withScores.length > 0
-              ? (withScores.reduce((sum, e) => sum + (e.scoreOverall ?? 0), 0) / withScores.length).toFixed(1)
-              : "";
-            cols.push(consensus, avgScore);
-          }
-        }
-      }
-
-      return cols.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",");
-    });
-
-    const csv = [headers.join(","), ...csvRows].join("\n");
+    const csv = evaluateExportCsv({ rows, includeMembers, includeStages, maxMembers, maxStage, getEvaluations, getCurrentStage });
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
