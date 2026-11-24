@@ -3,11 +3,23 @@ import { withAuth, RouteParams } from "@/lib/protectedRoute";
 import { UpdateStatusMember } from "@/server/services/memberProject";
 import { isProjectMemberOrInvitee } from "@/server/services/projectMembership";
 import { NextResponse } from "next/server";
+import { z } from "zod";
+import { readJsonBody } from "@/lib/api/json-body";
+import { MemberStatus } from "@/types/project";
+
+const statusBodySchema = z.object({
+  user_id: z.string().nullish(),
+  status: z.enum(MemberStatus),
+  wasInOtherProject: z.boolean().default(false),
+});
 
 export const PATCH = withAuth<RouteParams<{ project_id: string }>>(async (request: Request, { params }, session: Session) => {
   try {
-    const body = await request.json();
-    const { user_id, status, email, wasInOtherProject } = body;
+    const body = await readJsonBody(request, statusBodySchema);
+    if (!body) {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
+    const { user_id, status, wasInOtherProject } = body;
     const { project_id } = await params;
 
     if (!project_id) {

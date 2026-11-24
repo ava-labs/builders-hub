@@ -1,12 +1,30 @@
 import { withAuth } from "@/lib/protectedRoute";
 import { badgeAssignmentService } from "@/server/services/badgeAssignmentService";
 import { getAuthSession } from "@/lib/auth/authSession";
+import { AssignBadgeBody, BadgeCategory } from "@/server/services/badge";
+import { z } from "zod";
+import { readJsonBody } from "@/lib/api/json-body";
 
 import { NextRequest, NextResponse } from "next/server";
 
+// The project badge caller sends no userId: the service reads the members of the project.
+const bodySchema = z.object({
+  category: z.enum(BadgeCategory).optional(),
+  courseId: z.string().optional(),
+  userId: z.string().optional(),
+  hackathonId: z.string().optional(),
+  projectId: z.string().optional(),
+  requirementId: z.string().optional(),
+  badgesId: z.array(z.string()).optional(),
+});
+
 export const POST = withAuth(async (req: NextRequest) => {
   try {
-    const body = await req.json();
+    const parsed = await readJsonBody(req, bodySchema);
+    if (!parsed) {
+      return NextResponse.json({ error: { message: "Invalid request body" } }, { status: 400 });
+    }
+    const body = parsed as AssignBadgeBody;
     const session = await getAuthSession();
     
     const userRole = session?.user.role || "user";

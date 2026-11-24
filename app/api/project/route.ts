@@ -5,12 +5,28 @@ import { GetProjectByHackathonAndUser } from '@/server/services/projects';
 import { createProject, ProjectCreateResult } from '@/server/services/submitProject';
 import { NextResponse } from 'next/server';
 import { MINI_GRANT_HACKATHON_ID } from '@/lib/grants/programs';
+import { z } from 'zod';
+import { readJsonBody } from '@/lib/api/json-body';
 
 interface RegistrationData {
   terms_event_conditions: boolean;
   city?: string;
   telegram_account?: string;
 }
+
+// createProject reads many project fields from the body, so the other keys pass
+// through as they are. The IDs are text, because they go into Prisma filters.
+const createProjectBodySchema = z.looseObject({
+  id: z.string().nullish(),
+  hackaton_id: z.string().nullish(),
+  registrationData: z
+    .object({
+      terms_event_conditions: z.boolean(),
+      city: z.string().optional(),
+      telegram_account: z.string().optional(),
+    })
+    .optional(),
+});
 
 async function autoRegisterIfNeeded(
   session: Session,
@@ -81,7 +97,10 @@ async function autoRegisterIfNeeded(
 
 export const POST = withAuth(async (request, _context: unknown, session: Session) => {
   try{
-    const body = await request.json();
+    const body = await readJsonBody(request, createProjectBodySchema);
+    if (!body) {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    }
 
     // Auto-register the submitter if they haven't registered for the hackathon yet.
     // registrationData carries the terms acceptance and any fields collected in the modal.
@@ -102,7 +121,13 @@ export const POST = withAuth(async (request, _context: unknown, session: Session
       }
     }
 
-    const newProject: ProjectCreateResult = await createProject({ ...body, submittedBy: session.user.email, user_id: resolvedUserId });
+    const newProject: ProjectCreateResult = await createProject({
+      ...body,
+      id: body.id ?? undefined,
+      hackaton_id: body.hackaton_id ?? undefined,
+      submittedBy: session.user.email,
+      user_id: resolvedUserId,
+    });
 
     return NextResponse.json(
       { message: 'project created', project: newProject },

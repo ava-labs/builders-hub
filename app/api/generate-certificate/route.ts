@@ -6,6 +6,12 @@ import { hasTeam1AcademyAccess } from '@/lib/auth/roles';
 import { triggerCertificateWebhook } from '@/server/services/hubspotCertificateWebhook';
 import { getCompletedCourseSlugs } from '@/server/services/userBadge';
 import { getCourseConfig } from '@/content/courses';
+import { z } from 'zod';
+import { readJsonBody } from '@/lib/api/json-body';
+
+const bodySchema = z.object({
+  courseId: z.string().optional(),
+});
 
 /**
  * Sanitize text for WinAnsi (Windows-1252) encoding used by pdf-lib.
@@ -65,7 +71,11 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    const { courseId } = await req.json();
+    const body = await readJsonBody(req, bodySchema);
+    if (!body) {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    }
+    const { courseId } = body;
     if (!courseId) {
       return NextResponse.json({ error: 'Missing course ID' }, { status: 400 });
     }

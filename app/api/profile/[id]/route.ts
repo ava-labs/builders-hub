@@ -1,8 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Session } from 'next-auth';
 import { getProfile, updateProfile } from '@/server/services/profile';
-import { Profile } from '@/types/profile';
 import { withAuth, RouteParams } from '@/lib/protectedRoute';
+import { z } from 'zod';
+import { readJsonBody } from '@/lib/api/json-body';
+
+// The fields updateProfile in server/services/profile.ts writes. The name check stays in the service.
+const updateProfileSchema = z.object({
+  name: z.string().optional(),
+  bio: z.string().optional(),
+  notification_email: z.string().optional(),
+  notifications: z.boolean().nullable().optional(),
+  consent_sharing: z.boolean().nullable().optional(),
+  profile_privacy: z.string().optional(),
+  additional_social_accounts: z.array(z.string()).optional(),
+  telegram_account: z.string().optional(),
+});
 
 export const GET = withAuth<RouteParams<{ id: string }>>(async (
   req: NextRequest,
@@ -59,7 +72,13 @@ export const PUT = withAuth<RouteParams<{ id: string }>>(async (
       );
     }
 
-    const newProfileData = (await req.json()) as Partial<Profile>;
+    const newProfileData = await readJsonBody(req, updateProfileSchema);
+    if (!newProfileData) {
+      return NextResponse.json(
+        { error: 'Invalid request body' },
+        { status: 400 }
+      );
+    }
 
     const updatedProfile = await updateProfile(
       id,

@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { prisma } from "@/prisma/prisma";
+import { z } from "zod";
+import { readJsonBody } from "@/lib/api/json-body";
+
+const bodySchema = z.object({
+  formDataIds: z.array(z.string().min(1)).optional(),
+  formDataId: z.string().optional(),
+  stage: z.number(),
+});
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,12 +21,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { formDataIds, formDataId, stage } = body as {
-      formDataIds?: string[];
-      formDataId?: string;
-      stage: number;
-    };
+    const body = await readJsonBody(request, bodySchema);
+    if (!body) {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
+    const { formDataIds, formDataId, stage } = body;
 
     const ids = formDataIds ?? (formDataId ? [formDataId] : []);
 

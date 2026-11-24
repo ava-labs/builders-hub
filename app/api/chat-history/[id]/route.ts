@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthSession } from '@/lib/auth/authSession';
 import { prisma } from '@/prisma/prisma';
+import { z } from 'zod';
+import { readJsonBody } from '@/lib/api/json-body';
+
+const renameBodySchema = z.object({
+  title: z.string(),
+});
 
 // PATCH /api/chat-history/[id] - Rename a conversation
 export async function PATCH(
@@ -15,10 +21,13 @@ export async function PATCH(
     }
 
     const { id } = await params;
-    const body = await req.json();
+    const body = await readJsonBody(req, renameBodySchema);
+    if (!body) {
+      return NextResponse.json({ error: 'Title is required' }, { status: 400 });
+    }
     const { title } = body;
 
-    if (!title || typeof title !== 'string' || title.trim().length === 0) {
+    if (title.trim().length === 0) {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 });
     }
 

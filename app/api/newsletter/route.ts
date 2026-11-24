@@ -1,9 +1,15 @@
 import { NextResponse } from 'next/server';
 import { isHubSpotEnabled, skipHubSpot } from '@/server/services/hubspot';
+import { z } from 'zod';
+import { readJsonBody } from '@/lib/api/json-body';
 
 const HUBSPOT_API_KEY = process.env.HUBSPOT_API_KEY;
 const HUBSPOT_PORTAL_ID = process.env.HUBSPOT_PORTAL_ID;
 const HUBSPOT_NEWSLETTER_FORM_GUID = process.env.HUBSPOT_NEWSLETTER_FORM_GUID;
+
+const bodySchema = z.object({
+  email: z.string().optional(),
+});
 
 export async function POST(request: Request) {
   try {
@@ -23,7 +29,13 @@ export async function POST(request: Request) {
       );
     }
 
-    const formData = await request.json();
+    const formData = await readJsonBody(request, bodySchema);
+    if (!formData) {
+      return NextResponse.json(
+        { success: false, message: 'Invalid request body' },
+        { status: 400 }
+      );
+    }
     console.log('Received newsletter signup:', formData);
 
     if (!formData.email) {

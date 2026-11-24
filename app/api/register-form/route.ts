@@ -6,6 +6,54 @@ import { prisma } from "@/prisma/prisma";
 import { syncUserDataToHubSpot } from "@/server/services/hubspotUserData";
 import { isTeam1Event } from "@/lib/events/team1";
 import { normalizeEmail } from "@/lib/utils";
+import { z } from "zod";
+import { readJsonBody } from "@/lib/api/json-body";
+
+// The fields that createRegisterForm reads. Other keys the form sends are not read, and zod drops them.
+const postBodySchema = z.object({
+  hackathon_id: z.string().min(1),
+  email: z.string().optional(),
+  name: z.string().optional(),
+  city: z.string().optional(),
+  telegram_account: z.string().optional(),
+  x_account: z.string().optional(),
+  company_name: z.string().optional(),
+  dietary: z.string().optional(),
+  hackathon_participation: z.string().optional(),
+  role: z.string().optional(),
+  web3_proficiency: z.string().optional(),
+  github_portfolio: z.string().optional(),
+  interests: z.array(z.string()).optional(),
+  languages: z.array(z.string()).optional(),
+  roles: z.array(z.string()).optional(),
+  tools: z.array(z.string()).optional(),
+  teammates: z.array(z.string()).optional(),
+  newsletter_subscription: z.boolean().optional(),
+  prohibited_items: z.boolean().optional(),
+  terms_event_conditions: z.boolean().optional(),
+  referral_attribution: z
+    .object({
+      referralCode: z.string().nullish(),
+      landingPath: z.string().nullish(),
+      manualReferrer: z
+        .object({
+          teamId: z.string(),
+          teamIdOther: z.string().nullish(),
+          userId: z.string().nullish(),
+        })
+        .nullish(),
+    })
+    .nullish()
+    // The client keeps the referral in localStorage. A stored value of the
+    // wrong shape counts as no referral, so it does not stop a registration.
+    .catch(null),
+  user_consents: z
+    .object({
+      notifications: z.boolean().optional(),
+      consent_sharing: z.boolean().optional(),
+    })
+    .optional(),
+});
 
 type UserConsentsInput = {
   notifications?: unknown;
@@ -41,8 +89,11 @@ export const POST = withAuth(async (
   session: Session,
 ) => {
   try {
-    const body = await req.json();
-    const { user_consents, ...registerData } = body ?? {};
+    const body = await readJsonBody(req, postBodySchema);
+    if (!body) {
+      return NextResponse.json({ error: { message: "Invalid request body" } }, { status: 400 });
+    }
+    const { user_consents, ...registerData } = body;
 
     const sessionEmail = session.user?.email;
     if (!sessionEmail) {

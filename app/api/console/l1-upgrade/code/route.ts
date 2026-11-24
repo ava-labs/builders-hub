@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { checkRateLimit } from '@/lib/rateLimit';
+import { readJsonBody } from '@/lib/api/json-body';
 import { callJsonRpc, validatePublicRpcUrl, validateRpcAddress, getClientIp } from '../rpc-utils';
 
-type CodeBody = {
-  rpcUrl?: string;
-  address?: string;
-};
+const bodySchema = z.object({
+  rpcUrl: z.string().optional(),
+  address: z.string().optional(),
+});
 
 export async function POST(request: NextRequest) {
   // Unauthenticated public utility endpoint — throttle per IP so it can't be
@@ -14,12 +16,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Too many requests. Please slow down and try again shortly.' }, { status: 429 });
   }
 
-  let body: CodeBody;
-  try {
-    body = (await request.json()) as CodeBody;
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
-  }
+  const body = await readJsonBody(request, bodySchema);
+  if (!body) return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
 
   const rpcUrl = body.rpcUrl?.trim();
   const address = body.address?.trim();

@@ -2,6 +2,25 @@ import { getServerSession } from "next-auth";
 import { AuthOptions } from "@/lib/auth/authOptions";
 import { getUserById } from "@/server/services/getUser";
 import { NextResponse } from "next/server";
+import { z } from "zod";
+import { readJsonBody } from "@/lib/api/json-body";
+
+// The workers service reads each notification. The audience lists are typed;
+// the other notification fields pass on as they are.
+const bodySchema = z.object({
+  notifications: z.array(
+    z.looseObject({
+      audience: z
+        .looseObject({
+          all: z.boolean(),
+          hackathons: z.array(z.string()),
+          users: z.array(z.string()),
+        })
+        .optional(),
+      content: z.unknown(),
+    }),
+  ),
+});
 
 function stripMdxExpressions(content: string): string {
   return content
@@ -32,17 +51,18 @@ export async function POST(req: any): Promise<Response> {
     const baseUrl: string | undefined =
       process.env.NEXT_PUBLIC_AVALANCHE_WORKERS_URL;
 
-    const body: any = await req.json();
-
-    if (Array.isArray(body.notifications)) {
-      body.notifications = body.notifications.map((n: any) => ({
-        ...n,
-        content:
-          typeof n.content === "string"
-            ? stripMdxExpressions(n.content)
-            : n.content,
-      }));
+    const body = await readJsonBody(req, bodySchema);
+    if (!body) {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
     }
+
+    body.notifications = body.notifications.map((n) => ({
+      ...n,
+      content:
+        typeof n.content === "string"
+          ? stripMdxExpressions(n.content)
+          : n.content,
+    }));
 
     const avalancheWorkersApiKey: string | undefined =
       process.env.AVALANCHE_WORKERS_API_KEY;

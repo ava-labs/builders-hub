@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { prisma } from "@/prisma/prisma";
 import { VERDICTS as ALLOWED_VERDICTS, isVerdict } from "@/lib/evaluate/verdicts";
+import { z } from "zod";
+import { readJsonBody } from "@/lib/api/json-body";
+
+const bodySchema = z.object({
+  formDataId: z.string().optional(),
+  verdict: z.string().nullish(),
+});
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,11 +21,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { formDataId, verdict } = body as {
-      formDataId: string;
-      verdict: string | null;
-    };
+    const body = await readJsonBody(request, bodySchema);
+    if (!body) {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
+    const { formDataId, verdict } = body;
 
     if (!formDataId) {
       return NextResponse.json(

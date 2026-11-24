@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
+import { readJsonBody } from '@/lib/api/json-body';
 import { withAuth } from '@/lib/protectedRoute';
 import { prisma } from '@/prisma/prisma';
 import {
@@ -7,10 +9,17 @@ import {
   detectDangerousUrl,
 } from '@/utils/input-validator';
 
-type StageSubmitValues = Record<
-  string,
-  string | string[] | Array<{ address: string }> | null
->;
+// Values are stored as they arrive. A saved form can hold values of any JSON type.
+const stageValuesSchema = z.record(z.string(), z.json());
+
+type StageSubmitValues = z.infer<typeof stageValuesSchema>;
+
+const stageSubmitBodySchema = z.object({
+  hackathonId: z.string().optional(),
+  projectId: z.string().nullish(),
+  stageIndex: z.number(),
+  values: stageValuesSchema.nullish(),
+});
 
 /** Allows alphanumeric, hyphens and underscores — covers UUID, CUID and nanoid formats. */
 const SAFE_ID_RE = /^[a-zA-Z0-9_\-]{1,128}$/;
@@ -65,18 +74,14 @@ function sanitizeStageValues(values: StageSubmitValues): SanitizeResult {
   return { ok: true };
 }
 
-type StageSubmitRequestBody = {
-  hackathonId: string;
-  projectId?: string;
-  stageIndex: number;
-  values: StageSubmitValues;
-};
-
 export const POST = withAuth(async (request: Request, _context, session) => {
   try {
-    const body: StageSubmitRequestBody = await request.json();
+    const body = await readJsonBody(request, stageSubmitBodySchema);
+    if (!body) {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    }
 
-    const hackathonId: string = body.hackathonId?.trim();
+    const hackathonId: string = body.hackathonId?.trim() ?? '';
     const incomingProjectId: string = body.projectId?.trim() ?? '';
     const values: StageSubmitValues = body.values ?? {};
 

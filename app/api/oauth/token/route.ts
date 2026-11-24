@@ -2,15 +2,22 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { SignJWT, exportJWK, calculateJwkThumbprint, importPKCS8 } from 'jose';
 import { prisma } from '@/prisma/prisma';
+import { z } from 'zod';
+import { readJsonBody } from '@/lib/api/json-body';
 
 const OAUTH_CLIENT_ID = process.env.OAUTH_CLIENT_ID!;
 const OAUTH_CLIENT_SECRET = process.env.OAUTH_CLIENT_SECRET!;
 
+// The route reads a JSON body only. An empty value fails the check in the handler.
+const bodySchema = z.object({
+  client_id: z.string(),
+  client_secret: z.string(),
+  code: z.string(),
+});
+
 export async function POST(request: NextRequest) {
-  let body: { client_id?: string; client_secret?: string; code?: string };
-  try {
-    body = await request.json();
-  } catch {
+  const body = await readJsonBody(request, bodySchema);
+  if (!body) {
     return NextResponse.json({ error: 'invalid_request' }, { status: 400 });
   }
 

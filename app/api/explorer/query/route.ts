@@ -1,8 +1,9 @@
 import { NextResponse, after } from "next/server";
+import { z } from "zod";
+import { readJsonBody } from "@/lib/api/json-body";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { guardSql } from "@/lib/explorer-query/guard";
-import { runQuery, anchored, indexState, type ColumnMeta, type QueryResult } from "@/lib/explorer-query/clickhouse";
-import type { Turn } from "@/lib/explorer-query/types";
+import { runQuery, anchored, indexState, type QueryResult } from "@/lib/explorer-query/clickhouse";
 import { nameRows } from "@/lib/explorer-query/enrich";
 import { siteBaseUrl } from "@/lib/chat/site-url";
 import { designVisual } from "@/lib/explorer-query/visual";
@@ -42,28 +43,51 @@ import type { ModelCall } from "@/lib/explorer-query/meter";
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
-interface Body {
-  chainId?: string | number;
-  prompt?: string;
-  history?: Turn[];
-  sql?: string;
+/* The body, in each of its shapes. A field of the wrong type is read as absent (.catch), as the checks below read it,
+   so each shape is answered as before, and each field the route reads has its type. */
+const bodySchema = z.object({
+  chainId: z.union([z.string(), z.number()]).optional().catch(undefined),
+  prompt: z.string().optional().catch(undefined),
+  history: z.array(z.object({ prompt: z.string(), sql: z.string(), title: z.string().catch("") })).optional().catch(undefined),
+  sql: z.string().optional().catch(undefined),
   /** with sql: the column the answer's chart runs along, so the page learns whether its window can move */
-  x?: string;
+  x: z.string().optional().catch(undefined),
   /** read an answer again over another span: its query, its drill and its words, as the page holds them */
-  move?: { sql: string; drill?: string | null; x?: string; span: string; title?: string; note?: string };
+  move: z
+    .object({
+      sql: z.string(),
+      drill: z.string().nullish().catch(undefined),
+      x: z.string().optional().catch(undefined),
+      span: z.string(),
+      title: z.string().optional().catch(undefined),
+      note: z.string().optional().catch(undefined),
+    })
+    .optional()
+    .catch(undefined),
   /** read an answer's query over the period before its window */
-  prior?: { sql: string; x?: string };
-  /** open one row of an answer into its records; span is the opened mark's bucket, in unix seconds */
-  drill?: { sql: string; row: Record<string, unknown>; span?: [number, number] };
+  prior: z.object({ sql: z.string(), x: z.string().optional().catch(undefined) }).optional().catch(undefined),
+  /** open one row of an answer into its records; span is the opened mark's bucket, in unix seconds (binsOf checks it) */
+  drill: z.object({ sql: z.string(), row: z.record(z.string(), z.unknown()), span: z.unknown() }).optional().catch(undefined),
   /** lay out a kept answer, by its key */
-  key?: string;
+  key: z.string().optional().catch(undefined),
   /** with key: write the kept layout's reading again from fresh rows */
-  reading?: boolean;
+  reading: z.boolean().optional().catch(undefined),
   /** with key or design: the PostHog trace of the question the layout serves */
-  trace?: string;
-  /** lay out rows the page already has */
-  design?: { question: string; title: string; note: string; columns: ColumnMeta[]; rows: Record<string, unknown>[]; names: Names; chart: ChartSpec };
-}
+  trace: z.string().optional().catch(undefined),
+  /** lay out rows the page already has; the chart goes to the designer as the page sent it */
+  design: z
+    .object({
+      question: z.string().optional().catch(undefined),
+      title: z.string().optional().catch(undefined),
+      note: z.string().optional().catch(undefined),
+      columns: z.array(z.object({ name: z.string(), type: z.string() })),
+      rows: z.array(z.record(z.string(), z.unknown())),
+      names: z.record(z.string(), z.record(z.string(), z.string())).optional().catch(undefined),
+      chart: z.custom<ChartSpec>((v) => typeof v === "object" && v !== null).optional().catch(undefined),
+    })
+    .optional()
+    .catch(undefined),
+});
 
 /* An answer's own read, kept a minute under its key on this instance: the layout the page asks for next is designed
    from the rows the reader was shown, not from a second read of the same SQL (a full scan again, and the totals with
@@ -126,7 +150,9 @@ async function binsOf(sql: string, span: unknown, chainId: number): Promise<Dril
 }
 
 export async function POST(req: Request) {
-  const body = (await req.json().catch(() => ({}))) as Body;
+  const body = await readJsonBody(req, bodySchema);
+  // a body that is not a JSON object names no chain
+  if (!body) return NextResponse.json({ error: "unknown chain" }, { status: 400 });
   // the network (the C-Chain and every mainnet L1) by its slug; any other target by its chain id
   const chainId = body.chainId === NETWORK_SLUG ? NETWORK_ID : Number(body.chainId);
   // the P-Chain's tables key their rows 1 (mainnet) and 5 (Fuji); EVM chains by their chain id

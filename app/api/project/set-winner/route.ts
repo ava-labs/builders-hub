@@ -6,9 +6,23 @@ import {
   WinnerOperationError,
 } from "@/server/services/set-project-winner";
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { readJsonBody } from "@/lib/api/json-body";
+
+const setWinnerBodySchema = z.object({
+  project_id: z.string().optional(),
+  isWinner: z.boolean().nullish(),
+  is_winner: z.boolean().nullish(),
+});
 
 export const PUT = withAuthRole("badge_admin", async (req: NextRequest, _context: unknown, session: Session) => {
-  const body = await req.json();
+  const body = await readJsonBody(req, setWinnerBodySchema);
+  if (!body) {
+    return NextResponse.json(
+      { success: false, error: "Invalid request body" },
+      { status: 400 }
+    );
+  }
   const name = session.user.name || "user";
 
   try {

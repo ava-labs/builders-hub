@@ -1,5 +1,7 @@
 import { withAuth } from '@/lib/protectedRoute'
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
+import { readJsonBody } from '@/lib/api/json-body'
 
 /**
  * Proxies Google Forms API `forms.get` using the caller's server-side session.
@@ -18,6 +20,12 @@ import { NextRequest, NextResponse } from 'next/server'
  */
 const FORM_ID_PATTERN = /^[a-zA-Z0-9_-]+$/
 
+// accessToken stays in the schema so that the check below still sees the key.
+const bodySchema = z.object({
+  formId: z.string().optional(),
+  accessToken: z.unknown().optional(),
+})
+
 export const POST = withAuth(async (request: NextRequest, _context, session) => {
 
   const isDevrel = session?.user.custom_attributes?.includes("devrel") ?? false;
@@ -28,9 +36,12 @@ export const POST = withAuth(async (request: NextRequest, _context, session) => 
   }
 
   try {
-    const body = (await request.json()) as {
-      formId?: string
-      accessToken?: unknown
+    const body = await readJsonBody(request, bodySchema)
+    if (!body) {
+      return NextResponse.json(
+        { error: 'Invalid request body' },
+        { status: 400 }
+      )
     }
 
     /**
@@ -45,7 +56,7 @@ export const POST = withAuth(async (request: NextRequest, _context, session) => 
       )
     }
 
-    const rawId = typeof body.formId === 'string' ? body.formId.trim() : ''
+    const rawId = body.formId?.trim() ?? ''
 
     if (!rawId) {
       return NextResponse.json(
