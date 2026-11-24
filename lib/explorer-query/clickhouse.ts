@@ -4,7 +4,7 @@
    reference tables our server builds (sources.ts) add their own lines. */
 
 import { withQuerySlot } from "@/lib/clickhouse/client";
-import { MAX_ROWS } from "./guard";
+import { MAX_ROWS, quotedName } from "./guard";
 import { headTime } from "./head";
 import { networkChains, refSchema, withSources, type NetworkChain } from "./sources";
 import { NETWORK_ID, targetOf } from "./target";
@@ -307,7 +307,7 @@ export async function runQuery(sql: string, chainId?: number): Promise<QueryResu
   if (bytes.length || stale.length) {
     const cols = body.meta
       .map((c) => {
-        const q = "`" + c.name.replace(/`/g, "") + "`";
+        const q = quotedName(c.name);
         const s = stale.find((x) => x.column === c);
         return bytes.includes(c.name) ? `lower(concat('0x', hex(${q}))) AS ${q}` : s ? `${s.sql(q)} AS ${q}` : q;
       })

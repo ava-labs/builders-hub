@@ -1,6 +1,6 @@
 import "server-only";
 import { anchored, runQuery, type ColumnMeta, type QueryResult } from "./clickhouse";
-import { MAX_ROWS } from "./guard";
+import { MAX_ROWS, quotedName } from "./guard";
 import type { Totals } from "./types";
 
 /* What a query's LIMIT left out. A query stops at its own LIMIT (a
@@ -19,8 +19,6 @@ const TRAILING = /\sLIMIT\s+(\d+)\s*$/i;
 const NEWEST = /^SELECT \* FROM \(SELECT \* FROM \(\n([\s\S]+)\n\) ORDER BY (`[^`]+`) DESC LIMIT (\d+)\) ORDER BY \2$/;
 const NUMERIC = /^(Nullable\()?(U?Int\d+|Float\d+|Decimal)/;
 const TIME = /^(Nullable\()?Date/;
-
-const quote = (name: string) => "`" + name.replace(/`/g, "") + "`";
 
 /** the whole set's size a ranking counts in the same read, before its LIMIT, in every row */
 const OF_TOTAL = /\bcount\(\s*\*?\s*\)\s+OVER\s*\(\s*\)\s+AS\s+`?of_total`?(?!\w)/i;
@@ -61,7 +59,7 @@ export function newestSql(sql: string, result: Pick<QueryResult, "columns" | "ro
   if (first == null || last == null) return null;
   const rising = typeof first === "number" && typeof last === "number" ? first < last : String(first) < String(last);
   if (!rising) return null;
-  return `SELECT * FROM (SELECT * FROM (\n${cut.inner}\n) ORDER BY ${quote(x)} DESC LIMIT ${cut.limit}) ORDER BY ${quote(x)}`;
+  return `SELECT * FROM (SELECT * FROM (\n${cut.inner}\n) ORDER BY ${quotedName(x)} DESC LIMIT ${cut.limit}) ORDER BY ${quotedName(x)}`;
 }
 
 /** one totals read a minute for a query on a chain, in flight or done, as its rows' run is shared (run-cache.ts):
@@ -97,8 +95,8 @@ async function readTotals(cut: NonNullable<ReturnType<typeof cutOf>>, result: Qu
   const label = result.columns.find((c) => TIME.test(c.type)) ?? result.columns.find((c) => !NUMERIC.test(c.type));
   const parts = ["count() AS __rows"];
   for (const { name, i, num } of cols) {
-    const q = quote(name);
-    const at = label ? [`argMax(${quote(label.name)}, ${q}) AS ha${i}`, `argMin(${quote(label.name)}, ${q}) AS la${i}`] : [];
+    const q = quotedName(name);
+    const at = label ? [`argMax(${quotedName(label.name)}, ${q}) AS ha${i}`, `argMin(${quotedName(label.name)}, ${q}) AS la${i}`] : [];
     parts.push(...(num ? [`sum(${q}) AS s${i}`, `count(${q}) AS n${i}`, `min(${q}) AS lo${i}`, `max(${q}) AS hi${i}`, ...at] : [`uniqExact(${q}) AS d${i}`]));
   }
   try {
