@@ -41,14 +41,15 @@ export function sanitizeHtml(html: string): string {
 /**
  * Converts markdown to safe HTML.
  * Parses markdown with `marked`, then sanitizes with sanitize-html.
+ * `breaks: false` keeps a single newline inside a paragraph, as CommonMark does.
  */
-export function markdownToSafeHtml(text: string): string {
+export function markdownToSafeHtml(text: string, options: { breaks?: boolean } = {}): string {
   if (!text) return '';
 
   const html = marked.parse(text, {
     async: false,
     gfm: true,
-    breaks: true,
+    breaks: options.breaks ?? true,
   }) as string;
 
   return sanitizeHtml(html);
