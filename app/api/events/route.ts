@@ -120,6 +120,9 @@ export async function GET(req: NextRequest) {
       isPrivileged = isDevrel || isTeam1Admin;
 
       if (managedOnly) {
+        // The managed list holds only events the caller runs (all events for
+        // devrel), so it is the one list that keeps the host fields.
+        options.with_hosts = true;
         options.include_private = isDevrel || isTeam1Admin || isHackathonCreator;
         if (!isDevrel) {
           options.created_by = userId;

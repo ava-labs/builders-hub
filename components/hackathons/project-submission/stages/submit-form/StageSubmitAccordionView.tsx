@@ -13,7 +13,7 @@ import StageSubmitPageContent from './page-content'
 
 type StageSubmitAccordionViewProps = {
   hackathon: HackathonHeader
-  hackathonCreator?: any
+  createdByTeam1?: boolean
   stages: HackathonStage[]
   initialStageIndex: number
   user?: {
@@ -76,7 +76,7 @@ function StageBadge({ status }: { status: StageStatus }): React.JSX.Element {
 
 export default function StageSubmitAccordionView({
   hackathon,
-  hackathonCreator,
+  createdByTeam1,
   stages,
   initialStageIndex,
   user,
@@ -127,7 +127,7 @@ export default function StageSubmitAccordionView({
               <AccordionContent className="pb-4">
                 <StageSubmitPageContent
                   hackathon={hackathon}
-                  hackathonCreator={hackathonCreator}
+                  createdByTeam1={createdByTeam1}
                   stage={stage}
                   stageIndex={originalIndex}
                   user={user}

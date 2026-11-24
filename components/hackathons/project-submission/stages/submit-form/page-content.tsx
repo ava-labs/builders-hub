@@ -35,7 +35,7 @@ type StageSubmitValues = Record<string, string | string[]>
 
 type StageSubmitPageContentProps = {
   hackathon: HackathonHeader
-  hackathonCreator?: any // Replace 'any' with the correct type for the hackathon creator
+  createdByTeam1?: boolean
   stage: HackathonStage
   stageIndex: number
   projectId?: string
@@ -171,7 +171,7 @@ function isRequiredFieldEmpty(
 
 export default function StageSubmitPageContent({
   hackathon,
-  hackathonCreator,
+  createdByTeam1,
   stage,
   stageIndex,
   renderInPreview,
@@ -949,7 +949,7 @@ export default function StageSubmitPageContent({
                 <p className="text-sm uppercase tracking-[0.2em] text-[#d66666]">
                   Submission
                 </p>
-                {hackathonCreator?.email?.includes('@team1.network') ? (
+                {createdByTeam1 ? (
                   <Image
                     src="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/local_events_team1-UJLssyvek3G880Q013A94SdMKxiLRq.jpg"
                     alt="Hackathon background"

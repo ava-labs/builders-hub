@@ -1,8 +1,7 @@
 import { redirect } from 'next/navigation'
-import { getHackathon } from '@/server/services/hackathons'
+import { getHackathon, isCreatedByTeam1 } from '@/server/services/hackathons'
 import { getAuthSession } from '@/lib/auth/authSession'
 import { getRegisterForm } from '@/server/services/registerForms'
-import { getUserById } from '@/server/services/getUser'
 import StageSubmitAccordionView from '@/components/hackathons/project-submission/stages/submit-form/StageSubmitAccordionView'
 import { ProjectSubmissionProvider } from '@/components/hackathons/project-submission/context/ProjectSubmissionContext'
 
@@ -45,7 +44,7 @@ export default async function HackathonSubmitPage({
     redirect(`/hackathons/${id}`)
   }
 
-  const hackathonCreator = await getUserById(hackathon.created_by)
+  const createdByTeam1 = await isCreatedByTeam1(id)
 
   return (
     <ProjectSubmissionProvider>
@@ -53,7 +52,7 @@ export default async function HackathonSubmitPage({
         <div className="mt-8 px-4">
           <StageSubmitAccordionView
             hackathon={hackathon}
-            hackathonCreator={hackathonCreator}
+            createdByTeam1={createdByTeam1}
             stages={stages}
             initialStageIndex={stageIndex}
             user={session?.user}
