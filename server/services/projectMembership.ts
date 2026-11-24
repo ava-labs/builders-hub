@@ -63,3 +63,19 @@ export async function isConfirmedProjectMember(
 ): Promise<boolean> {
   return findMembership(userId, projectId, MemberStatus.CONFIRMED);
 }
+
+/**
+ * The email a viewer may read for one project member: the viewer's own account
+ * email, or an email that a teammate typed into an invitation (`Member.email`).
+ *
+ * Another user's account email stays private, also from teammates. A member row
+ * can be made from a user ID alone, so "is on my project" does not show that the
+ * viewer ever knew the address.
+ */
+export function memberEmailFor(
+  viewerId: string,
+  member: { email?: string | null; user?: { id?: string | null; email?: string | null } | null },
+): string | null {
+  if (member.email) return member.email;
+  return member.user?.id === viewerId ? (member.user.email ?? null) : null;
+}

@@ -165,7 +165,7 @@ export default function MembersComponent({
         status: MemberStatus.REMOVED,
         email: email,
       });
-      setMembers(members.filter((member) => member.email !== email));
+      setMembers(members.filter((member) => !(member.email === email && member.user_id === id_user)));
     } catch (error) {
       console.error("Error removing member:", error);
     }
@@ -529,12 +529,14 @@ export default function MembersComponent({
                         className="dark:bg-zinc-800 dark:text-white rounded-md shadow-lg p-2"
                         sideOffset={5}
                       >
-                        <DropdownMenuItem
-                          className="p-2 hover:bg-zinc-700 cursor-pointer rounded"
-                          onSelect={() => handleResendInvitation(member.email)}
-                        >
-                          {t(lang, "submission.members.table.resend")}
-                        </DropdownMenuItem>
+                        {member.email && (
+                          <DropdownMenuItem
+                            className="p-2 hover:bg-zinc-700 cursor-pointer rounded"
+                            onSelect={() => handleResendInvitation(member.email)}
+                          >
+                            {t(lang, "submission.members.table.resend")}
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem
                           className="p-2 hover:bg-zinc-700 cursor-pointer rounded text-red-400"
                           onSelect={() =>
