@@ -26,7 +26,7 @@ interface GlacierJwtResponse {
 const metadata: ConsoleToolMetadata = {
   title: 'API Keys',
   description:
-    'View and revoke your existing API keys for the Data & Metrics APIs. Creating new keys is no longer available.',
+    'View and revoke your existing API keys for the Data & Metrics APIs. Creating new keys is no longer available, and all keys stop working on January 15, 2027.',
   toolRequirements: [AccountRequirementsConfigKey.UserLoggedIn],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
@@ -182,9 +182,9 @@ function TokenManagementInner({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
       <div className="mb-8 not-prose">
         <h2 className="text-lg font-medium text-zinc-900 dark:text-white mb-1">Your API Keys</h2>
         <p className="text-sm text-zinc-500 dark:text-zinc-400">Manage access tokens for the Data & Metrics API</p>
-        <Alert variant="info" className="mt-4">
-          Creating new API keys is no longer available. Your existing keys keep working, and you can still revoke them
-          here.
+        <Alert variant="warning" className="mt-4">
+          API key authentication is deprecated, and all API keys will stop working on January 15, 2027. Creating new API
+          keys is no longer available. Until then, your existing keys keep working, and you can still revoke them here.
         </Alert>
       </div>
 

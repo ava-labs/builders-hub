@@ -11,7 +11,7 @@ This SDK supports the following security scheme globally:
 | -------- | ------ | ------- |
 | `apiKey` | apiKey | API key |
 
-The ChainKit SDK can be used without an API key, but rate limits will be lower. Adding an API key allows for higher rate limits. API key creation is disabled. Existing API keys keep working, and you can view or revoke them in the [Builder Console](/console/utilities/data-api-keys). Whether or not you use an API key, you can still interact with the SDK effectively, but the API key provides performance benefits for higher request volumes.
+The ChainKit SDK can be used without an API key, but rate limits will be lower. Adding an API key allows for higher rate limits. API key authentication is deprecated, and all API keys will stop working on January 15, 2027. API key creation is disabled. Until then, existing API keys keep working, and you can view or revoke them in the [Builder Console](/console/utilities/data-api-keys). Whether or not you use an API key, you can still interact with the SDK effectively, but the API key provides performance benefits for higher request volumes.
 
 ```javascript
 import { Avalanche } from "@avalanche-sdk/chainkit";

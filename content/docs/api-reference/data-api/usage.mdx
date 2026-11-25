@@ -6,7 +6,9 @@ icon: Code
 
 ### Setup and Authentication
 
-In order to utilize your accounts rate limits, you will need to make API requests with an API key. You can generate API Keys from the AvaCloud portal. Once you've created and retrieved that, you will be able to make authenticated queries by passing in your API key in the `x-glacier-api-key` header of your HTTP request.
+<Callout type="warn">API key authentication is deprecated, and all API keys will stop working on January 15, 2027. API key creation is disabled.</Callout>
+
+Until then, requests made with an existing API key use your account's rate limits. Pass your API key in the `x-glacier-api-key` header of your HTTP request.
 
 An example curl request can be found below:
 
@@ -17,7 +19,7 @@ curl -H "Content-Type: Application/json" -H "x-glacier-api-key: your_api_key" \
 
 ### Rate Limits
 
-The Data API has rate limits in place to maintain it's stability and protect from bursts of incoming traffic. The rate limits associated with various plans can be found within AvaCloud.
+The Data API has rate limits in place to maintain it's stability and protect from bursts of incoming traffic. The rate limits for each tier are listed in [Rate Limits](/docs/api-reference/data-api/rate-limits).
 
 When you hit your rate limit, the server will respond with a 429 http response code, and response headers to help you determine when you should start to make additional requests. The response headers follow the standards set in the RateLimit header fields for HTTP draft from the Internet Engineering Task Force.
 
