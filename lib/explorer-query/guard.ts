@@ -39,6 +39,9 @@ const keyRange = (sql: string, table: string) => {
 const KEYWORDS = /\b(INSERT|UPDATE|DELETE|ALTER|DROP|CREATE|TRUNCATE|ATTACH|DETACH|OPTIMIZE|SYSTEM|KILL|GRANT|REVOKE|RENAME|EXCHANGE|USE|OUTFILE|SET|SETTINGS|FORMAT)\b/i;
 /** table functions that read outside the database or spawn work */
 const TABLE_FUNCTIONS = /\b(url|file|remote|remoteSecure|s3|s3Cluster|hdfs|azureBlobStorage|mysql|postgresql|sqlite|mongodb|redis|jdbc|odbc|executable|input|merge|cluster|clusterAllReplicas|dictionary|view|values|format|fileCluster|urlCluster|deltaLake|iceberg|hudi)\s*\(/i;
+/** functions that read the server or the session, and no table: its version, its host, its user, its settings */
+const SERVER_FUNCTIONS =
+  /\b(version|revision|buildId|uptime|hostName|FQDN|displayName|serverUUID|tcpPort|getServerPort|getOSKernelVersion|getMacro|getSetting|getServerSetting|getMergeTreeSetting|getClientHTTPHeader|currentUser|current_user|user|currentDatabase|current_database|database|currentSchemas|current_schemas|currentRoles|enabledRoles|defaultRoles|currentProfiles|enabledProfiles|defaultProfiles|queryID|query_id|initialQueryID|initial_query_id|connectionId|connection_id|filesystemAvailable|filesystemCapacity|filesystemUnallocated|zookeeperSessionUptime)\s*\(/i;
 
 /** a column's name as a query the server writes names it: with no backtick and no backslash, neither of which a
     column the guard let through holds, so the name cannot end its own quotes */
@@ -421,6 +424,8 @@ export function guardSql(raw: string, chainId: number): GuardResult {
   if (kw) return { ok: false, error: `${kw[1].toUpperCase()} is not allowed; write a plain SELECT (the server sets FORMAT and settings)` };
   const fn = sql.match(TABLE_FUNCTIONS);
   if (fn) return { ok: false, error: `table function ${fn[1]}() is not allowed` };
+  const server = sql.match(SERVER_FUNCTIONS);
+  if (server) return { ok: false, error: `${server[1]}() reads the server and no table, which Query does not allow` };
   if (/\bsystem\b/i.test(sql) || /\binformation_schema\b/i.test(sql)) return { ok: false, error: "system tables are not readable here" };
   // the server reads the tables that hold duplicate rows through FINAL itself (sources.ts), and
   // ClickHouse refuses a FINAL over that read, so a query's own FINAL after one of them is dropped

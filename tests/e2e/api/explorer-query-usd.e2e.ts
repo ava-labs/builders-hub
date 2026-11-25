@@ -1,6 +1,6 @@
 import { describe, expect, test, type App } from 'e2e';
 import { z } from 'zod';
-import { appFetch } from './app-fetch';
+import { postQuery } from './query-post';
 
 // A tester asked the mainnet C-Chain Query "How many transactions are needed to burn $1 worth of AVAX in gas?" and got
 // no chart: "The C-Chain data has no AVAX price". Query now prices AVAX at Chainlink's AVAX/USD feed, read from the
@@ -61,10 +61,9 @@ function skipLimited(status: number, body: string): void {
 }
 
 async function post(app: App, body: object, ms: number): Promise<{ status: number; text: string }> {
-  const res = await appFetch(app, '/api/explorer/query', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ chainId: C, ...body }), signal: AbortSignal.timeout(ms) });
-  const text = await res.text();
-  skipLimited(res.status, text);
-  return { status: res.status, text };
+  const { status, text } = await postQuery(app, { chainId: C, ...body }, ms);
+  skipLimited(status, text);
+  return { status, text };
 }
 
 // Runs SQL through the route's model-free path, with the shorthand written out.

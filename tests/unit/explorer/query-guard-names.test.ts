@@ -50,6 +50,16 @@ describe('text ClickHouse would read another way than the guard', () => {
     expect(error(`SELECT 1 AS h FROM raw_blocks WHERE chain_id = 43114 AND hasColumnInTable(concat('sys', 'tem'), 'tables', 'name') LIMIT 1`)).toBe('hasColumnInTable() reads a table by its name, which Query does not allow');
   });
 
+  it('is refused for a function that reads the server and no table, and a column of the same name still reads', () => {
+    const one = (fn: string) => error(`SELECT ${fn} AS v FROM raw_blocks WHERE chain_id = 43114 AND ${W} LIMIT 1`);
+    expect(one('version()')).toBe('version() reads the server and no table, which Query does not allow');
+    expect(one('hostName()')).toBe('hostName() reads the server and no table, which Query does not allow');
+    expect(one('currentUser ()')).toBe('currentUser() reads the server and no table, which Query does not allow');
+    for (const fn of ['currentDatabase()', 'USER()', "getSetting('max_threads')", 'serverUUID()', 'queryID()', 'filesystemAvailable()']) expect(one(fn), fn).toMatch(/reads the server and no table/);
+    expect(error(`SELECT 1 AS a FROM raw_blocks WHERE chain_id = 43114 AND ${W} AND (SELECT tcpPort()) > 0`)).toMatch(/^tcpPort\(\) reads the server/);
+    expect(error(`SELECT version, uptime, count() AS n FROM (SELECT 'v1' AS version, 1 AS uptime FROM raw_blocks WHERE chain_id = 43114 AND ${W}) WHERE version IN ('v1') GROUP BY version, uptime`)).toBe('');
+  });
+
   it('is refused for a character that does not show, a quote left open, a # comment and a $ outside a string', () => {
     expect(error(`SELECT count() AS n FROM​evm_txs WHERE 1 IN (${BLOCKS})`)).toBe('the query holds a character that does not show (U+200B): write plain spaces and line ends');
     expect(error(`SELECT count() AS n FROM raw_blocks WHERE chain_id = 43114 AND ${W}`)).toMatch(/U\+00A0/);
