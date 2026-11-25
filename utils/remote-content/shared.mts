@@ -11,6 +11,14 @@ export interface FileConfig {
   description: string;
   contentUrl: string;
   content?: string; // Optional: directly provide content instead of fetching from sourceUrl
+  embeds?: EmbedConfig[];
+}
+
+// Another upstream file whose sections replace the body of the page's `##` section that links to it, so the page
+// keeps every option when upstream splits its options across files. A page that doesn't link to it is left as it is.
+export interface EmbedConfig {
+  sourceUrl: string;
+  contentUrl: string;
 }
 
 export type SectionParser = (content: string, meta: {
@@ -180,9 +188,91 @@ export async function updateGitignore(fileConfigs: FileConfig[]): Promise<void> 
   missingPaths.forEach(path => console.log(`  Added: ${path}`));
 }
 
+const FENCE = /^\s*(```|~~~)/;
+
+function headingSlug(heading: string): string {
+  return heading.trim().toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-');
+}
+
+// Each line with whether it is inside a fenced code block, so "#" comments in code are not taken for headings.
+function linesWithFences(content: string): { line: string; code: boolean }[] {
+  let inFence = false;
+  return content.split('\n').map((line) => {
+    const fence = FENCE.test(line);
+    if (fence) inFence = !inFence;
+    return { line, code: inFence || fence };
+  });
+}
+
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Replaces the body of the page's first `##` section that links to the embedded file with the sections of the
+ * embedded file (from its first `##` heading on, one level deeper), and points the page's links to the embedded
+ * file at the embedded headings.
+ */
+export function embedSections(
+  content: string,
+  embedded: string,
+  meta: { contentUrl: string; embedContentUrl: string; embedSourceUrl: string },
+): string {
+  const embedDir = new URL('.', meta.embedContentUrl).href;
+  const embeddedPage = escapeRegExp(new URL(path.basename(new URL(meta.embedSourceUrl).pathname), embedDir).href);
+  const linksToEmbedded = new RegExp(`\\]\\(${embeddedPage}(#[^)]*)?\\)`);
+
+  const lines = linesWithFences(replaceRelativeLinks(content, new URL('.', meta.contentUrl).href));
+  const isSection = ({ line, code }: { line: string; code: boolean }) => !code && /^##\s/.test(line);
+  const sectionEnd = (start: number) => {
+    const next = lines.findIndex((l, i) => i > start && isSection(l));
+    return next === -1 ? lines.length : next;
+  };
+  const start = lines.findIndex(
+    (l, i) => isSection(l) && lines.slice(i + 1, sectionEnd(i)).some(({ line }) => linksToEmbedded.test(line)),
+  );
+  if (start === -1) return content;
+
+  const embeddedLines = linesWithFences(replaceRelativeLinks(embedded, embedDir));
+  const first = embeddedLines.findIndex(isSection);
+  if (first === -1) return content;
+  const body = embeddedLines
+    .slice(first)
+    .map(({ line, code }) => (!code && /^#{2,5}\s/.test(line) ? `#${line}` : line))
+    .join('\n')
+    .trim();
+
+  const page = [
+    ...lines.slice(0, start + 1).map(({ line }) => line),
+    '',
+    body,
+    '',
+    ...lines.slice(sectionEnd(start)).map(({ line }) => line),
+  ].join('\n');
+
+  return page
+    .replace(new RegExp(`\\]\\(${embeddedPage}(#[^)]+)\\)`, 'g'), ']($1)')
+    .replace(new RegExp(`\\]\\(${embeddedPage}\\)`, 'g'), `](#${headingSlug(lines[start].line.replace(/^##\s+/, ''))})`);
+}
+
+async function applyEmbeds(content: string, fileConfig: FileConfig): Promise<string> {
+  let page = content;
+  for (const embed of fileConfig.embeds ?? []) {
+    const embedded = await fetchFileContent(embed.sourceUrl);
+    if (!embedded) throw new Error(`Failed to fetch ${embed.sourceUrl}, embedded in ${fileConfig.outputPath}`);
+    page = embedSections(page, embedded, {
+      contentUrl: fileConfig.contentUrl,
+      embedContentUrl: embed.contentUrl,
+      embedSourceUrl: embed.sourceUrl,
+    });
+  }
+  return page;
+}
+
 export async function processFile(fileConfig: FileConfig, parser?: SectionParser): Promise<void> {
   // Use provided content or fetch from sourceUrl
-  const content = fileConfig.content || await fetchFileContent(fileConfig.sourceUrl);
+  const fetched = fileConfig.content || await fetchFileContent(fileConfig.sourceUrl);
+  const content = fetched && !fileConfig.content ? await applyEmbeds(fetched, fileConfig) : fetched;
   if (content) {
     let transformedContent: string;
     
