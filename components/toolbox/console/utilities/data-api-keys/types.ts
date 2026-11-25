@@ -5,18 +5,6 @@ export interface ApiKeyListItem {
   productId: string;
 }
 
-export interface CreateApiKeyRequest {
-  alias: string;
-}
-
-export interface CreateApiKeyResponse {
-  keyId: string;
-  alias: string;
-  customerId: string;
-  productId: string;
-  key: string;
-}
-
 export interface ListApiKeysResponse {
   keys: ApiKeyListItem[];
   maxApiKeysAllowed: number;

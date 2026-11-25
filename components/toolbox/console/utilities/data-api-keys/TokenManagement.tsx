@@ -2,15 +2,14 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/toolbox/components/Button';
-import { Plus, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { GlacierApiClient } from './api';
-import { ApiKeyListItem, CreateApiKeyResponse } from './types';
+import { ApiKeyListItem } from './types';
 import ApiKeysList from './ApiKeysList';
-import CreateApiKeyModal from './CreateApiKeyModal';
-import ApiKeyCreatedModal from './ApiKeyCreatedModal';
 import DeleteConfirmDialog from './DeleteConfirmDialog';
+import { Alert } from '@/components/toolbox/components/Alert';
 import {
   BaseConsoleToolProps,
   ConsoleToolMetadata,
@@ -27,7 +26,7 @@ interface GlacierJwtResponse {
 const metadata: ConsoleToolMetadata = {
   title: 'API Keys',
   description:
-    'Manage your API keys for accessing the Data & Metrics APIs. Create, view, and revoke keys as needed for your applications.',
+    'View and revoke your existing API keys for the Data & Metrics APIs. Creating new keys is no longer available, and all keys stop working on January 15, 2027.',
   toolRequirements: [AccountRequirementsConfigKey.UserLoggedIn],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
@@ -45,12 +44,6 @@ function TokenManagementInner({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
   const [apiKeys, setApiKeys] = useState<ApiKeyListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [maxApiKeysAllowed, setMaxApiKeysAllowed] = useState(10);
-
-  // Create modal state
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [isCreating, setIsCreating] = useState(false);
-  const [createdKey, setCreatedKey] = useState<CreateApiKeyResponse | null>(null);
 
   // Delete dialog state
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -98,7 +91,6 @@ function TokenManagementInner({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
     try {
       const response = await apiClientRef.current.listApiKeys();
       setApiKeys(response.keys);
-      setMaxApiKeysAllowed(response.maxApiKeysAllowed);
     } catch (err) {
       console.error('Failed to fetch API keys:', err);
       setError(err instanceof Error ? err.message : 'Failed to load API keys');
@@ -113,32 +105,6 @@ function TokenManagementInner({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
       fetchApiKeys();
     }
   }, [jwtData]);
-
-  // Create API key
-  const handleCreateApiKey = async (alias: string) => {
-    if (!apiClientRef.current) return;
-
-    setIsCreating(true);
-
-    try {
-      const response = await apiClientRef.current.createApiKey({ alias });
-      setCreatedKey(response);
-      setShowCreateModal(false);
-
-      toast.success('API key created successfully');
-
-      // Delay to allow API to update
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      await fetchApiKeys();
-    } catch (err) {
-      console.error('Failed to create API key:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to create API key';
-      toast.error(errorMessage);
-      throw err;
-    } finally {
-      setIsCreating(false);
-    }
-  };
 
   // Delete API key
   const handleDeleteApiKey = (keyId: string) => {
@@ -177,8 +143,6 @@ function TokenManagementInner({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
     }
   };
 
-  const maxKeysReached = apiKeys.length >= maxApiKeysAllowed;
-
   // Show loading state while fetching JWT
   if (jwtLoading) {
     return (
@@ -203,20 +167,6 @@ function TokenManagementInner({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
 
   return (
     <>
-      {/* Create API Key Modal */}
-      <CreateApiKeyModal
-        isOpen={showCreateModal}
-        onClose={() => {
-          setShowCreateModal(false);
-        }}
-        onSubmit={handleCreateApiKey}
-        isCreating={isCreating}
-        maxKeysReached={maxKeysReached}
-      />
-
-      {/* API Key Created Modal */}
-      <ApiKeyCreatedModal isOpen={!!createdKey} onClose={() => setCreatedKey(null)} createdKey={createdKey} />
-
       {/* Delete Confirmation Dialog */}
       <DeleteConfirmDialog
         isOpen={showDeleteDialog}
@@ -229,25 +179,13 @@ function TokenManagementInner({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
         isDeleting={deletingKeys.has(keyToDelete?.keyId || '')}
       />
 
-      {/* Header with Create Button */}
       <div className="mb-8 not-prose">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-medium text-zinc-900 dark:text-white mb-1">Your API Keys</h2>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">Manage access tokens for the Data & Metrics API</p>
-          </div>
-          <Button
-            onClick={() => {
-              setShowCreateModal(true);
-            }}
-            variant="primary"
-            size="sm"
-            className="w-auto"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Create API Key
-          </Button>
-        </div>
+        <h2 className="text-lg font-medium text-zinc-900 dark:text-white mb-1">Your API Keys</h2>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">Manage access tokens for the Data & Metrics API</p>
+        <Alert variant="warning" className="mt-4">
+          API key authentication is deprecated, and all API keys will stop working on January 15, 2027. Creating new API
+          keys is no longer available. Until then, your existing keys keep working, and you can still revoke them here.
+        </Alert>
       </div>
 
       {/* API Keys List */}
@@ -256,12 +194,8 @@ function TokenManagementInner({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
           apiKeys={apiKeys}
           isLoading={isLoading}
           error={error}
-          maxApiKeysAllowed={maxApiKeysAllowed}
           deletingKeys={deletingKeys}
           onRefresh={fetchApiKeys}
-          onShowCreateForm={() => {
-            setShowCreateModal(true);
-          }}
           onDeleteKey={handleDeleteApiKey}
         />
       </div>

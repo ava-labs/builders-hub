@@ -22,7 +22,7 @@ export const consoleTools: ConsoleTool[] = [
     title: 'Data API Keys',
     url: '/console/utilities/data-api-keys',
     category: 'Primary Network',
-    description: 'Generate and manage API keys for accessing Avalanche data APIs (Glacier)',
+    description: 'View and revoke existing API keys for Avalanche data APIs (Glacier)',
     keywords: ['api', 'key', 'glacier', 'data', 'access', 'token', 'rpc'],
   },
   {
