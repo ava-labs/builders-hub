@@ -4,11 +4,12 @@ import { useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
-import { Board, CellLabel, SectionHeader, feeInk } from "@/components/explorer-v2/ui";
-import { formatNumber, formatTime } from "@/components/explorer-v2/format";
+import { Board, SectionHeader } from "@/components/explorer-v2/ui";
+import { formatNumber } from "@/components/explorer-v2/format";
 import { useEvmData, refreshMsForChain } from "./hooks";
 import { useHeadStream, cadence, CONTINUOUS_EXECUTION_CHAINS } from "./useHeadStream";
-import { Belt, MotionRow, Height, GasBar, PhaseTrack, RowSkeleton, ageShort, phaseOf, useFreeze, useOpening, HEAD, ROW, INK, MUTED } from "./LiveBoards";
+import { Belt, MotionRow, PhaseTrack, RowSkeleton, phaseOf, useFreeze, useOpening, ROW } from "./LiveBoards";
+import { BurnCell, EvmBlockCells, EvmBlockHead, evmBlockCols } from "./block-rows";
 import { ExecutionLanes } from "./ExecutionLanes";
 import { LiveReadoutAt } from "./EvmOverviewStats";
 import { RANGE_DAYS } from "@/components/explorer-v2/time-range";
@@ -17,7 +18,6 @@ import type { BlockListResponse } from "@/lib/evm-explorer";
 import { BlockRangeMap } from "./BlockRangeMap";
 import { readRpc } from "@/lib/explorer-rpc";
 import { BURN_CHAINS } from "@/lib/evm-burn";
-import { formatEther } from "./format";
 import { useBlockBurns } from "./useBlockBurns";
 
 /* The Blocks tab: the chain's pace, then the chain itself. A strip of
@@ -109,36 +109,9 @@ export function EvmBlocksList({ network }: { network: string }) {
   // sum, asked of the server once per change of the rows in view
   const showBurn = BURN_CHAINS.has(String(c.chainId));
   const burnOf = useBlockBurns(showBurn ? c.chainId : undefined, [...shownRows, ...history].map((b) => b.number));
-  const cols = showRoot
-    ? showBurn
-      ? "md:grid-cols-[8rem_9rem_3.5rem_7rem_minmax(0,1fr)_9rem_3.5rem]"
-      : "md:grid-cols-[8rem_9rem_3.5rem_minmax(0,1fr)_9rem_3.5rem]"
-    : showBurn
-      ? "md:grid-cols-[8rem_9rem_3.5rem_7rem_minmax(0,1fr)_3.5rem]"
-      : "md:grid-cols-[8rem_9rem_3.5rem_minmax(0,1fr)_3.5rem]";
+  const cols = evmBlockCols({ root: showRoot, burn: showBurn });
   const sym = c.nativeToken ?? "AVAX";
-  // "…" until the true sum arrives, so no row shows a wrong number; a
-  // failed request leaves the cell empty
-  const burnCell = (n: number) => {
-    const wei = burnOf(n);
-    return (
-      <span className={cn("font-mono text-[12.5px] tabular-nums text-right", feeInk)}>
-        {wei === "loading" && <span className="text-zinc-400 dark:text-zinc-500">…</span>}
-        {typeof wei === "bigint" && (
-          <>
-            {formatEther(wei.toString(), { decimals: 6 })} <span className="text-[11px] text-zinc-400 dark:text-zinc-500">{sym}</span>
-          </>
-        )}
-      </span>
-    );
-  };
-
-  const clock = (ms: number, withMs: boolean) => (
-    <>
-      {formatTime(Math.floor(ms / 1000)).slice(11, 19)}
-      {withMs && <span className="text-zinc-400 dark:text-zinc-600">.{String(ms % 1000).padStart(3, "0")}</span>}
-    </>
-  );
+  const burnCell = (n: number) => <BurnCell wei={burnOf(n)} sym={sym} />;
 
   return (
     <EvmShell network={network}>
@@ -197,23 +170,7 @@ export function EvmBlocksList({ network }: { network: string }) {
         <section className="flex flex-col gap-4">
           <SectionHeader label="Blocks" />
           <Board divide={false} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
-            <div className={cn(HEAD, cols, "border-b border-zinc-200 dark:border-zinc-800")}>
-              <span>Height</span>
-              <span>Time (UTC)</span>
-              <span className="text-right">Txs</span>
-              {showBurn && (
-                <span className="text-right" title="Every fee in the block, tips included: the sum of gas used × effective gas price over its receipts. The C-Chain burns all of it.">
-                  Burn
-                </span>
-              )}
-              <span>Gas</span>
-              {showRoot && (
-                <span title="Every block here is final. Under Continuous Execution the state root is committed by a later block; this column shows whether that has happened yet.">
-                  State Root
-                </span>
-              )}
-              <span className="text-right">Age</span>
-            </div>
+            <EvmBlockHead cols={cols} root={showRoot} burn={showBurn} />
             {rows.length === 0 &&
               (indexed.loading || (liveRpc && !head.live) ? (
                 <RowSkeleton n={12} />
@@ -224,23 +181,19 @@ export function EvmBlocksList({ network }: { network: string }) {
               {shownRows.map((b, i) => (
                 <MotionRow key={b.number} animateIn={live && !opening.has(String(b.number))} overflow={i >= LIVE_ROWS}>
                   <Link href={`${base}/block/${b.number}`} className={cn(ROW, cols)}>
-                    <Height value={b.number} />
-                    <span className={cn(MUTED, "text-zinc-500 dark:text-zinc-400")}>
-                      <CellLabel>Time</CellLabel>
-                      {clock(b.timestampMs, live)}
-                    </span>
-                    <span className={cn(INK, "md:text-right")}>{b.txCount}</span>
-                    {showBurn && burnCell(b.number)}
-                    <span className="col-span-2 md:col-span-1">
-                      <GasBar used={b.gasUsed} limit={b.gasLimit} />
-                    </span>
-                    {showRoot && (
-                      <PhaseTrack
-                        phase={phaseOf(b.number, frozen.executedHeight, frozen.tip?.settledHeight ?? null)}
-                        delayMs={(LIVE_ROWS - i) * 40}
-                      />
-                    )}
-                    <span className={cn(MUTED, "text-right")}>{ageShort(Math.floor(b.timestampMs / 1000))}</span>
+                    <EvmBlockCells
+                      b={b}
+                      withMs={live}
+                      burn={showBurn && burnCell(b.number)}
+                      root={
+                        showRoot && (
+                          <PhaseTrack
+                            phase={phaseOf(b.number, frozen.executedHeight, frozen.tip?.settledHeight ?? null)}
+                            delayMs={(LIVE_ROWS - i) * 40}
+                          />
+                        )
+                      }
+                    />
                   </Link>
                 </MotionRow>
               ))}
@@ -252,15 +205,11 @@ export function EvmBlocksList({ network }: { network: string }) {
                 href={`${base}/block/${b.number}`}
                 className={cn(ROW, cols, "border-b border-zinc-200 dark:border-zinc-800")}
               >
-                <Height value={b.number} />
-                <span className={cn(MUTED, "text-zinc-500 dark:text-zinc-400")}>{clock(b.timestamp * 1000, false)}</span>
-                <span className={cn(INK, "md:text-right")}>{b.txCount}</span>
-                {showBurn && burnCell(b.number)}
-                <span className="col-span-2 md:col-span-1">
-                  <GasBar used={b.gasUsed} limit={b.gasLimit} />
-                </span>
-                {showRoot && <PhaseTrack phase="settled" />}
-                <span className={cn(MUTED, "text-right")}>{ageShort(b.timestamp)}</span>
+                <EvmBlockCells
+                  b={{ ...b, timestampMs: b.timestamp * 1000 }}
+                  burn={showBurn && burnCell(b.number)}
+                  root={showRoot && <PhaseTrack phase="settled" />}
+                />
               </Link>
             ))}
           </Board>
