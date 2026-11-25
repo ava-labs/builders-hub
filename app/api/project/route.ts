@@ -14,11 +14,39 @@ interface RegistrationData {
   telegram_account?: string;
 }
 
-// createProject reads many project fields from the body, so the other keys pass
-// through as they are. The IDs are text, because they go into Prisma filters.
+/** A field the body may leave out or send as null. Both read as absent, and createProject sets the default. */
+const absentOr = <T extends z.ZodType>(schema: T) => schema.nullish().transform((value) => value ?? undefined);
+/** The same, for a field that createProject already reads as empty when its shape is wrong. */
+const lenient = <T extends z.ZodType>(schema: T) => schema.nullish().catch(undefined).transform((value) => value ?? undefined);
+const text = absentOr(z.string());
+const textList = absentOr(z.array(z.string()));
+
+// The fields createProject writes, each with the type of its column. Other keys the forms send (file inputs, flags)
+// pass through and are not written.
 const createProjectBodySchema = z.looseObject({
-  id: z.string().nullish(),
-  hackaton_id: z.string().nullish(),
+  id: text,
+  hackaton_id: text,
+  isDraft: absentOr(z.boolean()),
+  project_name: text,
+  short_description: text,
+  full_description: text,
+  tech_stack: text,
+  github_repository: text,
+  demo_link: text,
+  demo_video_link: text,
+  explanation: text,
+  logo_url: text,
+  cover_url: text,
+  other_category: text,
+  is_preexisting_idea: absentOr(z.boolean()),
+  screenshots: textList,
+  tracks: textList,
+  tech_stack_tags: lenient(z.array(z.string())),
+  // one form sends a list and another a comma-separated text: both become the list
+  categories: lenient(z.union([z.array(z.string()), z.string().transform((value) => value.split(',').filter(Boolean))])),
+  website: lenient(z.record(z.string(), z.string())),
+  socials: lenient(z.record(z.string(), z.string())),
+  consent_sharing: lenient(z.boolean()),
   registrationData: z
     .object({
       terms_event_conditions: z.boolean(),
@@ -123,8 +151,6 @@ export const POST = withAuth(async (request, _context: unknown, session: Session
 
     const newProject: ProjectCreateResult = await createProject({
       ...body,
-      id: body.id ?? undefined,
-      hackaton_id: body.hackaton_id ?? undefined,
       submittedBy: session.user.email,
       user_id: resolvedUserId,
     });
