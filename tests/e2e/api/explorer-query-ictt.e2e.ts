@@ -123,15 +123,21 @@ describe('Explorer query: ICTT bridges', { platforms: ['api'], tags: ['api', 'ex
       expect(r.negative, `${chainId}: homes that hold less than nothing`).toBe(0);
     }
 
-    // the registry and the tokens over the whole history, and a month of sends and arrivals on the C-Chain and on an
-    // L1 (Numi): each part is a valid query, whatever its count
+    // an L1 that the index lists now. The list changes (it dropped Numi), so the test reads a chain from it and names
+    // none. A token marks a chain that the explorer's catalog also holds, which the route needs to know the chain.
+    const [listed] = (await read(app, 'all', "SELECT chain_id FROM chain_names WHERE chain_id != 43114 AND token != '' ORDER BY chain_id LIMIT 1")).rows;
+    expect(listed, 'chain_names holds no L1').toBeDefined();
+    const l1 = Number(listed.chain_id);
+
+    // the registry and the tokens over the whole history, and a month of sends and arrivals on the C-Chain and on
+    // that L1: each part is a valid query, whatever its count
     const parts: [number, string][] = [
       [43114, '$ICTT() SELECT count() AS n FROM ictt_bridges'],
       [43114, '$ICTT() SELECT count() AS n FROM ictt_tokens'],
       [43114, '$ICTT(now() - INTERVAL 30 DAY) SELECT count() AS n FROM ictt_sends'],
       [43114, '$ICTT(now() - INTERVAL 30 DAY) SELECT count() AS n FROM ictt_arrivals'],
-      [8021, '$ICTT(now() - INTERVAL 30 DAY) SELECT count() AS n FROM ictt_sends'],
-      [8021, '$ICTT(now() - INTERVAL 30 DAY) SELECT count() AS n FROM ictt_arrivals'],
+      [l1, '$ICTT(now() - INTERVAL 30 DAY) SELECT count() AS n FROM ictt_sends'],
+      [l1, '$ICTT(now() - INTERVAL 30 DAY) SELECT count() AS n FROM ictt_arrivals'],
     ];
     for (const [chainId, sql] of parts) {
       const { rows } = await read(app, chainId, sql);
