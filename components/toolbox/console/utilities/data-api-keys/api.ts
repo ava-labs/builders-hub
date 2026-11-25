@@ -1,4 +1,4 @@
-import { CreateApiKeyRequest, CreateApiKeyResponse, ListApiKeysResponse, ApiKeyDetailsResponse } from './types';
+import { ListApiKeysResponse, ApiKeyDetailsResponse } from './types';
 
 export class GlacierApiClient {
   constructor(
@@ -32,13 +32,6 @@ export class GlacierApiClient {
 
   async listApiKeys(): Promise<ListApiKeysResponse> {
     return this.makeRequest<ListApiKeysResponse>('/internal/dt-api-keys');
-  }
-
-  async createApiKey(request: CreateApiKeyRequest): Promise<CreateApiKeyResponse> {
-    return this.makeRequest<CreateApiKeyResponse>('/internal/dt-api-keys', {
-      method: 'POST',
-      body: JSON.stringify(request),
-    });
   }
 
   async getApiKeyDetails(keyId: string): Promise<ApiKeyDetailsResponse> {
