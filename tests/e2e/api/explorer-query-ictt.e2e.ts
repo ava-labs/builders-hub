@@ -1,6 +1,6 @@
 import { describe, expect, test, type App } from 'e2e';
 import { z } from 'zod';
-import { appFetch } from './app-fetch';
+import { postQuery } from './query-post';
 
 // The Explorer query asked a question about the ICTT bridges on the C-Chain. The answer must come from the $ICTT
 // shorthand's ictt_held part (lib/explorer-query/ictt.ts), which counts what each token home holds from its own
@@ -50,31 +50,19 @@ function skipLimited(status: number, body: string): void {
 // Runs SQL through the route's model-free path. It writes $ICTT out with the deployed ictt.ts on every call, where a
 // kept answer holds the SQL it was written with.
 async function read(app: App, chainId: number | 'all', sql: string) {
-  const res = await appFetch(app, '/api/explorer/query', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ chainId, sql }),
-    signal: AbortSignal.timeout(READ_MS),
-  });
-  const body = await res.text();
-  skipLimited(res.status, body);
-  expect(res.status, `${chainId} ${sql}: ${body.slice(0, 300)}`).toBe(200);
-  return expect(JSON.parse(body)).toMatchSchema(Read).result;
+  const { status, text } = await postQuery(app, { chainId, sql }, READ_MS);
+  skipLimited(status, text);
+  expect(status, `${chainId} ${sql}: ${text.slice(0, 300)}`).toBe(200);
+  return expect(JSON.parse(text)).toMatchSchema(Read).result;
 }
 
 // API tests run once, on the target without a browser engine (platform "api").
 describe('Explorer query: ICTT bridges', { platforms: ['api'], tags: ['api', 'explorer-query'] }, () => {
   test('answers the stablecoins held in the C-Chain ICTT bridges from the bridges\' own events', { timeout: ANSWER_MS }, async ({ app }) => {
-    const res = await appFetch(app, '/api/explorer/query', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ chainId: 43114, prompt: QUESTION, history: [] }),
-      signal: AbortSignal.timeout(ANSWER_MS - 5_000),
-    });
     // the route streams one JSON event per line and ends with the answer
-    const body = await res.text();
-    skipLimited(res.status, body);
-    expect(res.status, body.slice(0, 300)).toBe(200);
+    const { status, text: body } = await postQuery(app, { chainId: 43114, prompt: QUESTION, history: [] }, ANSWER_MS - 5_000);
+    skipLimited(status, body);
+    expect(status, body.slice(0, 300)).toBe(200);
     const events = body
       .split('\n')
       .filter((line) => line.trim())
