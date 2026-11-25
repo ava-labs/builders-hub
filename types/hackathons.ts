@@ -12,7 +12,8 @@ export type HackathonHeader = {
   participants: number
   tags: string[]
   organizers: string 
-  cohosts: string[]
+  /** Host emails. Present only in a read for the editors of the event. */
+  cohosts?: string[]
   status: HackathonStatus
   small_banner: string
   banner: string
@@ -21,7 +22,8 @@ export type HackathonHeader = {
   content: Hackathon
   top_most: boolean
   custom_link: string | undefined
-  created_by: string
+  /** Present only in a read for the editors of the event. */
+  created_by?: string
   created_by_name?: string
   updated_by?: string
   updated_by_name?: string

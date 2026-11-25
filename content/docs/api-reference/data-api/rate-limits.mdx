@@ -8,6 +8,8 @@ Rate limiting is managed through a weighted scoring system, known as Compute Uni
 
 ## Rate Limit Tiers
 
+<Callout type="warn">API key authentication is deprecated, and all API keys will stop working on January 15, 2027. API key creation is disabled. The tiers below apply until then.</Callout>
+
 The maximum CUs (rate-limiting score) for a user depends on their subscription level and is delineated in the following table:
 
 | Subscription Level | Per Minute Limit (CUs) | Per Day Limit (CUs) |
@@ -17,8 +19,6 @@ The maximum CUs (rate-limiting score) for a user depends on their subscription l
 | Base               | 10,000                 | 3,750,000           |
 | Growth             | 14,000                 | 11,200,000          |
 | Pro                | 20,000                 | 25,000,000          |
-
-To update your subscription level use the [AvaCloud Portal](https://app.avacloud.io/)
 
 <Info> Note: Rate limits apply collectively across both Webhooks and Data APIs, with usage from each counting toward your total CU limit. </Info>
 

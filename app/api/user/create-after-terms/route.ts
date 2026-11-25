@@ -5,8 +5,31 @@ import { syncUserDataToHubSpot } from '@/server/services/hubspotUserData';
 import { recordReferralAttributionFromRequest } from '@/server/services/referrals';
 import { normalizeEmail } from '@/lib/utils';
 import { claimLegacyValidatorAlerts } from '@/server/services/legacy-validator-alerts';
+import { z } from 'zod';
+import { readJsonBody } from '@/lib/api/json-body';
 
 const SIGNUP_ATTRIBUTION_RETRY_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+// The client sends the referral it kept in localStorage. A referral of the
+// wrong shape becomes null, so it never stops the account from being created.
+const bodySchema = z.object({
+  notifications: z.boolean().optional(),
+  consent_sharing: z.boolean().optional(),
+  referral_attribution: z
+    .object({
+      referralCode: z.string().nullish(),
+      landingPath: z.string().nullish(),
+      manualReferrer: z
+        .object({
+          teamId: z.string(),
+          teamIdOther: z.string().nullish(),
+          userId: z.string().nullish(),
+        })
+        .nullish(),
+    })
+    .nullish()
+    .catch(null),
+});
 
 async function recordBhSignupReferral(
   req: NextRequest,
@@ -41,7 +64,10 @@ export const POST = withAuth(async (
 ) => {
   try {
     const email = session.user.email ? normalizeEmail(session.user.email) : session.user.email;
-    const body = await req.json();
+    const body = await readJsonBody(req, bodySchema);
+    if (!body) {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    }
     const {
       notifications = false,
       consent_sharing = false,

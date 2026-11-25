@@ -1,6 +1,17 @@
 import { withAuth } from "@/lib/protectedRoute";
 import { exportShowcase } from "@/server/services/exportShowcase";
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { readJsonBody } from "@/lib/api/json-body";
+
+// exportShowcase reads these filters. It takes "true" and "false" as text too.
+const exportBodySchema = z.object({
+    event: z.string().optional(),
+    track: z.string().optional(),
+    search: z.string().optional(),
+    winningProjects: z.union([z.boolean(), z.string()]).optional(),
+    winningProjecs: z.union([z.boolean(), z.string()]).optional(),
+});
 
 export const POST = withAuth(async (req: NextRequest, _context: any, session: any) => {
     const customAttributes = session?.user?.custom_attributes || [];
@@ -13,7 +24,13 @@ export const POST = withAuth(async (req: NextRequest, _context: any, session: an
     }
 
     try {
-        const body = await req.json();
+        const body = await readJsonBody(req, exportBodySchema);
+        if (!body) {
+            return NextResponse.json(
+                { error: { message: 'Invalid request body' } },
+                { status: 400 }
+            );
+        }
         const buffer = await exportShowcase(body);
         if (!buffer) {
             return NextResponse.json(

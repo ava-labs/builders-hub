@@ -40,6 +40,10 @@ const KEYWORDS = /\b(INSERT|UPDATE|DELETE|ALTER|DROP|CREATE|TRUNCATE|ATTACH|DETA
 /** table functions that read outside the database or spawn work */
 const TABLE_FUNCTIONS = /\b(url|file|remote|remoteSecure|s3|s3Cluster|hdfs|azureBlobStorage|mysql|postgresql|sqlite|mongodb|redis|jdbc|odbc|executable|input|merge|cluster|clusterAllReplicas|dictionary|view|values|format|fileCluster|urlCluster|deltaLake|iceberg|hudi)\s*\(/i;
 
+/** a column's name as a query the server writes names it: with no backtick and no backslash, neither of which a
+    column the guard let through holds, so the name cannot end its own quotes */
+export const quotedName = (name: string) => "`" + name.replace(/[`\\]/g, "") + "`";
+
 export type GuardResult = { ok: true; sql: string; tables: AllowedTable[] } | { ok: false; error: string };
 
 /* ------------------------------------------------------------------ */
@@ -47,8 +51,9 @@ export type GuardResult = { ok: true; sql: string; tables: AllowedTable[] } | { 
    hex(topic0) AS topic0, takes that name all through its SELECT: a bare
    topic0 in WHERE then reads the text, and the query matches nothing. */
 
-/** a string, a quoted name, a word, a number, or one other character */
-const TOKENS = /'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`|"(?:[^"\\]|\\.)*"|[A-Za-z_]\w*|\d+(?:\.\d+)?(?:e[+-]?\d+)?|\S/gi;
+/** a string, a quoted name, a word, a number, or one other character. A backslash keeps the character after it, a
+    line's end too, as ClickHouse reads it */
+const TOKENS = /'(?:[^'\\]|\\[\s\S])*'|`(?:[^`\\]|\\[\s\S])*`|"(?:[^"\\]|\\[\s\S])*"|[A-Za-z_]\w*|\d+(?:\.\d+)?(?:e[+-]?\d+)?|\S/gi;
 /** the words that end a WHERE, PREWHERE or ON */
 const CLAUSE_END = new Set(["GROUP", "ORDER", "HAVING", "LIMIT", "WINDOW", "QUALIFY", "UNION", "EXCEPT", "INTERSECT", "JOIN", "INNER", "LEFT", "RIGHT", "FULL", "CROSS", "ARRAY", "GLOBAL", "ASOF", "PASTE", "USING", "WHERE", "PREWHERE", "ON"]);
 
@@ -80,12 +85,44 @@ function tokenize(sql: string): Token[] {
     }
     // the SELECT after a UNION or an EXCEPT is a SELECT of its own
     if (/^SELECT$/i.test(r) && f.depth === 0 && f.selects++ > 0) f.select = ++selects;
-    const quoted = r[0] === "`" || r[0] === '"';
+    // a quote left open is one character, not a name
+    const quoted = r.length > 1 && (r[0] === "`" || r[0] === '"');
     return { v: quoted ? r.slice(1, -1) : r, word: quoted || /^[A-Za-z_]/.test(r), quoted, select: f.select, depth: f.depth };
   });
 }
 
 const keyword = (t: Token | undefined, ...words: string[]) => !!t && t.word && !t.quoted && words.includes(t.v.toUpperCase());
+/** a parenthesis, a comma or a dot: never a quoted name that holds only that character */
+const punct = (t: Token | undefined, v: string) => !!t && !t.word && t.v === v;
+
+/* ------------------------------------------------------------------ */
+/* The checks below read the query's tokens, so the tokens must be the
+   ones ClickHouse reads. Each way the two can differ is refused: a
+   character ClickHouse reads as a space and a check reads as part of a
+   word, a quote left open, a comment or a $…$ string (each hides the
+   text after it from one reader), a quoted name with a backslash (it
+   can spell any name), and a SELECT that does not open its parentheses
+   (its FROM would belong to no SELECT here). */
+
+/** the characters ClickHouse reads as a space or skips, past the space, the tab and the line ends */
+const UNSEEN = /[^\S \t\n\r]|[\u0000-\u0008\u000e-\u001f\u007f\u0085\u180e\u200b-\u200f\u202a-\u202e\u2060-\u2064]/;
+
+/** why ClickHouse would read the text another way than its tokens here, or null. shorthand: the query opens with $ICTT */
+function misread(sql: string, shorthand: boolean): string | null {
+  const unseen = UNSEEN.exec(sql);
+  if (unseen) return `the query holds a character that does not show (U+${unseen[0].charCodeAt(0).toString(16).toUpperCase().padStart(4, "0")}): write plain spaces and line ends`;
+  const toks = tokenize(sql);
+  for (let i = 0; i < toks.length; i++) {
+    const t = toks[i];
+    if (!t.word && /^['"`]$/.test(t.v)) return "a quote is left open: close each string and each quoted name";
+    if (punct(t, "#")) return "no comments in the query";
+    if (punct(t, "$") && !(shorthand && i === 0)) return "$ stands in a shorthand at the query's start, or inside a string in single quotes";
+    if (t.quoted && t.v.includes("\\")) return `write the name ${t.v} without a backslash`;
+    if (t.quoted && punct(toks[i + 1], "(")) return `write the function ${t.v} without quotes`;
+    if (keyword(t, "SELECT") && t.depth > 0) return "a SELECT in parentheses stands right after the opening parenthesis: (SELECT …)";
+  }
+  return null;
+}
 
 /** each SELECT's list, split at its own commas: the token indexes of each item, by SELECT */
 function selectLists(toks: Token[]): Map<number, number[][]> {
@@ -185,30 +222,76 @@ function windowedTop(sql: string): string | null {
 const FROM_END = ["WHERE", "PREWHERE", "GROUP", "ORDER", "HAVING", "LIMIT", "WINDOW", "QUALIFY", "UNION", "EXCEPT", "INTERSECT", "SETTINGS", "FORMAT"];
 /** the words a join opens with; each ends the list an ARRAY JOIN or a USING with no parentheses holds */
 const JOIN_WORDS = ["JOIN", "INNER", "LEFT", "RIGHT", "FULL", "CROSS", "ASOF", "ANY", "ALL", "SEMI", "ANTI", "GLOBAL", "PASTE", "ARRAY"];
-const NAMED_READS = /\b(joinGet\w*|dict(?:Get\w*|Has|IsIn))\s*\(/i;
+/** functions that read a table, or a server, by a name the query passes as text */
+const NAMED_READS = /\b(joinGet\w*|dict(?:Get\w*|Has|IsIn)|hasColumnInTable)\s*\(/i;
 
-/** the names a comma in a FROM joins, each as written (db.table stays whole); or why a query reads a table in a way
-    the guard cannot check. ctes holds the names the query's own WITHs define, in lower case */
-function commaReads(sql: string, ctes: Set<string>): { ok: true; names: string[] } | { ok: false; error: string } {
+interface Def {
+  name: string;
+  /** the name's token, and the token that closes the parentheses its WITH stands in */
+  at: number;
+  end: number;
+}
+
+/** each name a WITH of the query defines. ClickHouse knows the name from its WITH to the end of the parentheses the
+    WITH stands in, in the case it is written: before that, past that, or in another case, the name reads the
+    database's table */
+function withDefs(toks: Token[]): Def[] {
+  const open: number[] = [];
+  const close = new Map<number, number>();
+  const within = toks.map((t, i) => {
+    if (punct(t, ")")) close.set(open.pop() ?? -1, i);
+    const inside = open[open.length - 1] ?? -1;
+    if (punct(t, "(")) open.push(i);
+    return inside;
+  });
+  return toks.flatMap((t, i) =>
+    t.word && (keyword(toks[i - 1], "WITH") || punct(toks[i - 1], ",")) && keyword(toks[i + 1], "AS") && punct(toks[i + 2], "(") && keyword(toks[i + 3], "SELECT", "WITH")
+      ? [{ name: t.v, at: i, end: close.get(within[i]) ?? toks.length }]
+      : [],
+  );
+}
+
+/** whether a WITH defines the name where token `at` reads it; at -1, whether one defines it anywhere */
+const defined = (defs: Def[], name: string, at: number) => defs.some((d) => d.name === name && (at < 0 || (d.at < at && at <= d.end)));
+
+interface Read {
+  /** the name as written: db.table stays whole */
+  name: string;
+  at: number;
+}
+
+/** the name each FROM, JOIN and comma in a FROM reads a table by; or why a query reads a table in a way the guard
+    cannot check */
+function tableReads(sql: string, toks: Token[], defs: Def[]): { ok: true; reads: Read[] } | { ok: false; error: string } {
   const fn = NAMED_READS.exec(sql);
   if (fn) return { ok: false, error: `${fn[1]}() reads a table by its name, which Query does not allow` };
-  const toks = tokenize(sql);
-  // the name at i, and a database name before a dot with it; null when no name stands there
-  const nameAt = (i: number) => (toks[i]?.word ? (toks[i + 1]?.v === "." && toks[i + 2]?.word ? `${toks[i].v}.${toks[i + 2].v}` : toks[i].v) : null);
+  // the name at i with a database name before a dot, and the token after it; null when no name stands there
+  const nameAt = (i: number) => (toks[i]?.word ? (punct(toks[i + 1], ".") && toks[i + 2]?.word ? { name: `${toks[i].v}.${toks[i + 2].v}`, next: i + 3 } : { name: toks[i].v, next: i + 1 }) : null);
   // parentheses after FROM, JOIN or a comma hold a subquery, never a table
-  const bareParens = (i: number) => toks[i]?.v === "(" && !/^(SELECT|WITH)$/i.test(toks[i + 1]?.v ?? "");
-  const names: string[] = [];
+  const bareParens = (i: number) => punct(toks[i], "(") && !keyword(toks[i + 1], "SELECT", "WITH");
+  const reads: Read[] = [];
   const froms = new Set<number>();
   for (let i = 0; i < toks.length; i++) {
     const t = toks[i];
-    // x IN name reads the table of that name: only a WITH of the query's own may stand there
-    const after = nameAt(i + 1);
-    if (keyword(t, "IN") && after && toks[i + 2]?.v !== "(" && !ctes.has(after.toLowerCase()))
-      return { ok: false, error: `IN ${after} reads a table by its name: write IN (SELECT …) over the tables here, or has(array, x) for an array` };
-    if (t.depth !== 0 || !keyword(t, "FROM", "JOIN") || keyword(toks[i - 1], "FILL", "ARRAY")) continue;
-    if (bareParens(i + 1)) return { ok: false, error: `${t.v.toUpperCase()} ( holds a subquery (SELECT …), never a table: name the table without parentheses` };
+    if (keyword(t, "IN")) {
+      // x IN name reads the table of that name, and so does x IN (name): only a WITH of the query's own may stand there
+      let j = i + 1;
+      while (punct(toks[j], "(")) j++;
+      const n = keyword(toks[j], "NULL", "TRUE", "FALSE") ? null : nameAt(j);
+      if (n && (j === i + 1 ? !punct(toks[n.next], "(") : punct(toks[n.next], ")")) && !defined(defs, n.name, j))
+        return { ok: false, error: `IN ${n.name} reads a table by its name: write IN (SELECT …) over the tables here, has(array, x) for an array, or = for one value` };
+    }
+    if (t.depth !== 0 || !keyword(t, "FROM", "JOIN")) continue;
+    const word = t.v.toUpperCase();
+    // ORDER BY t WITH FILL FROM <expr> names a value, and it stands after its SELECT's own FROM: a SELECT's first FROM
+    // reads a table, whatever word stands before it. ARRAY JOIN <array> names an array, unless ARRAY is an alias
+    if (word === "FROM" ? froms.has(t.select) && keyword(toks[i - 1], "FILL") : keyword(toks[i - 1], "ARRAY") && !keyword(toks[i - 2], "AS")) continue;
+    if (bareParens(i + 1)) return { ok: false, error: `${word} ( holds a subquery (SELECT …), never a table: name the table without parentheses` };
+    const first = nameAt(i + 1);
+    if (first) reads.push({ name: first.name, at: i + 1 });
+    else if (!punct(toks[i + 1], "(")) return { ok: false, error: `${word} reads a table by its name, or a subquery (SELECT …)` };
     // the rest of a SELECT's FROM: a comma there joins what follows it
-    if (!keyword(t, "FROM") || froms.has(t.select)) continue;
+    if (word !== "FROM" || froms.has(t.select)) continue;
     froms.add(t.select);
     // list: in an ARRAY JOIN's or a USING's list; nest: inside an array's or a map's brackets, which hold no table
     let list = false;
@@ -216,20 +299,25 @@ function commaReads(sql: string, ctes: Set<string>): { ok: true; names: string[]
     for (let j = i + 1; j < toks.length; j++) {
       const u = toks[j];
       if (u.select < t.select) break;
-      if (u.select !== t.select || u.depth !== 0) continue;
-      if (keyword(u, ...FROM_END)) break;
-      if (u.v === "[" || u.v === "{") nest++;
-      else if (u.v === "]" || u.v === "}") nest--;
+      // an alias after AS is a name, whatever word it is
+      if (u.select !== t.select || u.depth !== 0 || keyword(toks[j - 1], "AS")) continue;
+      if (keyword(u, ...FROM_END)) {
+        // a clause never opens with a comma: the word is an alias, and the comma joins a table
+        if (punct(toks[j + 1], ",")) return { ok: false, error: `${u.v} is a word of the query here; give the alias another name` };
+        break;
+      }
+      if (punct(u, "[") || punct(u, "{")) nest++;
+      else if (punct(u, "]") || punct(u, "}")) nest--;
       else if (keyword(u, ...JOIN_WORDS)) list = keyword(u, "ARRAY") || (keyword(u, "JOIN") && keyword(toks[j - 1], "ARRAY"));
-      else if (keyword(u, "USING")) list = toks[j + 1]?.v !== "(";
-      else if (u.v === "," && !list && nest === 0) {
+      else if (keyword(u, "USING")) list = !punct(toks[j + 1], "(");
+      else if (punct(u, ",") && !list && nest === 0) {
         if (bareParens(j + 1)) return { ok: false, error: "a comma in FROM joins a subquery (SELECT …) or a table, never a table in parentheses" };
         const name = nameAt(j + 1);
-        if (name) names.push(name);
+        if (name) reads.push({ name: name.name, at: j + 1 });
       }
     }
   }
-  return { ok: true, names };
+  return { ok: true, reads };
 }
 
 /* ------------------------------------------------------------------ */
@@ -327,6 +415,8 @@ export function guardSql(raw: string, chainId: number): GuardResult {
   // stats-api writes $ICTT out (ictt.ts), so its parts are tables the query reads
   const ictt = x.macro?.name === "ICTT";
   if (!/^(SELECT|WITH)\b/i.test(sql) && !(ictt && /^\$ICTT\s*\(/.test(sql))) return { ok: false, error: "the query must start with SELECT or WITH" };
+  const other = misread(sql, ictt);
+  if (other) return { ok: false, error: other };
   const kw = sql.match(KEYWORDS);
   if (kw) return { ok: false, error: `${kw[1].toUpperCase()} is not allowed; write a plain SELECT (the server sets FORMAT and settings)` };
   const fn = sql.match(TABLE_FUNCTIONS);
@@ -341,20 +431,22 @@ export function guardSql(raw: string, chainId: number): GuardResult {
 
   // every table read must be one of the raw tables, or a reference table our server builds (sources.ts)
   // names a WITH defines (WITH snaps AS (…)) are the query's own, not tables
-  const ctes = new Set([...sql.matchAll(/(?:\bWITH|,)\s*([A-Za-z_]\w*)\s+AS\s*\(/gi)].map((m) => m[1].toLowerCase()));
+  const toks = tokenize(sql);
+  const defs = withDefs(toks);
   const parts = new Set<string>(ictt ? icttServed(chainId) : []);
   // a WITH may not take the name of a table the server defines, and it defines every table
-  const taken = [...target.tables, ...target.refs].find((r) => ctes.has(r.toLowerCase()));
+  const taken = [...target.tables, ...target.refs].find((r) => defs.some((d) => d.name.toLowerCase() === r.toLowerCase()));
   if (taken) return { ok: false, error: `${taken} is a table here; give the WITH another name` };
-  const commas = commaReads(sql, ctes);
-  if (!commas.ok) return commas;
+  const read = tableReads(sql, toks, defs);
+  if (!read.ok) return read;
   const readable = [...target.tables, ...target.refs];
   const tables = new Set<AllowedTable>();
+  // the text is read a second time for the names after FROM and JOIN, whatever the tokens made of it.
   // ORDER BY t WITH FILL FROM <expr> names a value, not a table, and so does ARRAY JOIN <array>
-  const refs = [...sql.matchAll(/(?<!\bFILL\s+)(?<!\bARRAY\s+)\b(?:FROM|JOIN)\s+(?!\()([`"]?)([A-Za-z_][\w.]*)\1/gi)].map((m) => m[2]);
-  for (const name of [...refs, ...commas.names]) {
+  const refs = [...sql.matchAll(/(?<!\bFILL\s+)(?<!\bARRAY\s+)\b(?:FROM|JOIN)\s+(?!\()([`"]?)([A-Za-z_][\w.]*)\1/gi)].map((m) => ({ name: m[2], at: -1 }));
+  for (const { name, at } of [...read.reads, ...refs]) {
     const ident = name.replace(/^default\./i, "");
-    if (ctes.has(ident.toLowerCase()) || parts.has(ident)) continue;
+    if (defined(defs, ident, at) || parts.has(ident)) continue;
     if (!readable.includes(ident)) {
       return { ok: false, error: `table ${name} is not readable here; use ${readable.join(", ")}` };
     }

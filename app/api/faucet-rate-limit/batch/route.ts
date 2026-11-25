@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthSession } from '@/lib/auth/authSession';
 import { prisma } from '@/prisma/prisma';
+import { z } from 'zod';
+import { readJsonBody } from '@/lib/api/json-body';
+
+const bodySchema = z.object({
+  chains: z.array(
+    z.object({
+      faucetType: z.enum(['pchain', 'evm']),
+      chainId: z.string().optional(),
+    })
+  ),
+});
 
 const RATE_LIMIT_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
 const MAX_CLAIMS_PER_USER = 1;
@@ -27,17 +38,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const body = await request.json();
-    const { chains } = body as { 
-      chains: Array<{ faucetType: 'pchain' | 'evm'; chainId?: string }> 
-    };
-
-    if (!chains || !Array.isArray(chains)) {
+    const body = await readJsonBody(request, bodySchema);
+    if (!body) {
       return NextResponse.json(
         { success: false, message: 'Invalid request body' },
         { status: 400 }
       );
     }
+    const { chains } = body;
 
     const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_MS);
 

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createWalletClient, http, parseEther, formatEther, createPublicClient, defineChain, isAddress } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { avalancheFuji } from 'viem/chains';
+import { z } from 'zod';
+import { readJsonBody } from '@/lib/api/json-body';
 import { getAuthSession } from '@/lib/auth/authSession';
 import { checkAndReserveFaucetClaim, completeFaucetClaim, cancelFaucetClaim } from '@/lib/faucet/rateLimit';
 import { withChainLock, getNextNonce, withNonceRetry } from '@/lib/faucet/nonceManager';
@@ -51,6 +53,12 @@ function createViemChain(l1Data: L1ListItem) {
 }
 
 const account = SERVER_PRIVATE_KEY ? privateKeyToAccount(SERVER_PRIVATE_KEY as `0x${string}`) : null;
+
+// A missing or null field gets its own message below. The chain ID comes as a number or as a numeric string.
+const bodySchema = z.object({
+  address: z.string().nullish(),
+  chainId: z.union([z.string(), z.number()]).nullish(),
+});
 
 interface TransferResponse {
   success: boolean;
@@ -121,21 +129,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    let body: { address?: unknown; chainId?: unknown };
-    try {
-      body = await request.json();
-    } catch {
+    const body = await readJsonBody(request, bodySchema);
+    if (!body) {
       return NextResponse.json(
         { success: false, message: 'Invalid request body' },
         { status: 400 }
       );
     }
 
-    const destinationAddress = typeof body.address === 'string' ? body.address : null;
-    const chainIdParam =
-      typeof body.chainId === 'string' || typeof body.chainId === 'number'
-        ? String(body.chainId)
-        : null;
+    const destinationAddress = body.address ?? null;
+    const chainIdParam = body.chainId != null ? String(body.chainId) : null;
 
     if (!destinationAddress) {
       return NextResponse.json(

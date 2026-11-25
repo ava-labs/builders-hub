@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { readJsonBody } from "@/lib/api/json-body";
 import { pchainPost } from "@/lib/pchain-rpc";
 
 // Same-origin proxy to the AvalancheGo P-Chain RPC (the public RPC, then our
@@ -29,16 +31,20 @@ const ALLOWED_METHODS = new Set([
   "platform.getBlockByHeight",
 ]);
 
+// The route reads the method; the params go to the node as they are.
+const bodySchema = z.object({
+  method: z.string().optional(),
+  params: z.unknown().optional(),
+});
+
 export async function POST(req: NextRequest, { params }: { params: Promise<{ network: string }> }) {
   const { network } = await params;
   if (!NETWORKS.has(network)) {
     return NextResponse.json({ error: `no public RPC for network "${network}"` }, { status: 501 });
   }
 
-  let body: { method?: string; params?: unknown };
-  try {
-    body = await req.json();
-  } catch {
+  const body = await readJsonBody(req, bodySchema);
+  if (!body) {
     return NextResponse.json({ error: "invalid JSON body" }, { status: 400 });
   }
   if (!body.method || !ALLOWED_METHODS.has(body.method)) {

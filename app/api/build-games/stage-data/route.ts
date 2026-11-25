@@ -3,6 +3,15 @@ import { withAuth } from "@/lib/protectedRoute";
 import { prisma } from "@/prisma/prisma";
 import { Prisma } from "@prisma/client";
 import { MemberStatus } from "@/types/project";
+import { z } from "zod";
+import { readJsonBody } from "@/lib/api/json-body";
+
+// An ID is text. Prisma reads a JSON object in its place as a filter
+// (for example { not: "" }), which matches rows of other projects.
+const saveStageBodySchema = z.object({
+  project_id: z.string().optional(),
+  form_data: z.object({ build_games: z.record(z.string(), z.unknown()) }).optional(),
+});
 
 /**
  * GET /api/build-games/stage-data?project_id=<id>
@@ -62,11 +71,14 @@ export const GET = withAuth(async (request: NextRequest, _context, session) => {
 export const POST = withAuth(
   async (request: NextRequest, _context, session) => {
     try {
-      const body = await request.json();
-      const { project_id, form_data } = body as {
-        project_id: string;
-        form_data: { build_games: Record<string, unknown> };
-      };
+      const body = await readJsonBody(request, saveStageBodySchema);
+      if (!body) {
+        return NextResponse.json(
+          { error: "Invalid request body" },
+          { status: 400 },
+        );
+      }
+      const { project_id, form_data } = body;
 
       if (!project_id) {
         return NextResponse.json(
@@ -98,8 +110,9 @@ export const POST = withAuth(
       }
 
       const result = await prisma.$transaction(async (tx) => {
+        // Every query below uses the ID of the project the membership check returned
         const existing = await tx.formData.findFirst({
-          where: { project_id, origin: "build_games" },
+          where: { project_id: project.id, origin: "build_games" },
         });
 
         if (existing) {
@@ -129,7 +142,7 @@ export const POST = withAuth(
 
         return tx.formData.create({
           data: {
-            project_id,
+            project_id: project.id,
             origin: "build_games",
             form_data: {
               build_games: form_data.build_games as Prisma.InputJsonValue,

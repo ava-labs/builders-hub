@@ -1,7 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthSession } from '@/lib/auth/authSession';
 import { prisma } from '@/prisma/prisma';
-import type { UpdateAlertRequest } from '@/types/validator-alerts';
+import { z } from 'zod';
+import { readJsonBody } from '@/lib/api/json-body';
+
+// UpdateAlertRequest in types/validator-alerts.ts. The range checks stay in the handler.
+const updateAlertSchema = z.object({
+  label: z.string().optional(),
+  uptime_alert: z.boolean().optional(),
+  uptime_threshold: z.number().optional(),
+  version_alert: z.boolean().optional(),
+  expiry_alert: z.boolean().optional(),
+  expiry_days: z.number().optional(),
+  balance_alert: z.boolean().optional(),
+  balance_threshold: z.number().optional(),
+  balance_threshold_days: z.number().optional(),
+  security_alert: z.boolean().optional(),
+  active: z.boolean().optional(),
+});
 
 async function getOwnedAlert(alertId: string, userId: string | undefined) {
   // Imported rows have user_id null. Prisma drops a filter whose value is
@@ -57,7 +73,10 @@ export async function PUT(
       return NextResponse.json({ error: 'Alert not found.' }, { status: 404 });
     }
 
-    const body: UpdateAlertRequest = await req.json();
+    const body = await readJsonBody(req, updateAlertSchema);
+    if (!body) {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    }
 
     const updateData: Record<string, unknown> = {};
     if (body.label !== undefined) updateData.label = body.label;

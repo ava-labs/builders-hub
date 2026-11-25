@@ -5,6 +5,19 @@ import { withAuth } from '@/lib/protectedRoute';
 import { GetProjectByIdWithMembers } from "@/server/services/memberProject";
 import { prisma } from "@/prisma/prisma";
 import { MINI_GRANT_HACKATHON_ID } from "@/lib/grants/programs";
+import { z } from "zod";
+import { readJsonBody } from "@/lib/api/json-body";
+
+const patchBodySchema = z.object({
+  project_name: z.string().optional(),
+  short_description: z.string().optional(),
+  url: z.string().nullish(),
+  website: z.record(z.string(), z.string()).nullish(),
+  socials: z.record(z.string(), z.string()).nullish(),
+  categories: z.array(z.string()).optional(),
+  other_category: z.string().nullish(),
+  is_preexisting_idea: z.boolean().optional(),
+});
 
 // A confirmed member may edit a project only while it's an unsubmitted draft:
 // attached to no hackathon, with no evaluations and no grant applications. This
@@ -90,16 +103,8 @@ export const PATCH = withAuth(async (req: NextRequest, context: any, session: an
     const guard = await guardDraftMutation(id, session);
     if (guard) return guard;
 
-    const body = (await req.json()) as {
-      project_name?: string;
-      short_description?: string;
-      url?: string | null;
-      website?: Record<string, string> | null;
-      socials?: Record<string, string> | null;
-      categories?: string[];
-      other_category?: string | null;
-      is_preexisting_idea?: boolean;
-    };
+    const body = await readJsonBody(req, patchBodySchema);
+    if (!body) return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
 
     const isNonEmptyObject = (v: unknown): v is Record<string, string> =>
       !!v && typeof v === "object" && Object.keys(v).length > 0;

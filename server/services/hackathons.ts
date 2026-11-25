@@ -116,6 +116,27 @@ function pruneContentPlaceholders(content: any): any {
   return next;
 }
 
+/**
+ * The fields that say who runs an event: host email addresses and user IDs.
+ * Only the editors of an event read them. Every other read gets the event
+ * without them, so a page or a route cannot pass them on by accident.
+ */
+const HOST_FIELDS = ["cohosts", "created_by", "updated_by", "created_by_name", "updated_by_name"] as const;
+
+function withoutHosts<T extends object>(hackathon: T): T {
+  const copy = { ...hackathon } as Record<string, unknown>;
+  for (const field of HOST_FIELDS) delete copy[field];
+  return copy as T;
+}
+
+/** True when the creator of the event has a Team1 address. The address stays on the server. */
+export async function isCreatedByTeam1(id: string): Promise<boolean> {
+  const hackathon = await prisma.hackathon.findUnique({ where: { id }, select: { created_by: true } });
+  if (!hackathon?.created_by) return false;
+  const creator = await getUserById(hackathon.created_by);
+  return !!creator?.email?.includes("@team1.network");
+}
+
 export async function getHackathonLite(
   hackathon: any
 ): Promise<HackathonHeader> {
@@ -153,6 +174,8 @@ export interface GetHackathonsOptions {
   search?: string;
   created_by?: string | null;
   include_private?: boolean;
+  /** Keep the host fields. Set it only for a list of events that the caller manages. */
+  with_hosts?: boolean;
   cohost_email?: string | null;
   event?: string | null;
   visibility?: 'all' | 'public' | 'private';
@@ -168,7 +191,7 @@ export async function getHackathon(id: string) {
 
   const hackathonContent = hackathon.content as unknown as Hackathon;
   return {
-    ...hackathon,
+    ...withoutHosts(hackathon),
     content: hackathonContent,
     status: getStatus(hackathon.start_date, hackathon.end_date),
     start_date: hackathon.start_date.toISOString(),
@@ -344,7 +367,9 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
     orderBy,
   });
 
-  const hackathons = await Promise.all(hackathonList.map(getHackathonLite));
+  const hackathons = options.with_hosts
+    ? await Promise.all(hackathonList.map(getHackathonLite))
+    : (hackathonList.map(withoutHosts) as unknown as HackathonHeader[]);
   let hackathonsLite = hackathons;
 
   return {

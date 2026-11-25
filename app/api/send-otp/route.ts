@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sendOTP } from '@/server/services/login';
 import { normalizeEmail } from '@/lib/utils';
 import { isValidEmail } from '@/lib/email';
+import { z } from 'zod';
+import { readJsonBody } from '@/lib/api/json-body';
+
+// The address format check stays in the handler (isValidEmail).
+const bodySchema = z.object({
+  email: z.string().optional(),
+});
 
 export async function POST(request: NextRequest) {
   // A cross-site form can post text/plain without a CORS preflight, and
@@ -14,7 +21,13 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = await request.json();
+    const body = await readJsonBody(request, bodySchema);
+    if (!body) {
+      return NextResponse.json(
+        { error: 'Invalid request body' },
+        { status: 400 }
+      );
+    }
     const { email } = body;
 
     if (!email || typeof email !== 'string') {

@@ -1,6 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthSession } from '@/lib/auth/authSession';
 import { prisma } from '@/prisma/prisma';
+import { z } from 'zod';
+import { readJsonBody } from '@/lib/api/json-body';
+
+// charts is the dashboard's chart list, stored as JSON as the page sends it
+const createBodySchema = z.object({
+  name: z.string().optional(),
+  isPublic: z.boolean().optional(),
+  charts: z.array(z.unknown()).optional(),
+  globalStartTime: z.string().nullish(),
+  globalEndTime: z.string().nullish(),
+});
+
+const updateBodySchema = createBodySchema.extend({
+  id: z.string().optional(),
+});
 
 // GET /api/playground - Get user's playgrounds
 export async function GET(req: NextRequest) {
@@ -140,16 +155,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized, please sign in to continue.' }, { status: 401 });
     }
 
-    const body = await req.json();
+    const body = await readJsonBody(req, createBodySchema);
     if (!body) {
-      return NextResponse.json({ error: 'No body provided.' }, { status: 400 });
-    }
-
-    if (!body.name) {
-      return NextResponse.json({ error: 'Name is required.' }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
     }
 
     const { name, isPublic, charts, globalStartTime, globalEndTime } = body;
+
+    if (!name) {
+      return NextResponse.json({ error: 'Name is required.' }, { status: 400 });
+    }
 
     // Store global time filters in charts JSON structure
     const chartsData = {
@@ -182,12 +197,15 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized, please sign in to continue.' }, { status: 401 });
     }
 
-    const body = await req.json();
-    if (!body || !body.id) {
-      return NextResponse.json({ error: 'Playground ID is required.' }, { status: 400 });
+    const body = await readJsonBody(req, updateBodySchema);
+    if (!body) {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
     }
 
     const { id, name, isPublic, charts, globalStartTime, globalEndTime } = body;
+    if (!id) {
+      return NextResponse.json({ error: 'Playground ID is required.' }, { status: 400 });
+    }
 
     // Verify ownership
     const existing = await prisma.statsPlayground.findFirst({

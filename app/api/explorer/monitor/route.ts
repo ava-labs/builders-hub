@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
+import { readJsonBody } from "@/lib/api/json-body";
 import { siteBaseUrl } from "@/lib/chat/site-url";
 import { getClientIP } from "@/lib/chat/rateLimit";
 import { checkedSpec, monitorTokens, readMonitor } from "@/lib/explorer-query/monitor-feed";
@@ -6,6 +8,12 @@ import { checkedSpec, monitorTokens, readMonitor } from "@/lib/explorer-query/mo
 /* A Query monitor's feed (lib/explorer-query/monitor.ts): POST { spec, from? } reads the chain's RPC from block
    `from` (or the last few minutes) to the head, and answers the moves it holds, newest first. The page asks every
    few seconds while it shows the monitor; readers of the same monitor share one read. */
+
+// spec is checked whole by checkedSpec; from is a block number, as a number or as its digits
+const bodySchema = z.object({
+  spec: z.unknown().optional(),
+  from: z.union([z.number(), z.string()]).nullish(),
+});
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -28,7 +36,8 @@ function allow(key: string): boolean {
 }
 
 export async function POST(req: Request) {
-  const body = (await req.json().catch(() => ({}))) as { spec?: unknown; from?: unknown };
+  const body = await readJsonBody(req, bodySchema);
+  if (!body) return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   const spec = checkedSpec(body.spec);
   if (!spec) return NextResponse.json({ error: "not a monitor this chain can read" }, { status: 400 });
   const from = body.from === undefined || body.from === null ? null : Number(body.from);

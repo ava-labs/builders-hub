@@ -9,10 +9,8 @@ interface ApiKeysListProps {
   apiKeys: ApiKeyListItem[];
   isLoading: boolean;
   error: string | null;
-  maxApiKeysAllowed: number;
   deletingKeys: Set<string>;
   onRefresh: () => void;
-  onShowCreateForm: () => void;
   onDeleteKey: (keyId: string) => void;
 }
 
@@ -25,10 +23,8 @@ export default function ApiKeysList({
   apiKeys,
   isLoading,
   error,
-  maxApiKeysAllowed,
   deletingKeys,
   onRefresh,
-  onShowCreateForm,
   onDeleteKey,
 }: ApiKeysListProps) {
   if (isLoading) {
@@ -56,13 +52,8 @@ export default function ApiKeysList({
         <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
           <KeyRound className="w-8 h-8 text-zinc-500 dark:text-zinc-400" />
         </div>
-        <h3 className="text-xl font-medium text-zinc-900 dark:text-white mb-2">No API Keys Yet</h3>
-        <p className="text-zinc-600 dark:text-zinc-400 mb-6">
-          Create your first API key to start using the Glacier API.
-        </p>
-        <Button onClick={onShowCreateForm} variant="primary">
-          Create API Key
-        </Button>
+        <h3 className="text-xl font-medium text-zinc-900 dark:text-white mb-2">No API Keys</h3>
+        <p className="text-zinc-600 dark:text-zinc-400">You don&apos;t have any API keys.</p>
       </div>
     );
   }
@@ -71,7 +62,7 @@ export default function ApiKeysList({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          <span className="font-medium">{apiKeys.length}</span> / {maxApiKeysAllowed} API keys
+          <span className="font-medium">{apiKeys.length}</span> API {apiKeys.length === 1 ? 'key' : 'keys'}
         </p>
         <button
           onClick={onRefresh}

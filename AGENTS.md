@@ -86,6 +86,8 @@ E2E_BASE_URL=http://localhost:3000 npm test
 - Do not call `createPublicClient` in the toolbox. Use `usePublicClientForChain`, `makePublicClientForChain` or `useChainPublicClient`.
 - Folder names under `components/toolbox/console` are kebab-case, and so are the MDX import paths to them.
 
+**API** (`tests/unit/api/json-body-routes.test.ts`, every PR): a route that reads a JSON body parses it with a zod schema before use. Use `readJsonBody` from `lib/api/json-body.ts`. `tests/unit/api/json-body-routes.baseline.json` lists the routes that do not parse yet, and it can only get shorter.
+
 **E2E** (`scripts/check-e2e-location.sh`, every PR, forks too): browser and API tests go in `tests/e2e/`. A root `e2e/` folder, or an import of `@playwright/test` or `playwright/test`, fails CI.
 
 **Commits** (`commitlint.config.js`): `type(scope): subject`. Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`. The subject starts in lower case and has no full stop. The header has at most 100 characters.

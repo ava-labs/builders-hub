@@ -226,7 +226,6 @@ export default function Stages({ isParticipant, stages, hackathon, renderInPrevi
                   <DialogContent className="w-[95vw] max-w-3xl">
                     <StageSubmitPageContent
                       hackathon={hackathon}
-                      hackathonCreator={''}
                       stage={selectedStage}
                       stageIndex={selectedPhaseIndex}
                       renderInPreview={renderInPreview}

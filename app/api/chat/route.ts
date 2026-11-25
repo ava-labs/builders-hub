@@ -1,6 +1,7 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
-import { streamText, tool, stepCountIs, convertToModelMessages, type ModelMessage } from 'ai';
+import { streamText, tool, stepCountIs, convertToModelMessages, type ModelMessage, type UIMessage } from 'ai';
 import { z } from 'zod';
+import { readJsonBody } from '@/lib/api/json-body';
 import { captureAIGeneration, captureServerEvent } from '@/lib/posthog-server';
 import { searchCode, formatCodeContext } from '@/lib/code-search';
 import { embedQuery, analyzeQueryIntent } from '@/lib/embeddings';
@@ -25,6 +26,25 @@ import l1Chains from '@/constants/l1-chains.json';
 import { parsePageRef, pageBrief, loadPageData, docPageText } from '@/lib/chat/page-context';
 import { siteBaseUrl } from '@/lib/chat/site-url';
 import { CHAT_MODEL, CHAT_SETTINGS, withoutReasoning } from '@/lib/chat/model';
+
+/* The envelope the chat clients send (AI SDK UI messages, plus the options the
+   bubble and the chat page add). Each message is checked to be an object with a
+   text role; its parts change with the SDK and are read by the SDK itself. */
+const chatBodySchema = z.object({
+  messages: z.array(
+    z.custom<UIMessage>(
+      (m) => typeof m === 'object' && m !== null && 'role' in m && typeof m.role === 'string'
+    )
+  ),
+  id: z.string().optional(),
+  source: z.string().optional(),
+  page: z
+    .object({
+      path: z.string().optional(),
+      selection: z.string().optional(),
+    })
+    .nullish(),
+});
 
 // Helper to extract text from v6 UIMessage
 function getTextFromMessage(message: any): string {
@@ -224,7 +244,14 @@ function findRelevantSections(query: string, docs: string): string[] {
 }
 
 export async function POST(req: Request) {
-  const { messages, id: visitorId, source, page } = await req.json();
+  const body = await readJsonBody(req, chatBodySchema);
+  if (!body) {
+    return new Response(JSON.stringify({ error: 'Invalid request body' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  const { messages, id: visitorId, source, page } = body;
   const isBubble = source === 'bubble';
   // the page the visitor has open: identity for the prompt, data on demand
   const pageRef = parsePageRef(page?.path);

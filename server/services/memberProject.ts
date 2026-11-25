@@ -1,7 +1,7 @@
 import { prisma } from "@/prisma/prisma";
 
 import { ValidationError } from "./hackathons";
-import { memberIdentityWhere } from "./projectMembership";
+import { memberEmailFor, memberIdentityWhere } from "./projectMembership";
 import { MemberStatus } from "@/types/project";
 
 export async function UpdateStatusMember(
@@ -125,7 +125,7 @@ async function deleteProjectIfNoMembers(projectId: string) {
   }
 }
 
-export async function GetMembersByProjectId(project_id: string) {
+export async function GetMembersByProjectId(project_id: string, viewer_id: string) {
   try {
     const project = await prisma.project.findUnique({
       where: { id: project_id },
@@ -164,7 +164,7 @@ export async function GetMembersByProjectId(project_id: string) {
     id: member.id,
     user_id: member.user_id,
     name: member.user?.name,
-    email: member.user?.email ?? member.email,
+    email: memberEmailFor(viewer_id, member),
     image: member.user?.image,
     role: member.role,
     status: member.status,

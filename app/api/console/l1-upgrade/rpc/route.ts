@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { deriveActivePrecompiles } from '@/lib/console/upgrade-json';
 import { checkRateLimit } from '@/lib/rateLimit';
+import { readJsonBody } from '@/lib/api/json-body';
 import { callJsonRpc, validatePublicRpcUrl, getClientIp } from '../rpc-utils';
 
-type RpcCheckBody = {
-  rpcUrl?: string;
-};
+const bodySchema = z.object({
+  rpcUrl: z.string().optional(),
+});
 
 type LatestBlockResponse = {
   timestamp?: string;
@@ -37,12 +39,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Too many requests. Please slow down and try again shortly.' }, { status: 429 });
   }
 
-  let body: RpcCheckBody;
-  try {
-    body = (await request.json()) as RpcCheckBody;
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
-  }
+  const body = await readJsonBody(request, bodySchema);
+  if (!body) return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
 
   const rpcUrl = body.rpcUrl?.trim();
   if (!rpcUrl) return NextResponse.json({ error: 'rpcUrl is required' }, { status: 400 });

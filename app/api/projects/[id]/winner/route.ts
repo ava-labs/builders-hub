@@ -5,6 +5,13 @@ import {
   SetWinner,
   WinnerOperationError,
 } from "@/server/services/set-project-winner";
+import { z } from "zod";
+import { readJsonBody } from "@/lib/api/json-body";
+
+const winnerBodySchema = z.object({
+  isWinner: z.boolean().nullish(),
+  is_winner: z.boolean().nullish(),
+});
 
 type Params = RouteParams<{ id: string }>;
 
@@ -12,7 +19,10 @@ export const POST = withAuthRole<Params>(
   "devrel",
   async (request: NextRequest, context: Params, session) => {
     const { id: projectId } = await context.params;
-    const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+    const body = await readJsonBody(request, winnerBodySchema);
+    if (!body) {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
 
     const parsed = parseIsWinnerBody(body);
     if (!parsed.ok) {

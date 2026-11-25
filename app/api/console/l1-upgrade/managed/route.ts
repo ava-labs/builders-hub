@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { readJsonBody } from '@/lib/api/json-body';
 import { getUserId, jsonError, jsonOk } from '@/app/api/managed-testnet-nodes/utils';
 import { builderHubGetUpgradeJson, builderHubWriteUpgradeJson } from '@/app/api/managed-testnet-nodes/service';
 import { isValidAvalancheId } from '@/lib/console/l1-upgrade-selection';
 import { parseUpgradeJson } from '@/lib/console/upgrade-json';
 import { getActiveManagedUpgradeNodes } from './utils';
 
-type WriteManagedBody = {
-  subnetId?: string;
-  blockchainId?: string;
-  chainName?: string | null;
-  rpcUrl?: string | null;
-  upgradeJson?: unknown;
-};
+// The client also sends chainName and rpcUrl. This handler does not read them.
+const writeManagedSchema = z.object({
+  subnetId: z.string().optional(),
+  blockchainId: z.string().optional(),
+  upgradeJson: z.unknown().optional(),
+});
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const { userId, error } = await getUserId();
@@ -70,12 +71,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const { userId, error } = await getUserId();
   if (error) return error;
 
-  let body: WriteManagedBody;
-  try {
-    body = (await request.json()) as WriteManagedBody;
-  } catch {
-    return jsonError(400, 'Invalid JSON body');
-  }
+  const body = await readJsonBody(request, writeManagedSchema);
+  if (!body) return jsonError(400, 'Invalid request body');
 
   const { subnetId, blockchainId } = body;
   if (!subnetId || !blockchainId) {

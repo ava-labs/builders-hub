@@ -164,7 +164,6 @@ export default function HackathonPreviewTabs({
                       <AccordionContent className="pb-4">
                         <StageSubmitPageContent
                           hackathon={previewHackathon}
-                          hackathonCreator={''}
                           stage={stage}
                           stageIndex={index}
                           renderInPreview={true}

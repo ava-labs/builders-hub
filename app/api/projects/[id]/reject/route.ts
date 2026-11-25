@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAuthRole, type RouteParams } from "@/lib/protectedRoute";
 import { prisma } from "@/prisma/prisma";
+import { z } from "zod";
+import { readJsonBody } from "@/lib/api/json-body";
+
+const rejectBodySchema = z.object({ is_rejected: z.boolean() });
 
 type Params = RouteParams<{ id: string }>;
 
@@ -9,8 +13,8 @@ export const POST = withAuthRole<Params>(
   async (request: NextRequest, context: Params) => {
     const { id: projectId } = await context.params;
 
-    const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
-    if (typeof body.is_rejected !== "boolean") {
+    const body = await readJsonBody(request, rejectBodySchema);
+    if (!body) {
       return NextResponse.json(
         { error: "is_rejected must be a boolean" },
         { status: 400 },

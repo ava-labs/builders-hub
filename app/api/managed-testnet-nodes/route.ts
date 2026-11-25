@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import {
   rateLimited,
   getUserId,
@@ -17,12 +18,18 @@ import {
   selectNewestNode,
 } from './service';
 import { getBlockchainInfo } from '../../../components/toolbox/coreViem/utils/glacier';
-import { CreateNodeRequest, SubnetStatusResponse } from './types';
+import { SubnetStatusResponse } from './types';
 import { prisma } from '@/prisma/prisma';
+import { readJsonBody } from '@/lib/api/json-body';
 import { SUBNET_EVM_VM_ID } from '@/constants/console';
 import { reserveDailyProvision, retryAfterSeconds } from '@/server/services/provision-quota';
 
 // Types moved to ./types
+
+const createNodeSchema = z.object({
+  subnetId: z.string().optional(),
+  blockchainId: z.string().optional(),
+});
 
 /**
  * GET /api/managed-testnet-nodes
@@ -57,7 +64,16 @@ async function handleCreateNode(request: NextRequest): Promise<NextResponse> {
       return jsonError(429, 'You already have 3 active nodes. Delete one or wait for expiry.');
     }
 
-    const body: CreateNodeRequest = await request.json();
+    const body = await readJsonBody(request, createNodeSchema);
+    if (!body) {
+      return NextResponse.json(
+        {
+          error: 'Bad request',
+          message: 'Invalid request body'
+        },
+        { status: 400 }
+      );
+    }
     const { subnetId, blockchainId } = body;
 
     if (!subnetId || !blockchainId) {
@@ -137,6 +153,9 @@ async function handleCreateNode(request: NextRequest): Promise<NextResponse> {
     }
 
   } catch (error) {
+    if (error instanceof ManagedTestnetNodeServiceRequestError) {
+      return jsonError(error.status, error.message, error);
+    }
     return jsonError(500, error instanceof Error ? error.message : 'Failed to create node', error);
   }
 }

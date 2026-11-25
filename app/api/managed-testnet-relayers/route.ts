@@ -1,7 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { readJsonBody } from '@/lib/api/json-body';
 import { getUserId, jsonOk, jsonError } from './utils';
 import { RelayerServiceURLs } from './constants';
-import { CreateRelayerRequest, Relayer } from './types';
+import { Relayer } from './types';
+
+// Each config goes to the relayer service as sent, so keys other than these four pass through.
+const createRelayerSchema = z.object({
+  configs: z
+    .array(
+      z.looseObject({
+        subnetId: z.string().optional(),
+        blockchainId: z.string().optional(),
+        rpcUrl: z.string().optional(),
+        wsUrl: z.string().optional(),
+      }),
+    )
+    .optional(),
+});
 
 /**
  * GET /api/managed-testnet-relayers
@@ -83,7 +99,10 @@ async function handleCreateRelayer(request: NextRequest): Promise<NextResponse> 
   }
 
   try {
-    const body: CreateRelayerRequest = await request.json();
+    const body = await readJsonBody(request, createRelayerSchema);
+    if (!body) {
+      return jsonError(400, 'Invalid request body');
+    }
     const { configs } = body;
 
     if (!configs || !Array.isArray(configs) || configs.length === 0) {
