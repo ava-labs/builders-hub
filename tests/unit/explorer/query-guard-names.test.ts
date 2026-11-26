@@ -60,6 +60,20 @@ describe('text ClickHouse would read another way than the guard', () => {
     expect(error(`SELECT version, uptime, count() AS n FROM (SELECT 'v1' AS version, 1 AS uptime FROM raw_blocks WHERE chain_id = 43114 AND ${W}) WHERE version IN ('v1') GROUP BY version, uptime`)).toBe('');
   });
 
+  it('is refused for a name with parentheses where a table stands, whatever a WITH names', () => {
+    const CALL = /stands where a table does, so it is a table function, which Query does not allow/;
+    const b = `raw_blocks AS b WHERE b.chain_id = 43114 AND b.${W}`;
+    expect(error(`WITH numbers AS (SELECT 1 AS x) SELECT n.number AS num FROM raw_blocks AS b, numbers(3) AS n WHERE b.chain_id = 43114 AND b.${W}`)).toMatch(/^numbers\(\) stands where/);
+    expect(error(`WITH numbers AS (SELECT 1 AS x) SELECT b.block_number, EXISTS(SELECT * FROM numbers(1)) AS e FROM ${b}`)).toMatch(CALL);
+    expect(error(`WITH generateSeries AS (SELECT 1 AS x) SELECT count() AS n FROM raw_blocks AS b CROSS JOIN generateSeries (1, 2) AS g WHERE b.chain_id = 43114 AND b.${W}`)).toMatch(CALL);
+    expect(error(`WITH mergeTreeIndex AS (SELECT 1 AS x) SELECT (SELECT count() FROM mergeTreeIndex('default', 'raw_blocks')) AS c FROM ${b}`)).toMatch(CALL);
+    expect(error(`WITH t AS (${BLOCKS}) SELECT count() AS n FROM t, t (1) AS u`)).toMatch(CALL);
+    // the WITH read by its name alone is the WITH, and a function after WITH FILL FROM or ARRAY JOIN is a value
+    expect(error(`WITH numbers AS (SELECT block_number AS x FROM raw_blocks WHERE chain_id = 43114 AND ${W}) SELECT count() AS n, max(x) AS hi FROM numbers`)).toBe('');
+    expect(error(`SELECT toDate(block_time) AS t, count() AS n FROM raw_blocks WHERE chain_id = 43114 AND ${W} GROUP BY t ORDER BY t WITH FILL FROM toDate(now() - INTERVAL 1 DAY) TO toDate(now())`)).toBe('');
+    expect(error(`SELECT i, count() AS n FROM raw_blocks ARRAY JOIN range(2) AS i WHERE chain_id = 43114 AND ${W} GROUP BY i`)).toBe('');
+  });
+
   it('is refused for a character that does not show, a quote left open, a # comment and a $ outside a string', () => {
     expect(error(`SELECT count() AS n FROM​evm_txs WHERE 1 IN (${BLOCKS})`)).toBe('the query holds a character that does not show (U+200B): write plain spaces and line ends');
     expect(error(`SELECT count() AS n FROM raw_blocks WHERE chain_id = 43114 AND ${W}`)).toMatch(/U\+00A0/);
