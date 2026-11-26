@@ -217,9 +217,9 @@ function windowedTop(sql: string): string | null {
    server defines each of those as one chain's rows (sources.ts). Every
    other place a name reads a table is checked too: the name after a
    comma in a FROM is checked as a JOIN's is; parentheses after a FROM or
-   a JOIN must hold a SELECT; a name on the right of an IN, and a
-   function that reads a dictionary or a Join table by its name, are
-   refused. */
+   a JOIN must hold a SELECT; a name on the right of an IN, a function
+   that reads a dictionary or a Join table by its name, and a name with
+   parentheses where a table stands (a table function) are refused. */
 
 /** the words that end a SELECT's FROM */
 const FROM_END = ["WHERE", "PREWHERE", "GROUP", "ORDER", "HAVING", "LIMIT", "WINDOW", "QUALIFY", "UNION", "EXCEPT", "INTERSECT", "SETTINGS", "FORMAT"];
@@ -261,6 +261,8 @@ interface Read {
   /** the name as written: db.table stays whole */
   name: string;
   at: number;
+  /** parentheses follow the name: ClickHouse calls the table function of that name, whatever a WITH names */
+  call: boolean;
 }
 
 /** the name each FROM, JOIN and comma in a FROM reads a table by; or why a query reads a table in a way the guard
@@ -291,7 +293,7 @@ function tableReads(sql: string, toks: Token[], defs: Def[]): { ok: true; reads:
     if (word === "FROM" ? froms.has(t.select) && keyword(toks[i - 1], "FILL") : keyword(toks[i - 1], "ARRAY") && !keyword(toks[i - 2], "AS")) continue;
     if (bareParens(i + 1)) return { ok: false, error: `${word} ( holds a subquery (SELECT …), never a table: name the table without parentheses` };
     const first = nameAt(i + 1);
-    if (first) reads.push({ name: first.name, at: i + 1 });
+    if (first) reads.push({ name: first.name, at: i + 1, call: punct(toks[first.next], "(") });
     else if (!punct(toks[i + 1], "(")) return { ok: false, error: `${word} reads a table by its name, or a subquery (SELECT …)` };
     // the rest of a SELECT's FROM: a comma there joins what follows it
     if (word !== "FROM" || froms.has(t.select)) continue;
@@ -316,7 +318,7 @@ function tableReads(sql: string, toks: Token[], defs: Def[]): { ok: true; reads:
       else if (punct(u, ",") && !list && nest === 0) {
         if (bareParens(j + 1)) return { ok: false, error: "a comma in FROM joins a subquery (SELECT …) or a table, never a table in parentheses" };
         const name = nameAt(j + 1);
-        if (name) reads.push({ name: name.name, at: j + 1 });
+        if (name) reads.push({ name: name.name, at: j + 1, call: punct(toks[name.next], "(") });
       }
     }
   }
@@ -448,8 +450,9 @@ export function guardSql(raw: string, chainId: number): GuardResult {
   const tables = new Set<AllowedTable>();
   // the text is read a second time for the names after FROM and JOIN, whatever the tokens made of it.
   // ORDER BY t WITH FILL FROM <expr> names a value, not a table, and so does ARRAY JOIN <array>
-  const refs = [...sql.matchAll(/(?<!\bFILL\s+)(?<!\bARRAY\s+)\b(?:FROM|JOIN)\s+(?!\()([`"]?)([A-Za-z_][\w.]*)\1/gi)].map((m) => ({ name: m[2], at: -1 }));
-  for (const { name, at } of [...read.reads, ...refs]) {
+  const refs = [...sql.matchAll(/(?<!\bFILL\s+)(?<!\bARRAY\s+)\b(?:FROM|JOIN)\s+(?!\()([`"]?)([A-Za-z_][\w.]*)\1(\s*\()?/gi)].map((m) => ({ name: m[2], at: -1, call: !!m[3] }));
+  for (const { name, at, call } of [...read.reads, ...refs]) {
+    if (call) return { ok: false, error: `${name}() stands where a table does, so it is a table function, which Query does not allow: read ${readable.join(", ")}, or a subquery (SELECT …)` };
     const ident = name.replace(/^default\./i, "");
     if (defined(defs, ident, at) || parts.has(ident)) continue;
     if (!readable.includes(ident)) {
