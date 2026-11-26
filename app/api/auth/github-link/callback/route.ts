@@ -1,4 +1,5 @@
 import { getAuthSession } from '@/lib/auth/authSession';
+import { localReturnTarget } from '@/lib/auth/callback-url';
 import { encryptToken } from '@/lib/github-token';
 import { prisma } from '@/prisma/prisma';
 import { NextRequest, NextResponse } from 'next/server';
@@ -31,12 +32,8 @@ function buildReturnTarget(req: NextRequest, base: string, status: 'linked' | 'a
       ? `${base}/profile?tab=personal&gh=linked`
       : `${base}/profile?gh=${status}`;
 
-  const returnTo = req.cookies.get('gh_link_return_to')?.value;
-  if (!returnTo || !returnTo.startsWith('/') || returnTo.startsWith('//')) {
-    return fallback;
-  }
-
-  const target = new URL(returnTo, base);
+  const target = localReturnTarget(req.cookies.get('gh_link_return_to')?.value, base);
+  if (!target) return fallback;
   target.searchParams.set('gh', status);
   return target.toString();
 }

@@ -33,3 +33,15 @@ export function getAuthCallbackUrl(
     return "/";
   }
 }
+
+/** A path of this site to return to after an account link, as a URL on `base`; null when the value could name another
+ *  site. A backslash or a control character is refused: a URL parser reads "/\\host" and "/<tab>/host" as "//host". */
+export function localReturnTarget(value: string | undefined, base: string): URL | null {
+  if (!value || !value.startsWith("/") || value.startsWith("//") || /[\\\u0000-\u0020]/.test(value)) return null;
+  try {
+    const target = new URL(value, base);
+    return target.origin === new URL(base).origin ? target : null;
+  } catch {
+    return null;
+  }
+}
