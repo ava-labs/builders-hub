@@ -8,6 +8,10 @@ export async function GET() {
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  // a session before the terms are accepted has no account: its ID is "pending_" and the email, and it gets no token
+  if (!session.user?.id || session.user.id.startsWith("pending_")) {
+    return NextResponse.json({ error: "Finish creating your account first" }, { status: 403 });
+  }
 
   const DATA_API_ENDPOINT = "https://data-api.avax.network/v1";
 
