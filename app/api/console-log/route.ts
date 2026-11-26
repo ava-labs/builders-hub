@@ -4,13 +4,20 @@ import { z } from 'zod';
 import { getAuthSession } from '@/lib/auth/authSession';
 import { prisma } from '@/prisma/prisma';
 import { readJsonBody } from '@/lib/api/json-body';
+import { consumeQuota } from '@/lib/verification/limits';
 
-// data is free content that the Json column stores as sent.
+// data is free content that the Json column stores as sent: a transaction's result, of a size.
+const MAX_DATA_CHARS = 100_000;
 const createLogSchema = z.object({
-  status: z.string().optional(),
-  actionPath: z.string().optional(),
-  data: z.unknown().optional(),
+  status: z.string().max(64).optional(),
+  actionPath: z.string().max(300).optional(),
+  data: z
+    .unknown()
+    .refine((data) => data === undefined || JSON.stringify(data).length <= MAX_DATA_CHARS)
+    .optional(),
 });
+// a Console action writes one or two entries; an account cannot delete an entry
+const LOGS_PER_HOUR = { limit: 600, windowMs: 60 * 60 * 1000 };
 
 // GET /api/console-log - Get user's console logs
 export async function GET(req: NextRequest) {
@@ -47,6 +54,13 @@ export async function POST(req: NextRequest) {
     const { status, actionPath, data } = body;
     if (!status || !actionPath) {
       return NextResponse.json({ error: 'Status and actionPath are required.' }, { status: 400 });
+    }
+    const quota = await consumeQuota(`console-log:${session.user.id}`, LOGS_PER_HOUR);
+    if (!quota.allowed) {
+      return NextResponse.json(
+        { error: 'Too many log entries. Try again later.' },
+        { status: 429, headers: { 'retry-after': String(quota.retryAfterSeconds) } },
+      );
     }
 
     const logEntry = await prisma.consoleLog.create({

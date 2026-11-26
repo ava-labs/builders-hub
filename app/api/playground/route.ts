@@ -4,13 +4,20 @@ import { prisma } from '@/prisma/prisma';
 import { z } from 'zod';
 import { readJsonBody } from '@/lib/api/json-body';
 
-// charts is the dashboard's chart list, stored as JSON as the page sends it
+// charts is the dashboard's chart list, stored as JSON as the page sends it. A dashboard is a few charts of a few
+// series each, so the list has a count and a size.
+const MAX_CHARTS = 50;
+const MAX_CHARTS_CHARS = 200_000;
 const createBodySchema = z.object({
-  name: z.string().optional(),
+  name: z.string().max(120).optional(),
   isPublic: z.boolean().optional(),
-  charts: z.array(z.unknown()).optional(),
-  globalStartTime: z.string().nullish(),
-  globalEndTime: z.string().nullish(),
+  charts: z
+    .array(z.unknown())
+    .max(MAX_CHARTS)
+    .refine((charts) => JSON.stringify(charts).length <= MAX_CHARTS_CHARS)
+    .optional(),
+  globalStartTime: z.string().max(64).nullish(),
+  globalEndTime: z.string().max(64).nullish(),
 });
 
 const updateBodySchema = createBodySchema.extend({
@@ -72,8 +79,14 @@ export async function GET(req: NextRequest) {
       const globalStartTime = Array.isArray(chartsData) ? null : (chartsData?.globalStartTime || null);
       const globalEndTime = Array.isArray(chartsData) ? null : (chartsData?.globalEndTime || null);
 
+      // The page shows the creator of a public dashboard only when the creator's profile is public. The answer
+      // follows the same rule, so a private profile is not readable from the API.
+      const showCreator = isOwner || playground.user?.profile_privacy === 'public';
+
       return NextResponse.json({
         ...playground,
+        user: showCreator ? playground.user : undefined,
+        user_id: showCreator ? playground.user_id : undefined,
         charts: chartsArray,
         globalStartTime,
         globalEndTime,
@@ -83,7 +96,7 @@ export async function GET(req: NextRequest) {
         view_count: playground.view_count || 0,
         favorites: undefined, // Remove favorites array from response
         _count: undefined, // Remove _count from response
-        creator: playground.user ? {
+        creator: showCreator && playground.user ? {
           id: playground.user.id,
           name: playground.user.name,
           user_name: playground.user.user_name,

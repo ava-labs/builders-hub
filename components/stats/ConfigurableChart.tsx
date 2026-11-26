@@ -374,12 +374,13 @@ export default function ConfigurableChart({
 
     try {
       // Build query string with timestamps if available and the specific metric
-      let queryString = `timeRange=all&metrics=${metricKey}`;
+      let queryString = `timeRange=all&metrics=${encodeURIComponent(metricKey)}`;
       if (startTimestamp !== undefined && endTimestamp !== undefined) {
         queryString += `&startTimestamp=${startTimestamp}&endTimestamp=${endTimestamp}`;
       }
       
-      const response = await fetch(`/api/chain-stats/${chainId}?${queryString}`);
+      // a series comes from a saved dashboard, which another user can write: its chain ID is one path segment
+      const response = await fetch(`/api/chain-stats/${encodeURIComponent(chainId)}?${queryString}`);
       if (!response.ok) {
         throw new Error(`Failed to fetch data: ${response.status}`);
       }
