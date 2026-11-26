@@ -37,6 +37,9 @@ on:
       E2E_CHAIN_FUJI_KEY:
         description: 'The private key of the Fuji test wallet'
         required: true
+      E2E_WAF_BYPASS_SECRET:
+        description: 'Lets the run through the Cloudflare WAF challenge on build.avax.network'
+        required: false
 
 permissions: {}
 
@@ -119,6 +122,8 @@ jobs:
         timeout-minutes: ${{ inputs.test_minutes }}
         env:
           E2E_BASE_URL: https://build.avax.network
+          # Lets the run through the Cloudflare WAF challenge on build.avax.network (tests/e2e/lib/bypass.ts).
+          E2E_WAF_BYPASS_SECRET: ${{ secrets.E2E_WAF_BYPASS_SECRET }}
           E2E_CHAIN_WEEKLY: ${{ inputs.tag }}
           TAG: ${{ inputs.tag }}
         run: npm run test:chain -- --tag "$TAG"
