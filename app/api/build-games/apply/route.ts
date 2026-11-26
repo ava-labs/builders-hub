@@ -4,6 +4,8 @@ import { recordReferralAttributionFromRequest } from '@/server/services/referral
 import { isHubSpotEnabled, skipHubSpot } from '@/server/services/hubspot';
 import { withAuth } from '@/lib/protectedRoute';
 import type { Session } from 'next-auth';
+import { z } from 'zod';
+import { readJsonBody } from '@/lib/api/json-body';
 
 async function fetchWithTimeout(url: string, options: RequestInit, timeout: number): Promise<Response> {
   const controller = new AbortController();
@@ -52,6 +54,15 @@ const HUBSPOT_FIELD_MAPPING: Record<string, string> = {
   marketingConsent: 'marketing_consent',
 };
 
+/* The form sends the fields of the mapping above, as text or as a checkbox, and the referral it came with. A key
+   that is not in the mapping is not a form field, and it is left out: each key becomes a HubSpot field name. */
+const applySchema = z.object({
+  ...Object.fromEntries(
+    Object.keys(HUBSPOT_FIELD_MAPPING).map((key) => [key, z.union([z.string().max(5_000), z.boolean()]).nullish()]),
+  ),
+  referral_attribution: z.unknown().optional(),
+});
+
 export const POST = withAuth(async (request: Request, _context: unknown, session: Session) => {
   try {
     const hubspotEnabled = isHubSpotEnabled();
@@ -65,17 +76,21 @@ export const POST = withAuth(async (request: Request, _context: unknown, session
       );
     }
 
-    const clonedRequest = request.clone();
-    let formData;
-    try {
-      formData = await clonedRequest.json();
-    } catch (error) {
-      console.error('Error parsing request body:', error);
+    const body = await readJsonBody(request, applySchema);
+    if (!body) {
       return NextResponse.json(
         { success: false, message: 'Invalid request body' },
         { status: 400 }
       );
     }
+    if (!session.user.email) {
+      return NextResponse.json(
+        { success: false, message: 'Authenticated email is required' },
+        { status: 400 }
+      );
+    }
+    // The application is the account's: the address is the session's, in the form and in the database.
+    const formData: Record<string, unknown> = { ...body, email: session.user.email };
 
     const fields: { name: string; value: string | boolean }[] = [];
     const hubspotRequiredFields = [`${FIELD_GROUP_PREFIX}applicant_source_other`];
@@ -256,7 +271,7 @@ export const POST = withAuth(async (request: Request, _context: unknown, session
       const attribution = await recordReferralAttributionFromRequest(request, {
         targetType: 'build_games_application',
         targetId: BUILD_GAMES_HACKATHON_ID ?? null,
-        userEmail: typeof formData.email === 'string' ? formData.email : null,
+        userEmail: session.user.email,
         attribution: (formData.referral_attribution as any) ?? null,
       });
       attributionRecorded = Boolean(attribution);
