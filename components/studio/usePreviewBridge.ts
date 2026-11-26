@@ -4,7 +4,7 @@ import { useEffect, useRef, type RefObject } from 'react';
 import { createPublicClient, getAddress, http, type PublicClient } from 'viem';
 import type { Eip1193Provider } from '@/components/toolbox/hooks/useLiveWalletChainId';
 import { browserSigner, chainFor, type ChainInfo } from '@/lib/console-wallets/signer';
-import { PREVIEW_API_OPS, PREVIEW_RPC_METHODS } from './preview';
+import { PREVIEW_API_OPS, PREVIEW_RPC_METHODS, visitorGate } from './preview';
 
 export type Eip1193 = {
   request: (args: { method: string; params?: unknown }) => Promise<unknown>;
@@ -58,6 +58,7 @@ export function usePreviewBridge({
   onError,
   theme,
   app,
+  publishedBy,
 }: {
   frame: RefObject<HTMLIFrameElement | null>;
   channel: string;
@@ -67,15 +68,37 @@ export function usePreviewBridge({
   onError: (message: string) => void;
   theme: 'light' | 'dark';
   app?: BridgeApp | null;
+  /** The builder whose published site runs in the frame, for a visitor: the page then asks the visitor first. */
+  publishedBy?: string;
 }) {
-  const live = useRef({ wallet, tokensUrl, noWalletMessage, onError, app });
-  live.current = { wallet, tokensUrl, noWalletMessage, onError, app };
+  const live = useRef({ wallet, tokensUrl, noWalletMessage, onError, app, publishedBy });
+  live.current = { wallet, tokensUrl, noWalletMessage, onError, app, publishedBy };
+  /** whether the visitor of a published site let its app see the wallet's address */
+  const shown = useRef(false);
 
   useEffect(() => {
     const reply = (message: Record<string, unknown>) =>
       frame.current?.contentWindow?.postMessage({ channel, ...message }, '*');
     const fail = (id: number, code: number, message: string, data?: unknown) =>
       reply({ type: 'rpc-result', id, error: { code, message, data } });
+
+    /** Asks the visitor of a published site about one request. True when the request may go on; it has answered otherwise. */
+    const visitorAllows = (id: number, method: string, detail?: string): boolean => {
+      const builder = live.current.publishedBy;
+      if (!builder) return true;
+      const gate = visitorGate(builder, method, shown.current, detail);
+      if ('empty' in gate) {
+        reply({ type: 'rpc-result', id, result: [] });
+        return false;
+      }
+      if (gate.ask === null) return true;
+      if (!window.confirm(gate.ask)) {
+        fail(id, 4001, 'You declined the request.');
+        return false;
+      }
+      if (gate.shows) shown.current = true;
+      return true;
+    };
 
     const onMessage = async (event: MessageEvent) => {
       if (!frame.current || event.source !== frame.current.contentWindow) return;
@@ -98,6 +121,7 @@ export function usePreviewBridge({
           if (!contract?.chainId) throw new Error("eERC operations only run on this app's own deployed tokens");
           const info = known?.chains[String(contract.chainId)] as ChainInfo | undefined;
           if (!current) throw Object.assign(new Error(live.current.noWalletMessage), { code: 4100 });
+          if (!visitorAllows(m.id, 'eerc')) return;
           const accounts = (await current.request({ method: 'eth_requestAccounts' })) as string[];
           if (!accounts?.[0]) throw Object.assign(new Error(live.current.noWalletMessage), { code: 4100 });
           const signer = browserSigner(current as unknown as Eip1193Provider, getAddress(accounts[0]) as `0x${string}`);
@@ -152,8 +176,9 @@ export function usePreviewBridge({
         else fail(m.id, 4100, live.current.noWalletMessage);
         return;
       }
+      if (!visitorAllows(m.id, m.method, m.method === 'eth_sendTransaction' ? describeRequest(m.method, m.params) : undefined)) return;
       // A Console wallet signs without a prompt, so the preview asks before an app's code spends or signs with it.
-      if ((current as { isConsoleWallet?: boolean }).isConsoleWallet && CONFIRM_METHODS.has(m.method)) {
+      if (!live.current.publishedBy && (current as { isConsoleWallet?: boolean }).isConsoleWallet && CONFIRM_METHODS.has(m.method)) {
         const ok = window.confirm(
           `The previewed app asks your Console wallet to ${describeRequest(m.method, m.params)}.\n\nAllow it?`,
         );
@@ -177,13 +202,16 @@ export function usePreviewBridge({
   useEffect(() => {
     if (!wallet?.on) return;
     const handlers = WALLET_EVENTS.map((event) => {
-      const fn = (data: unknown) =>
+      const fn = (data: unknown) => {
+        // a published site learns the visitor's accounts only after the visitor let it
+        if (event === 'accountsChanged' && publishedBy && !shown.current) return;
         frame.current?.contentWindow?.postMessage({ channel, type: 'event', event, data }, '*');
+      };
       wallet.on!(event, fn);
       return [event, fn] as const;
     });
     return () => handlers.forEach(([event, fn]) => wallet.removeListener?.(event, fn));
-  }, [wallet, channel, frame]);
+  }, [wallet, channel, frame, publishedBy]);
 
   useEffect(() => {
     frame.current?.contentWindow?.postMessage({ channel, type: 'theme', theme }, '*');

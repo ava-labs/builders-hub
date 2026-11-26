@@ -31,6 +31,36 @@ export const DESIGN_SYSTEM_PATH = 'frontend/builder-hub.css';
 /** Token data the frame may ask Builder Hub for; answered by the Studio tokens route, never by a URL the frame names. */
 export const PREVIEW_API_OPS = new Set(['tokenList', 'tokenBalances']);
 
+/*
+ * A published site is a builder's code, and it runs for a visitor who did not write it. The visitor's wallet names
+ * this site's address in its own prompt, whoever wrote the app. So the page asks the visitor first, and says who made
+ * the app: once before the app sees the wallet's address, and before each request that spends, signs or changes the
+ * wallet.
+ */
+
+/** The wallet requests of a published site that the page asks the visitor about, with what each one does. */
+const VISITOR_ASKS: Record<string, string> = {
+  eth_sendTransaction: 'send a transaction',
+  personal_sign: 'sign a message',
+  eth_signTypedData_v4: 'sign a message',
+  wallet_addEthereumChain: 'add a network to your wallet',
+  wallet_watchAsset: 'add a token to your wallet',
+  eerc: 'sign and send a private token operation',
+};
+
+/** What a published site's request needs from the visitor: nothing, no answer but an empty list, or a question. */
+export type VisitorGate = { ask: null } | { ask: null; empty: true } | { ask: string; shows?: true };
+
+/** The gate for one request of a published site. `shown`: the visitor already let this page see the address. */
+export function visitorGate(builder: string, method: string, shown: boolean, detail = ''): VisitorGate {
+  const who = `This page was made by the builder "${builder}", not by Avalanche or Ava Labs.`;
+  if (method === 'eth_accounts') return shown ? { ask: null } : { ask: null, empty: true };
+  if (method === 'eth_requestAccounts') return shown ? { ask: null } : { ask: `${who}\n\nLet it see your wallet address?`, shows: true };
+  const does = VISITOR_ASKS[method];
+  if (!does) return { ask: null };
+  return { ask: `${who}\n\nIt asks your wallet to ${detail || does}. Continue to your wallet?`, ...(shown ? {} : { shows: true as const }) };
+}
+
 /** Methods the frame may send to the wallet. Anything else is refused before it reaches the wallet. */
 export const PREVIEW_RPC_METHODS = new Set([
   'eth_requestAccounts',
