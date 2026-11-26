@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { prisma } from "@/prisma/prisma";
-import { recordReferralAttributionFromRequest } from "@/server/services/referrals";
+import { cleanAttribution, recordReferralAttributionFromRequest } from "@/server/services/referrals";
+import { readJsonBody } from "@/lib/api/json-body";
+import { z } from "zod";
+
+const bodySchema = z.object({ referral_attribution: z.unknown().optional() });
 
 const SIGNUP_ATTRIBUTION_WINDOW_MS = 24 * 60 * 60 * 1000;
 
@@ -25,13 +29,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Signup attribution window expired" }, { status: 403 });
   }
 
-  let requestAttribution = null;
-  try {
-    const body = await request.clone().json();
-    requestAttribution = body?.referral_attribution ?? null;
-  } catch {
-    requestAttribution = null;
-  }
+  // A request with no body is fine: the cookie or the Referer can hold the referral.
+  const body = await readJsonBody(request, bodySchema);
+  const requestAttribution = cleanAttribution(body?.referral_attribution);
 
   const attribution = await recordReferralAttributionFromRequest(request, {
     targetType: "bh_signup",

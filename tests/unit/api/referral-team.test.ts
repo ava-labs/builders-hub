@@ -13,3 +13,25 @@ describe('isReferralTeamId', () => {
     }
   });
 });
+
+describe('cleanAttribution', () => {
+  it('keeps the text fields of an attribution', async () => {
+    const { cleanAttribution } = await import('@/server/services/referrals');
+    expect(
+      cleanAttribution({ referralCode: 'abc', landingPath: '/x?ref=abc', manualReferrer: { teamId: 'devrel', userId: 'u1' }, extra: 1 }),
+    ).toEqual({ referralCode: 'abc', landingPath: '/x?ref=abc', manualReferrer: { teamId: 'devrel', teamIdOther: null, userId: 'u1' } });
+  });
+
+  it('leaves out a field that is no text, or too long', async () => {
+    const { cleanAttribution } = await import('@/server/services/referrals');
+    expect(
+      cleanAttribution({ referralCode: { not: '' }, landingPath: 'x'.repeat(2_049), manualReferrer: { teamId: ['devrel'], userId: { not: '' } } }),
+    ).toEqual({ referralCode: null, landingPath: null, manualReferrer: null });
+    expect(cleanAttribution({ manualReferrer: { teamId: 'devrel', userId: { not: '' } } })?.manualReferrer).toEqual({
+      teamId: 'devrel',
+      teamIdOther: null,
+      userId: null,
+    });
+    for (const raw of [null, undefined, 'text', 7]) expect(cleanAttribution(raw)).toBeNull();
+  });
+});

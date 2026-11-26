@@ -435,8 +435,29 @@ async function recordManualAttribution({
   });
 }
 
+/* An attribution comes from a request body or a cookie, so each field can hold any JSON value. Only text of a
+   sane length stays; a field of another type or size is left out. */
+const textOf = (value: unknown, max: number): string | null =>
+  typeof value === "string" && value.length <= max ? value : null;
+
+export function cleanAttribution(raw: unknown): ReferralAttributionPayload | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const { referralCode, landingPath, manualReferrer } = raw as Record<string, unknown>;
+  const manual =
+    typeof manualReferrer === "object" && manualReferrer !== null ? (manualReferrer as Record<string, unknown>) : null;
+  const teamId = manual ? textOf(manual.teamId, 64) : null;
+  return {
+    referralCode: textOf(referralCode, 128),
+    landingPath: textOf(landingPath, 2_048),
+    manualReferrer:
+      manual && teamId
+        ? { teamId, teamIdOther: textOf(manual.teamIdOther, 1_000), userId: textOf(manual.userId, 64) }
+        : null,
+  };
+}
+
 export async function recordReferralAttribution(input: RecordReferralAttributionInput) {
-  const attribution = input.attribution ?? null;
+  const attribution = cleanAttribution(input.attribution);
   if (!attribution) return null;
 
   const referralCode = normalizeNullable(attribution.referralCode);
