@@ -13,6 +13,7 @@ import {
 } from '@/lib/chat/rateLimit';
 import { clientBucket } from '@/lib/net/clientIp';
 import { MAX_CHAT_MESSAGES, fitsChat, isClientMessage, loadNoUrls } from '@/lib/chat/client-messages';
+import { searchChannelVideos } from '@/lib/chat/channel-videos';
 import { searchTools, formatToolsForContext } from '@/lib/chat/tools-search';
 import { docsTools, githubTools } from '@/lib/mcp/tools';
 import { componentNames, getCatalogDescription } from '@/lib/chat/catalog';
@@ -366,28 +367,22 @@ export async function POST(req: Request) {
   let youtubeContext = '';
   if (lastUserMessageText) {
     try {
-      const baseUrl = siteBaseUrl();
-
-      const youtubeResponse = await fetch(`${baseUrl}/api/youtube/search?q=${encodeURIComponent(lastUserMessageText)}&limit=3`);
-
-      if (youtubeResponse.ok) {
-        const youtubeData = await youtubeResponse.json();
-        if (youtubeData.videos && youtubeData.videos.length > 0) {
-          youtubeContext = '\n\n=== RELEVANT YOUTUBE VIDEOS ===\n\n';
-          youtubeContext += 'IMPORTANT: To show these videos, call render_component("YouTubeEmbed", { videoId: "...", title: "..." }) to embed them inline. Do NOT just paste a YouTube link.\n\n';
-          for (const video of youtubeData.videos) {
-            youtubeContext += `- **${video.title}** → render_component("YouTubeEmbed", { videoId: "${video.videoId}", title: "${video.title.replace(/"/g, '\\"')}" })\n`;
-            youtubeContext += `  Description: ${video.description.slice(0, 200)}...\n\n`;
-          }
-          youtubeContext += '=== END YOUTUBE VIDEOS ===\n';
-          console.log(`Found ${youtubeData.videos.length} relevant YouTube videos`);
-
-          // Track YouTube search results
-          captureServerEvent('ai_chat_youtube_search', {
-            query: lastUserMessageText.slice(0, 200),
-            results_count: youtubeData.videos.length,
-          }, visitorId);
+      const videos = await searchChannelVideos(lastUserMessageText, 3);
+      if (videos.length > 0) {
+        youtubeContext = '\n\n=== RELEVANT YOUTUBE VIDEOS ===\n\n';
+        youtubeContext += 'IMPORTANT: To show these videos, call render_component("YouTubeEmbed", { videoId: "...", title: "..." }) to embed them inline. Do NOT just paste a YouTube link.\n\n';
+        for (const video of videos) {
+          youtubeContext += `- **${video.title}** → render_component("YouTubeEmbed", { videoId: "${video.videoId}", title: "${video.title.replace(/"/g, '\\"')}" })\n`;
+          youtubeContext += `  Description: ${video.description.slice(0, 200)}...\n\n`;
         }
+        youtubeContext += '=== END YOUTUBE VIDEOS ===\n';
+        console.log(`Found ${videos.length} relevant YouTube videos`);
+
+        // Track YouTube search results
+        captureServerEvent('ai_chat_youtube_search', {
+          query: lastUserMessageText.slice(0, 200),
+          results_count: videos.length,
+        }, visitorId);
       }
     } catch (error) {
       console.error('YouTube search error:', error);

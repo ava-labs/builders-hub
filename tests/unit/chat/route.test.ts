@@ -76,8 +76,7 @@ beforeEach(() => {
         sent.push(JSON.parse(String(init?.body)) as Sent);
         return new Response(STREAM, { headers: { 'content-type': 'text/event-stream' } });
       }
-      // the site's own lookups find nothing: no pages in its list, no videos, no docs text
-      if (url.includes('/api/youtube/search')) return Response.json({ videos: [] });
+      // the site's own lookups find nothing: no pages in its list, no docs text
       if (url.endsWith('/static.json')) return Response.json([]);
       return new Response('');
     }),
