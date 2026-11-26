@@ -27,6 +27,17 @@ describe('MCP request admission', () => {
     expect(getClientId(first as never)).not.toBe(getClientId(second as never))
   })
 
+  it('keys a caller on the address the edge names, whatever Origin the caller sends', () => {
+    const from = (headers: Record<string, string>) => getClientId({ headers: new Headers(headers) } as never)
+    const edge = { 'cf-connecting-ip': '198.51.100.7', 'x-vercel-forwarded-for': '203.0.113.1' }
+    expect(from({ ...edge, origin: 'https://claude.ai' })).toBe(from(edge))
+    expect(from({ ...edge, origin: 'https://build.avax.network' })).toBe(from(edge))
+    // two callers behind one Cloudflare address are two keys
+    expect(from(edge)).not.toBe(from({ ...edge, 'cf-connecting-ip': '198.51.100.8' }))
+    // one IPv6 host is one key over its /64
+    expect(from({ 'cf-connecting-ip': '2001:db8:1:2::1' })).toBe(from({ 'cf-connecting-ip': '2001:db8:1:2:ffff::9' }))
+  })
+
   it('retains per-instance protection when Redis is unavailable', async () => {
     const previous = process.env.REDIS_URL
     delete process.env.REDIS_URL
