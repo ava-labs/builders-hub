@@ -63,3 +63,20 @@ describe('POST /api/newsletter', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('sign-in with a code', () => {
+  it('counts the client before it checks a code, by the address the edge names', async () => {
+    vi.resetModules();
+    const transaction = vi.fn();
+    vi.doMock('@/prisma/prisma', () => ({ prisma: { $transaction: transaction } }));
+    const { AuthOptions } = await import('@/lib/auth/authOptions');
+    const provider = AuthOptions.providers.find((p) => p.id === 'credentials') as unknown as {
+      options: { authorize: (c: Record<string, unknown>, req: { headers: Record<string, string> }) => Promise<unknown> };
+    };
+    consumeQuota.mockResolvedValue({ allowed: false, retryAfterSeconds: 60 });
+    const req = { headers: { 'cf-connecting-ip': '203.0.113.9', 'x-forwarded-for': '198.51.100.1' } };
+    await expect(provider.options.authorize({ email: 'a@example.com', otp: '123456' }, req)).rejects.toThrow('TOO_MANY_ATTEMPTS');
+    expect(consumeQuota).toHaveBeenCalledWith('otp-check:203.0.113.9', { limit: 300, windowMs: 600_000 });
+    expect(transaction).not.toHaveBeenCalled();
+  });
+});
