@@ -4,14 +4,12 @@ import { prisma } from "@/prisma/prisma";
 import { generateInvitation } from "@/server/services/inviteProjectMember";
 import { isConfirmedProjectMember } from "@/server/services/projectMembership";
 import { checkRateLimit } from "@/lib/rateLimit";
-import { inviteSchema, inviteErrorMessage } from "@/lib/invitations/inviteSchema";
+import { INVITE_RATE, inviteRateKey, inviteSchema, inviteErrorMessage } from "@/lib/invitations/inviteSchema";
 import { NextResponse } from "next/server";
 import { normalizeEventsLang } from "@/lib/events/i18n";
 
 // Any signed-up account could otherwise point this endpoint at unlimited arbitrary
-// inboxes and send mail from our own sending domain.
-const INVITE_WINDOW_MS = 60 * 60 * 1000;
-const MAX_INVITE_REQUESTS_PER_WINDOW = 10;
+// inboxes and send mail from our own sending domain: INVITE_RATE caps the requests.
 
 export const POST = withAuth(async (request, _context: unknown, session: Session) => {
   try {
@@ -38,10 +36,7 @@ export const POST = withAuth(async (request, _context: unknown, session: Session
       );
     }
 
-    const limit = checkRateLimit(`invite-member:${session.user.email ?? session.user.id}`, {
-      windowMs: INVITE_WINDOW_MS,
-      maxRequests: MAX_INVITE_REQUESTS_PER_WINDOW,
-    });
+    const limit = checkRateLimit(inviteRateKey(session.user), INVITE_RATE);
     if (!limit.allowed) {
       return NextResponse.json(
         { error: "Rate limit exceeded", message: "Too many invitations sent. Please try again later." },

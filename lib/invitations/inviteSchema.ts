@@ -5,6 +5,11 @@ import { emailSchema } from "@/lib/email";
 // is capped separately in the route.
 export const MAX_EMAILS_PER_REQUEST = 20;
 
+/** One budget of invitation requests per account, shared by each route that sends invitation mail. */
+export const INVITE_RATE = { windowMs: 60 * 60 * 1000, maxRequests: 10 } as const;
+export const inviteRateKey = (user: { id: string; email?: string | null }): string =>
+  `invite-member:${user.email ?? user.id}`;
+
 /**
  * Body of POST /api/project/invite-member.
  *
