@@ -9,7 +9,8 @@ import baseline from './json-body-routes.baseline.json';
    route that now parses must leave it. */
 
 const ROOT = join(__dirname, '../../..');
-const READS_BODY = /\b_?(req|request)\.json\(\)/;
+// a body is also read from a copy of the request: request.clone().json(), or a variable that holds the copy
+const READS_BODY = /\b_?(req|request|clonedReq|clonedRequest)(\.clone\(\))?\.json\(\)/;
 const PARSES_BODY = /\.safeParse\(|\b(parseBody|readJsonBody)\(|(?<!JSON)(?<!Date)\.parse\(/;
 
 function routeFiles(dir: string): string[] {
