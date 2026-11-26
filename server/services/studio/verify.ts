@@ -1,11 +1,12 @@
 import 'server-only';
 import { keccak256 } from 'viem';
-import { compileSources, type StandardJsonInput } from '@/lib/studio/compile';
+import type { StandardJsonInput } from '@/lib/studio/compile';
 import { knownChain } from '@/lib/verification/chains';
 import { submitVerification } from '@/lib/verification/service';
 import { findVerified, getJob } from '@/lib/verification/store';
 import { prisma } from '@/prisma/prisma';
 import type { StoredContract } from './builds';
+import { compileForBuilder } from './compile-limit';
 import { loadDeployment, viewOf } from './deployments';
 import { StudioError } from './errors';
 import { filesHash } from './files';
@@ -74,7 +75,7 @@ export async function standardJsonFor(userId: string, projectId: string, deploym
       "The contracts changed after this deployment's build, so Studio can't rebuild the exact sources it deployed. Verify from the version you deployed, or deploy the current build and verify that.",
     );
   }
-  const compiled = await compileSources(Object.fromEntries(solidity.map((f) => [f.path, f.content])));
+  const compiled = await compileForBuilder(userId, Object.fromEntries(solidity.map((f) => [f.path, f.content])));
   const rebuilt = compiled.contracts.find((c) => c.file === d.file && c.name === d.contract);
   const stored = (deployment.build.contracts as unknown as StoredContract[]).find(
     (c) => c.file === d.file && c.name === d.contract,

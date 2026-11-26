@@ -2,6 +2,9 @@ import { z } from 'zod';
 
 export const MAX_STUDIO_FILES = 200;
 export const MAX_STUDIO_FILE_BYTES = 200 * 1024;
+/** a file's path, and a project's parameters as JSON: both go to the model on each step */
+export const MAX_STUDIO_PATH_CHARS = 200;
+export const MAX_STUDIO_PARAMS_CHARS = 20_000;
 
 /**
  * Project-relative paths under a fixed set of folders; no parent hops, no hidden files. Solidity and docs live

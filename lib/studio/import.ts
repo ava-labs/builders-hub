@@ -1,4 +1,7 @@
-import { MAX_STUDIO_FILE_BYTES, STUDIO_FILE_PATH } from '@/types/studio';
+import { MAX_STUDIO_FILE_BYTES, MAX_STUDIO_PATH_CHARS, STUDIO_FILE_PATH } from '@/types/studio';
+
+/** a path Studio stores: its folders and its name by the rule, and no longer than a path may be */
+const storable = (path: string) => path.length <= MAX_STUDIO_PATH_CHARS && STUDIO_FILE_PATH.test(path);
 
 /*
  * Turns a folder or zip of an existing Solidity project into Studio project
@@ -195,11 +198,11 @@ function target(path: string): { path: string } | { reason: string } {
     const root = ROOT_RENAMES[segments[0]];
     const mapped =
       root && segments.length > 1 ? [root, ...segments.slice(1)].join('/') : `contracts/${segments.join('/')}`;
-    return STUDIO_FILE_PATH.test(mapped) ? { path: mapped } : { reason: 'folder or file name Studio cannot store' };
+    return storable(mapped) ? { path: mapped } : { reason: 'folder or file name Studio cannot store' };
   }
   if (name.endsWith('.md')) {
     if (segments.length === 1 && /^readme\.md$/i.test(name)) return { path: 'docs/README.md' };
-    if (segments[0] === 'docs' && STUDIO_FILE_PATH.test(path)) return { path };
+    if (segments[0] === 'docs' && storable(path)) return { path };
     return { reason: 'only the README and docs/ Markdown are kept' };
   }
   return { reason: 'not Solidity or Markdown' };

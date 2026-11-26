@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { prisma } from "@/prisma/prisma";
 import { listBlueprintIds, loadBlueprint } from "@/lib/blueprints";
-import type { CreateProjectInput, UpdateProjectInput } from "@/types/studio";
+import { MAX_STUDIO_PARAMS_CHARS, type CreateProjectInput, type UpdateProjectInput } from "@/types/studio";
 import { StudioError, projectNotFound } from "./errors";
 
 export const sha256Hex = (content: string) => createHash("sha256").update(content).digest("hex");
@@ -79,13 +79,18 @@ export async function updateProject(userId: string, projectId: string, input: Up
     const bad = Object.values(input.networks).filter((n) => !registryAllowed.has(n));
     if (bad.length) throw new StudioError(400, `Not allowed by the project's blueprints: ${bad.join(", ")}`);
   }
+  // params keep every key a builder ever set, and all of them go to the model on each step
+  const params = input.params ? { ...(project.params as Record<string, unknown>), ...input.params } : undefined;
+  if (params && JSON.stringify(params).length > MAX_STUDIO_PARAMS_CHARS) {
+    throw new StudioError(400, `The project's parameters can hold ${MAX_STUDIO_PARAMS_CHARS} characters at most`);
+  }
   return prisma.studioProject.update({
     where: { id: project.id },
     data: {
       ...(input.name !== undefined ? { name: input.name } : {}),
       ...(input.description !== undefined ? { description: input.description } : {}),
       ...(input.networks ? { networks: { ...(project.networks as Record<string, string>), ...input.networks } } : {}),
-      ...(input.params ? { params: { ...(project.params as Record<string, unknown>), ...input.params } as object } : {}),
+      ...(params ? { params: params as object } : {}),
     },
   });
 }

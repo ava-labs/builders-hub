@@ -4,9 +4,10 @@ import { keccak256, type Hex } from "viem";
 import { prisma } from "@/prisma/prisma";
 import { auditBuild } from "@/lib/studio/audit/build";
 import { BLOCKING_SEVERITIES, type AuditReport, type Finding } from "@/lib/studio/audit/types";
-import { compileSources, type Diagnostic } from "@/lib/studio/compile";
+import type { compileSources, Diagnostic } from "@/lib/studio/compile";
 import { MissingImportError, SourceLimitError } from "@/lib/studio/sources";
 import { CompileError } from "@/lib/verification/solc";
+import { compileForBuilder } from "./compile-limit";
 import { StudioError } from "./errors";
 import { filesHash } from "./files";
 import { getOwnedProject } from "./projects";
@@ -44,7 +45,7 @@ export async function buildProject(userId: string, projectId: string) {
   let compiled: Awaited<ReturnType<typeof compileSources>> | undefined;
   let diagnostics: Diagnostic[] = [];
   try {
-    compiled = await compileSources(entries);
+    compiled = await compileForBuilder(userId, entries);
     diagnostics = compiled.diagnostics;
   } catch (error) {
     if (error instanceof MissingImportError || error instanceof SourceLimitError) {
