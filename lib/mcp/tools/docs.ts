@@ -1,4 +1,4 @@
-import { documentation, academy, integration, blog } from '@/lib/source';
+import { documentation, integration, blog, publicAcademyPages } from '@/lib/source';
 import { searchDocs, getPageContent } from '@/lib/mcp-server';
 import {
   ACP_STATUSES,
@@ -431,7 +431,7 @@ export const docsTools: ToolDomain = {
       const startTime = Date.now();
 
       const docPages = documentation.getPages();
-      const academyPages = academy.getPages();
+      const academyPages = publicAcademyPages();
       const integrationPages = integration.getPages();
       const blogPages = blog.getPages();
 

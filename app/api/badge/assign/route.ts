@@ -25,6 +25,11 @@ export const POST = withAuth(async (req: NextRequest) => {
       return NextResponse.json({ error: { message: "Invalid request body" } }, { status: 400 });
     }
     const body = parsed as AssignBadgeBody;
+    // A badge for a requirement (a linked account, for example) is given by the server when the requirement is met
+    // (lib/auth/authOptions.ts). A request names a course or a project; with neither, the service reads it as a requirement.
+    if (body.category === BadgeCategory.requirement || (body.category === undefined && !body.courseId && !body.projectId)) {
+      return NextResponse.json({ error: { message: "This badge is not assigned by request" } }, { status: 403 });
+    }
     const session = await getAuthSession();
     
     const userRole = session?.user.role || "user";

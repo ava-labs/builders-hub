@@ -200,6 +200,12 @@ async function fromRecipe(a: Ask, recipe: Recipe, key: string | null, t0: number
 async function snapshotSpan(sql: string, chainId: number): Promise<string | null> {
   const pick = snapshotSql(sql);
   if (!pick) return null;
+  // the pick runs alone, outside the query's own WITH: it reads the target's tables by their names, one FROM each,
+  // or it is not run (a WITH's name would read the database's table of that name here)
+  const target = targetOf(chainId);
+  const readable = new Set<string>([...target.tables, ...target.refs]);
+  const names = [...pick.matchAll(/\b(?:FROM|JOIN)\s+([`"]?)([A-Za-z_][\w.]*)\1(\s*(?:AS\s+)?\w*\s*,)?/gi)];
+  if (names.length === 0 || names.some((m) => !readable.has(m[2]) || m[3])) return null;
   try {
     const t = msOf((await runQuery((await withSources(pick, chainId)).sql, chainId)).rows[0]?.at);
     return t > 0 ? asOfWords(t, Date.now()) : null;

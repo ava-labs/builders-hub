@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { readJsonBody } from '@/lib/api/json-body';
 import { withAuth } from '@/lib/protectedRoute';
 import { prisma } from '@/prisma/prisma';
+import { MINI_GRANT_HACKATHON_ID, MINI_GRANT_KEY } from '@/lib/grants/programs';
+import { MemberStatus } from '@/types/project';
 import {
   detectHtmlInjection,
   detectMarkdownInjection,
@@ -68,10 +70,23 @@ function sanitizeStageValues(values: StageSubmitValues): SanitizeResult {
           }
         }
       }
+      continue;
+    }
+
+    // An object value (a group of fields): each text in it gets the checks of a list item.
+    if (typeof value === 'object' && nestedTexts(value).some((text) => detectHtmlInjection(text) || detectDangerousUrl(text))) {
+      return { ok: false, error: `Field "${key}" contains dangerous HTML, script or URL content.` };
     }
   }
 
   return { ok: true };
+}
+
+/** Each string inside a JSON value, at any depth. */
+function nestedTexts(value: unknown): string[] {
+  if (typeof value === 'string') return [value];
+  if (typeof value !== 'object' || value === null) return [];
+  return Object.values(value).flatMap(nestedTexts);
 }
 
 export const POST = withAuth(async (request: Request, _context, session) => {
@@ -91,6 +106,11 @@ export const POST = withAuth(async (request: Request, _context, session) => {
 
     if (!SAFE_ID_RE.test(hackathonId)) {
       return NextResponse.json({ error: 'Invalid hackathonId format' }, { status: 400 });
+    }
+
+    // The grant program has its own form and route (/api/grants/team1-mini-grants).
+    if (hackathonId === MINI_GRANT_HACKATHON_ID) {
+      return NextResponse.json({ error: 'This event takes no stage form' }, { status: 400 });
     }
 
     if (incomingProjectId && !SAFE_ID_RE.test(incomingProjectId)) {
@@ -121,7 +141,7 @@ export const POST = withAuth(async (request: Request, _context, session) => {
         where: {
           id: incomingProjectId,
           hackaton_id: hackathonId,
-          members: { some: { user_id: sessionUserId } },
+          members: { some: { user_id: sessionUserId, status: MemberStatus.CONFIRMED } },
         },
         select: { id: true, project_name: true },
       });
@@ -140,7 +160,7 @@ export const POST = withAuth(async (request: Request, _context, session) => {
       resolvedProject = await prisma.project.findFirst({
         where: {
           hackaton_id: hackathonId,
-          members: { some: { user_id: sessionUserId } },
+          members: { some: { user_id: sessionUserId, status: MemberStatus.CONFIRMED } },
         },
         select: { id: true, project_name: true },
         orderBy: { created_at: 'desc' },
@@ -168,9 +188,12 @@ export const POST = withAuth(async (request: Request, _context, session) => {
       // condition that could produce duplicate FormData rows.
       await tx.$queryRaw`SELECT id FROM "Project" WHERE id = ${resolvedProject.id} FOR UPDATE`;
 
+      // A grant application is a form row of its own, with its own reviewers. A stage
+      // form never merges into it and never changes its origin.
       const existingFormData = await tx.formData.findFirst({
         where: {
           project_id: resolvedProject.id,
+          origin: { not: MINI_GRANT_KEY },
         },
         orderBy: {
           timestamp: 'desc',
@@ -363,6 +386,7 @@ export const GET = withAuth(async (request: Request, _context, session) => {
         members: {
           some: {
             user_id: sessionUserId,
+            status: MemberStatus.CONFIRMED,
           },
         },
       },

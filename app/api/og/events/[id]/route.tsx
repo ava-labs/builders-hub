@@ -1,4 +1,5 @@
 import type { NextRequest } from 'next/server';
+import { validatePublicRpcUrl } from '@/lib/net/public-host';
 import { ImageResponse } from 'next/og';
 import { loadFonts, createOGResponse } from '@/utils/og-image';
 import axios from 'axios';
@@ -115,6 +116,8 @@ export async function GET(
   const fonts = await loadFonts();
 
   try {
+    // an event ID is one path segment of the events API: any other text gets the default card
+    if (!/^[A-Za-z0-9_-]{1,64}$/.test(id)) throw new Error('not an event ID');
     const res = await axios.get(
       `${process.env.NEXTAUTH_URL}/api/events/${id}`,
       {
@@ -138,9 +141,10 @@ export async function GET(
     // A purpose-made OG banner (the -og variant) wins; anything else falls
     // through to the branded card so the share always carries the event's
     // own name instead of an anonymous banner crop.
-    if (hackathon.banner && hackathon.banner.trim() !== '') {
+    if (typeof hackathon.banner === 'string' && hackathon.banner.trim() !== '') {
       const ogBannerUrl = generateOGBannerUrl(hackathon.banner);
-      const ogImage = await tryLoadImage(ogBannerUrl, hackathon.title, fonts);
+      // an event's editor sets the banner: the server loads it only from a public http(s) host
+      const ogImage = validatePublicRpcUrl(ogBannerUrl) === null ? await tryLoadImage(ogBannerUrl, hackathon.title, fonts) : null;
       if (ogImage) {
         return ogImage;
       }

@@ -5,7 +5,7 @@
  * that enables AI assistants to search and fetch Avalanche documentation.
  */
 
-import { documentation, academy, integration, blog } from '@/lib/source';
+import { documentation, integration, blog, publicAcademyPages } from '@/lib/source';
 import { getLLMText } from '@/lib/llm-utils';
 import {
   countOccurrences,
@@ -59,7 +59,7 @@ function getSourceGroups(source?: string): SourceGroup[] {
     groups.push({ name: 'docs', pages: documentation.getPages() as unknown as SourcePage[] });
   }
   if (!source || source === 'academy') {
-    groups.push({ name: 'academy', pages: academy.getPages() as unknown as SourcePage[] });
+    groups.push({ name: 'academy', pages: publicAcademyPages() as unknown as SourcePage[] });
   }
   if (!source || source === 'integrations') {
     groups.push({ name: 'integrations', pages: integration.getPages() as unknown as SourcePage[] });
@@ -163,7 +163,7 @@ export async function getPageContent(url: string): Promise<string | null> {
 
   const allPages = [
     ...documentation.getPages(),
-    ...academy.getPages(),
+    ...publicAcademyPages(),
     ...integration.getPages(),
     ...blog.getPages(),
   ];
@@ -249,7 +249,7 @@ export async function searchDocs(
  */
 export function getDocStats() {
   const docPages = documentation.getPages();
-  const academyPages = academy.getPages();
+  const academyPages = publicAcademyPages();
   const integrationPages = integration.getPages();
   const blogPages = blog.getPages();
 

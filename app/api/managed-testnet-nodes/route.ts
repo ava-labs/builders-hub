@@ -112,6 +112,10 @@ async function handleCreateNode(request: NextRequest): Promise<NextResponse> {
     if (blockchainInfo.vmId !== SUBNET_EVM_VM_ID) {
       return jsonError(400, `Unsupported VM for this service. Expected Subnet EVM (vmID ${SUBNET_EVM_VM_ID}), got ${blockchainInfo.vmId}.`);
     }
+    // The chain must be a chain of the subnet: the VM check above is of this chain, and the node tracks this subnet.
+    if (blockchainInfo.subnetId !== subnetId) {
+      return jsonError(400, 'This blockchain is not on this subnet.');
+    }
 
     // Daily cap per account (MANAGED_TESTNET_NODES_DAILY_CREATES), counted on
     // every attempt sent to the node service, so deleting and re-creating
@@ -130,7 +134,16 @@ async function handleCreateNode(request: NextRequest): Promise<NextResponse> {
     // Store the new node in database
     if (data.nodes && data.nodes.length > 0) {
       const newestNode = selectNewestNode(data.nodes);
-      const createdNode = await createDbNode({ userId: userId!, subnetId, blockchainId, newestNode, chainName });
+      // With no row, no account can delete the slot. Free it when the row cannot be written.
+      const createdNode = await createDbNode({ userId: userId!, subnetId, blockchainId, newestNode, chainName }).catch(
+        async (dbError: unknown) => {
+          console.error('Failed to store the managed node:', dbError);
+          await builderHubDeleteNode(subnetId, newestNode.nodeIndex).catch((rollbackError: unknown) => {
+            console.error('Failed to roll back managed node assignment:', rollbackError);
+          });
+          throw new Error('Failed to create node');
+        },
+      );
       if (!createdNode) {
         try {
           await builderHubDeleteNode(subnetId, newestNode.nodeIndex);
@@ -156,7 +169,8 @@ async function handleCreateNode(request: NextRequest): Promise<NextResponse> {
     if (error instanceof ManagedTestnetNodeServiceRequestError) {
       return jsonError(error.status, error.message, error);
     }
-    return jsonError(500, error instanceof Error ? error.message : 'Failed to create node', error);
+    // the text of an unknown error can hold a query or a host name: log it, and answer with a fixed text
+    return jsonError(500, 'Failed to create node', error);
   }
 }
 

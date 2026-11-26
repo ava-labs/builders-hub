@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { trimCache } from "@/lib/api/cache-bounds";
 
 // Names for 4-byte selectors and 32-byte event topics the app has no ABI
 // for, from Sourcify's signature database (the openchain dataset). One
@@ -24,6 +25,7 @@ export interface SignatureHit {
 }
 
 const cache = new Map<string, SignatureHit | null>();
+const MAX_CACHED_NAMES = 20_000;
 
 const pick = (entries: Entry[] | null | undefined): SignatureHit | null => {
   if (!entries?.length) return null;
@@ -50,6 +52,7 @@ export async function GET(req: NextRequest) {
         const body = (await res.json()) as Upstream;
         for (const s of needF) cache.set(`f:${s}`, pick(body.result.function?.[s]));
         for (const s of needE) cache.set(`e:${s}`, pick(body.result.event?.[s]));
+        trimCache(cache, MAX_CACHED_NAMES);
       }
     } catch {
       /* unknowns stay unknown this time; nothing is cached as a miss */

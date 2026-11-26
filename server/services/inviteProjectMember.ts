@@ -124,21 +124,28 @@ function isSelfInvitation(invitedUser: any, userId: string): boolean {
 /**
  * Atomic operation to create or update member using transaction to prevent race conditions
  * Since there's no unique constraint at DB level, we use a transaction-based approach
+ *
+ * A member who has confirmed stays confirmed: an invitation to the address of a confirmed member changes nothing.
+ * The rows of the invited person are found by the address and, for a person with an account, by the user ID, so a
+ * member who joined with no address on the row gets no second row.
  */
-async function createOrUpdateMemberAtomically(
-  invitedUser: any,
+export async function createOrUpdateMemberAtomically(
+  invitedUser: { id: string } | null | undefined,
   email: string,
   projectId: string
 ) {
   return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     // First, try to find existing member within transaction
-    const existingMember = await tx.member.findFirst({
+    const existingMembers = await tx.member.findMany({
       where: {
-        email,
         project_id: projectId,
+        OR: [{ email }, ...(invitedUser?.id ? [{ user_id: invitedUser.id }] : [])],
       },
     });
+    const confirmed = existingMembers.find((member) => member.status === MemberStatus.CONFIRMED);
+    if (confirmed) return confirmed;
 
+    const existingMember = existingMembers[0];
     if (existingMember) {
       // Update existing member
       return await tx.member.update({

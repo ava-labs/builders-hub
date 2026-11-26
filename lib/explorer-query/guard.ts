@@ -41,7 +41,7 @@ const KEYWORDS = /\b(INSERT|UPDATE|DELETE|ALTER|DROP|CREATE|TRUNCATE|ATTACH|DETA
 const TABLE_FUNCTIONS = /\b(url|file|remote|remoteSecure|s3|s3Cluster|hdfs|azureBlobStorage|mysql|postgresql|sqlite|mongodb|redis|jdbc|odbc|executable|input|merge|cluster|clusterAllReplicas|dictionary|view|values|format|fileCluster|urlCluster|deltaLake|iceberg|hudi)\s*\(/i;
 /** functions that read the server or the session, and no table: its version, its host, its user, its settings */
 const SERVER_FUNCTIONS =
-  /\b(version|revision|buildId|uptime|hostName|FQDN|displayName|serverUUID|tcpPort|getServerPort|getOSKernelVersion|getMacro|getSetting|getServerSetting|getMergeTreeSetting|getClientHTTPHeader|currentUser|current_user|user|currentDatabase|current_database|database|currentSchemas|current_schemas|currentRoles|enabledRoles|defaultRoles|currentProfiles|enabledProfiles|defaultProfiles|queryID|query_id|initialQueryID|initial_query_id|connectionId|connection_id|filesystemAvailable|filesystemCapacity|filesystemUnallocated|zookeeperSessionUptime)\s*\(/i;
+  /\b(version|revision|buildId|uptime|hostName|fullHostName|FQDN|displayName|serverUUID|tcpPort|getServerPort|getOSKernelVersion|getMacro|getSetting|getServerSetting|getMergeTreeSetting|getClientHTTPHeader|currentUser|current_user|user|currentDatabase|current_database|database|currentSchemas|current_schemas|currentRoles|enabledRoles|defaultRoles|currentProfiles|enabledProfiles|defaultProfiles|queryID|query_id|initialQueryID|initial_query_id|connectionId|connection_id|filesystemAvailable|filesystemCapacity|filesystemUnallocated|zookeeperSessionUptime)\s*\(/i;
 
 /** a column's name as a query the server writes names it: with no backtick and no backslash, neither of which a
     column the guard let through holds, so the name cannot end its own quotes */
@@ -104,8 +104,10 @@ const punct = (t: Token | undefined, v: string) => !!t && !t.word && t.v === v;
    character ClickHouse reads as a space and a check reads as part of a
    word, a quote left open, a comment or a $…$ string (each hides the
    text after it from one reader), a quoted name with a backslash (it
-   can spell any name), and a SELECT that does not open its parentheses
-   (its FROM would belong to no SELECT here). */
+   can spell any name), a SELECT that does not open its parentheses
+   (its FROM would belong to no SELECT here), and a parenthesis with no
+   partner (the server writes the query inside parentheses of its own,
+   and a text that closes one it did not open would end the server's). */
 
 /** the characters ClickHouse reads as a space or skips, past the space, the tab and the line ends */
 const UNSEEN = /[^\S \t\n\r]|[\u0000-\u0008\u000e-\u001f\u007f\u0085\u180e\u200b-\u200f\u202a-\u202e\u2060-\u2064]/;
@@ -115,15 +117,21 @@ function misread(sql: string, shorthand: boolean): string | null {
   const unseen = UNSEEN.exec(sql);
   if (unseen) return `the query holds a character that does not show (U+${unseen[0].charCodeAt(0).toString(16).toUpperCase().padStart(4, "0")}): write plain spaces and line ends`;
   const toks = tokenize(sql);
+  let open = 0;
   for (let i = 0; i < toks.length; i++) {
     const t = toks[i];
+    if (punct(t, "(")) open++;
+    else if (punct(t, ")") && --open < 0) return "a parenthesis closes with none open: write each ( with its )";
     if (!t.word && /^['"`]$/.test(t.v)) return "a quote is left open: close each string and each quoted name";
+    // ClickHouse reads a curly quote as a quote, and the tokens here do not
+    if (!t.word && /^[\u2018\u2019\u201c\u201d]$/.test(t.v)) return "write each quote as ' or \", not as a curly quote";
     if (punct(t, "#")) return "no comments in the query";
     if (punct(t, "$") && !(shorthand && i === 0)) return "$ stands in a shorthand at the query's start, or inside a string in single quotes";
     if (t.quoted && t.v.includes("\\")) return `write the name ${t.v} without a backslash`;
     if (t.quoted && punct(toks[i + 1], "(")) return `write the function ${t.v} without quotes`;
     if (keyword(t, "SELECT") && t.depth > 0) return "a SELECT in parentheses stands right after the opening parenthesis: (SELECT …)";
   }
+  if (open > 0) return "a parenthesis is left open: write each ( with its )";
   return null;
 }
 
@@ -395,6 +403,8 @@ export function guardSql(raw: string, chainId: number): GuardResult {
   const target = targetOf(chainId);
   let sql = String(raw ?? "").trim().replace(/;+\s*$/, "").trim();
   if (!sql) return { ok: false, error: "empty query" };
+  // a shorthand only adds to the length, so a text past the cap is refused before any check reads it
+  if (sql.length > QUERY_CHARS) return { ok: false, error: `query too long (${QUERY_CHARS} chars max)` };
   // a literal typed wrong reads no rows: the writer's own text, before the shorthand is written out
   const typed = isFuji(chainId) ? null : (badHex(sql) ?? strayHex(sql, chainId, FAMILY_EVENTS) ?? familyHex(sql, chainId, LENDING_EVENTS));
   if (typed) return { ok: false, error: typed };

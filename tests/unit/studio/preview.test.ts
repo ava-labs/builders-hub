@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   PREVIEW_RPC_METHODS,
   buildPreviewDocument,
+  visitorGate,
   withBuiltFooter,
   type PreviewContext,
 } from '@/components/studio/preview';
@@ -156,5 +157,30 @@ describe('frontend files', () => {
     for (const bad of ['frontend/app.ts', 'contracts/app.js', 'frontend/.env', 'frontend/../x.js', 'docs/page.html']) {
       expect(STUDIO_FILE_PATH.test(bad)).toBe(false);
     }
+  });
+});
+
+describe("a published site's wallet requests", () => {
+  const WHO = 'This page was made by the builder "sarp", not by Avalanche or Ava Labs.';
+
+  it('gives the app no address before the visitor lets it, and asks once', () => {
+    expect(visitorGate('sarp', 'eth_accounts', false)).toEqual({ ask: null, empty: true });
+    expect(visitorGate('sarp', 'eth_requestAccounts', false)).toEqual({ ask: `${WHO}\n\nLet it see your wallet address?`, shows: true });
+    expect(visitorGate('sarp', 'eth_accounts', true)).toEqual({ ask: null });
+    expect(visitorGate('sarp', 'eth_requestAccounts', true)).toEqual({ ask: null });
+  });
+
+  it('asks before each request that spends, signs or changes the wallet, and says who made the page', () => {
+    for (const method of ['eth_sendTransaction', 'personal_sign', 'eth_signTypedData_v4', 'wallet_addEthereumChain', 'wallet_watchAsset', 'eerc']) {
+      expect(visitorGate('sarp', method, true).ask, method).toContain(WHO);
+      expect(PREVIEW_RPC_METHODS.has(method) || method === 'eerc', method).toBe(true);
+    }
+    expect(visitorGate('sarp', 'eth_sendTransaction', true, 'send a transaction to 0xabc').ask).toBe(`${WHO}\n\nIt asks your wallet to send a transaction to 0xabc. Continue to your wallet?`);
+    // a request the visitor agrees to also shows the address: the wallet answers with it
+    expect(visitorGate('sarp', 'personal_sign', false)).toMatchObject({ shows: true });
+  });
+
+  it('lets reads through', () => {
+    for (const method of ['eth_chainId', 'eth_call', 'eth_getBalance', 'eth_getLogs', 'wallet_switchEthereumChain']) expect(visitorGate('sarp', method, false), method).toEqual({ ask: null });
   });
 });

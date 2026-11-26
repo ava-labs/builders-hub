@@ -4,7 +4,7 @@
  * Provides structured indexes over Avalanche documentation surfaces.
  */
 
-import { documentation, academy, integration, blog } from '@/lib/source';
+import { documentation, integration, blog, publicAcademyPages } from '@/lib/source';
 import type { ResourceDomain } from '../types';
 
 type IndexPage = {
@@ -98,7 +98,7 @@ export const docsResources: ResourceDomain = {
       }
 
       case 'academy://index': {
-        const pages = toIndexPages(academy.getPages());
+        const pages = toIndexPages(publicAcademyPages());
         return {
           contents: [
             {

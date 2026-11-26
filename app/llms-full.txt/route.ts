@@ -1,4 +1,4 @@
-import { documentation, academy, integration, blog } from '@/lib/source';
+import { documentation, integration, blog, publicAcademyPages } from '@/lib/source';
 import { getLLMText } from '@/lib/llm-utils';
 
 // Revalidate every hour to ensure fresh content
@@ -10,7 +10,7 @@ export async function GET() {
   // Include documentation, academy, integrations, and blog pages
   const allPages = [
     ...documentation.getPages(),
-    ...academy.getPages(),
+    ...publicAcademyPages(),
     ...integration.getPages(),
     ...blog.getPages(),
   ];

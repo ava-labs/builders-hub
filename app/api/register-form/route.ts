@@ -8,12 +8,15 @@ import { isTeam1Event } from "@/lib/events/team1";
 import { normalizeEmail } from "@/lib/utils";
 import { z } from "zod";
 import { readJsonBody } from "@/lib/api/json-body";
+import { checkRateLimit } from "@/lib/rateLimit";
+import { INVITE_RATE, MAX_EMAILS_PER_REQUEST, inviteRateKey } from "@/lib/invitations/inviteSchema";
 
 // The fields that createRegisterForm reads. Other keys the form sends are not read, and zod drops them.
 const postBodySchema = z.object({
   hackathon_id: z.string().min(1),
   email: z.string().optional(),
-  name: z.string().optional(),
+  // the name is in the subject of each invitation mail
+  name: z.string().max(200).optional(),
   city: z.string().optional(),
   telegram_account: z.string().optional(),
   x_account: z.string().optional(),
@@ -27,7 +30,8 @@ const postBodySchema = z.object({
   languages: z.array(z.string()).optional(),
   roles: z.array(z.string()).optional(),
   tools: z.array(z.string()).optional(),
-  teammates: z.array(z.string()).optional(),
+  // each teammate gets one invitation mail, as an invitation from the project page does
+  teammates: z.array(z.string().max(320)).max(MAX_EMAILS_PER_REQUEST).optional(),
   newsletter_subscription: z.boolean().optional(),
   prohibited_items: z.boolean().optional(),
   terms_event_conditions: z.boolean().optional(),
@@ -110,6 +114,17 @@ export const POST = withAuth(async (
       );
     }
     registerData.email = sessionEmail;
+
+    // A registration with teammates sends invitation mail, so it counts in the account's invitation budget.
+    if ((registerData.teammates ?? []).some((teammate) => teammate.trim())) {
+      const limit = checkRateLimit(inviteRateKey(session.user), INVITE_RATE);
+      if (!limit.allowed) {
+        return NextResponse.json(
+          { error: { message: "Too many invitations sent. Please try again later.", field: "teammates" } },
+          { status: 429 },
+        );
+      }
+    }
 
     // Team1-organized events require explicit sharing consent unless the user
     // has already granted it on their profile. Enforce here so a crafted

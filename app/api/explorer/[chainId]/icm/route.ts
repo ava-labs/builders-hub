@@ -17,6 +17,8 @@ export async function GET(
   { params }: { params: Promise<{ chainId: string }> },
 ) {
   const { chainId } = await params;
+  // a catalog chain ID: digits, or for a few chains a blockchain ID in base58
+  if (!/^[A-Za-z0-9]{1,64}$/.test(chainId)) return NextResponse.json({ error: "invalid chain" }, { status: 400 });
   const { searchParams } = new URL(request.url);
 
   const chain = (l1ChainsData as ChainConfig[]).find((c) => c.chainId === chainId);

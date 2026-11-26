@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { documentation, blog, academy, integration } from '@/lib/source';
+import { documentation, blog, integration, publicAcademyPages } from '@/lib/source';
 import type { DocumentRecord } from 'fumadocs-core/search/algolia';
 import l1Chains from '@/constants/l1-chains.json';
 import { getStructuredData } from '@/lib/search/structured-data';
@@ -41,7 +41,7 @@ export async function GET() {
         tag: 'docs'
       }
     }),
-    ...academy.getPages().map((page) => {
+    ...publicAcademyPages().map((page) => {
       return {
         title: page.data.title,
         url: page.url,

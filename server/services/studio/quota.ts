@@ -1,11 +1,14 @@
 import 'server-only';
+import { consumeQuota } from '@/lib/verification/limits';
 import { prisma } from '@/prisma/prisma';
 import { StudioError } from './errors';
 
 /*
  * Studio inference runs on Builder Hub's key, so each builder gets a budget.
  * Counted from stored messages, which keeps the limit exact across
- * serverless instances without another table.
+ * serverless instances without another table. A builder can delete a chat,
+ * and its messages with it, so each call to the model is also counted on its
+ * own, in a counter that no route clears.
  */
 
 const HOURLY_MESSAGES = Number(process.env.STUDIO_HOURLY_MESSAGES ?? 40);
@@ -54,5 +57,13 @@ export async function assertChatQuota(userId: string) {
   }
   if (daily.used >= daily.limit) {
     throw new StudioError(429, "You've used today's Studio budget. It resets over the next 24 hours.", 'quota_daily');
+  }
+  const calls = await consumeQuota(`studio-chat:${userId}`, { limit: hourly.limit, windowMs: 60 * 60 * 1000 });
+  if (!calls.allowed) {
+    throw new StudioError(
+      429,
+      `You've sent ${hourly.limit} messages in the last hour. Try again in a little while.`,
+      'quota_hourly',
+    );
   }
 }

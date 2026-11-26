@@ -177,8 +177,17 @@ export const AuthOptions: NextAuthOptions = {
         email: { label: 'Email', type: 'email' },
         otp: { label: 'OTP', type: 'text' },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         const { email, otp } = credentials ?? {};
+
+        // verifyOTP counts wrong codes per email address. One client that tries codes over many addresses is counted
+        // here, by its own address. The number leaves room for a room of people behind one address.
+        const { consumeQuota } = await import('@/lib/verification/limits');
+        const { clientBucket } = await import('@/lib/net/clientIp');
+        const client = clientBucket({ headers: new Headers((req?.headers ?? {}) as Record<string, string>) } as Request);
+        if (!(await consumeQuota(`otp-check:${client}`, { limit: 300, windowMs: 10 * 60 * 1000 })).allowed) {
+          throw new Error('TOO_MANY_ATTEMPTS');
+        }
 
         if (!email) throw new Error('Missing email');
         if (!otp) throw new Error('Missing otp');

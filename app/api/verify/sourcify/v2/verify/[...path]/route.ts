@@ -1,7 +1,7 @@
 import { after, NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { readJsonBody } from "@/lib/api/json-body";
-import { getClientId } from "@/lib/mcp-rate-limit";
+import { clientBucket } from "@/lib/net/clientIp";
 import { isAddress, knownChain } from "@/lib/verification/chains";
 import { submitVerification } from "@/lib/verification/service";
 import { customCodeFor, jobResponse } from "@/lib/verification/sourcify-api";
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     stdJsonInput: body.stdJsonInput,
     compilerVersion: body.compilerVersion,
     contractIdentifier: body.contractIdentifier,
-    clientId: getClientId(request),
+    clientId: clientBucket(request),
   });
 
   if (!result.ok) {

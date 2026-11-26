@@ -10,7 +10,7 @@ export async function UpdateStatusMember(
   status: string,
   email: string,
   wasInOtherProject: boolean
-) {  
+) {
   if (!project_id || !status) {
     throw new ValidationError("project_id and status are required", []);
   }
@@ -25,7 +25,7 @@ export async function UpdateStatusMember(
     },
     select: { id: true, email: true, name: true, image: true }
   }) : null;
- 
+
   const member = await prisma.member.findFirst({
     where: {
       OR: [
@@ -36,7 +36,7 @@ export async function UpdateStatusMember(
       project_id: project_id
     }
   });
-  
+
   if (!member) {
     throw new ValidationError("Member not found", []);
   }
@@ -48,7 +48,7 @@ export async function UpdateStatusMember(
     },
     data: { status: status },
   });
-  
+
 
   if (user_id && user_id !== member.user_id) {
     await prisma.member.update({
@@ -59,59 +59,48 @@ export async function UpdateStatusMember(
     });
   }
 
-  await checkIfUserIsMemberOfOtherProject(wasInOtherProject, member, project_id);
+  if (wasInOtherProject && user_id) {
+    await leaveOtherProjectsOfEvent({ id: user_id, email: user?.email ?? email }, project_id);
+  }
 
   return updatedMember;
 }
 
-async function checkIfUserIsMemberOfOtherProject(wasInOtherProject: boolean, member: any, project_id: string) {
+/* A user who joins a project of an event leaves the other projects of that event. The rows that change are the
+   user's own, found by the account (memberIdentityWhere), never by the fields of a stored row: a row can have no
+   email or no user ID, and a filter on an empty field matches the rows of other people. A project is deleted only
+   when this call took its last member. A project with no event has no other projects to leave. */
+async function leaveOtherProjectsOfEvent(user: { id: string; email?: string | null }, project_id: string) {
+  const currentProject = await prisma.project.findUnique({
+    where: { id: project_id },
+    select: { hackaton_id: true },
+  });
+  if (!currentProject?.hackaton_id) return;
 
-  if (wasInOtherProject) {
-    const currentProject = await prisma.project.findUnique({
-      where: {
-        id: project_id,
-      },
-    });
+  const ownRows = await prisma.member.findMany({
+    where: {
+      ...memberIdentityWhere(user),
+      status: { not: MemberStatus.REMOVED },
+      project: { hackaton_id: currentProject.hackaton_id, id: { not: project_id } },
+    },
+    select: { id: true, project_id: true },
+  });
+  if (ownRows.length === 0) return;
 
-    const allProjects = await prisma.project.findMany({
-      where: {
-        hackaton_id: currentProject!.hackaton_id,
-        AND: {
-          id: { not: project_id }
-        }
-      },
-      select: {
-        id: true,
-      },
-    });
+  await prisma.member.updateMany({
+    where: { id: { in: ownRows.map((row) => row.id) } },
+    data: { status: MemberStatus.REMOVED },
+  });
 
-    const projectIds = allProjects.map(p => p.id);
-
-    await prisma.member.updateMany({
-      where: {
-        project_id: {
-          in: projectIds,
-        },
-        AND: {
-          OR: [
-            { user_id: member.user_id },
-            { email: member.email }
-          ]
-        }
-      },
-      data: { status: MemberStatus.REMOVED }
-    });
-
-    for (const projectId of projectIds) {
-      await deleteProjectIfNoMembers(projectId);
-    }
+  for (const projectId of new Set(ownRows.map((row) => row.project_id))) {
+    await deleteProjectIfNoMembers(projectId);
   }
 }
 
 async function deleteProjectIfNoMembers(projectId: string) {
   const remainingMembers = await prisma.member.findMany({
     where: {
-      project_id: projectId,    
+      project_id: projectId,
       status: { not: MemberStatus.REMOVED }
     }
   });
@@ -179,6 +168,9 @@ export async function UpdateRoleMember(member_id: string, role: string, project_
   return updatedMember;
 }
 
+/* The two project reads below return each member with the public part of the member's profile. A member row can be
+   made from a user ID alone, so the account email and the Telegram name of a member are not part of it: a viewer
+   reads an email only from GetMembersByProjectId (memberEmailFor). */
 export async function GetProjectsByUserId(user_id: string) {
   const user = await prisma.user.findUnique({
     where: { id: user_id },
@@ -203,10 +195,8 @@ export async function GetProjectsByUserId(user_id: string) {
             select: {
               id: true,
               name: true,
-              email: true,
               bio: true,
               additional_social_accounts: true,
-              telegram_account: true,
               image: true,
               user_name: true,
             },
@@ -249,10 +239,8 @@ export async function GetProjectByIdWithMembers(project_id: string) {
             select: {
               id: true,
               name: true,
-              email: true,
               bio: true,
               additional_social_accounts: true,
-              telegram_account: true,
               image: true,
               user_name: true,
             },

@@ -1,12 +1,12 @@
 import { prisma } from '@/prisma/prisma';
 import { isSafeUnitPath } from '@/lib/studio/sources';
-import { MAX_STUDIO_FILES, STUDIO_FILE_PATH, STUDIO_FILE_RULE } from '@/types/studio';
+import { MAX_STUDIO_FILES, MAX_STUDIO_PATH_CHARS, STUDIO_FILE_PATH, STUDIO_FILE_RULE } from '@/types/studio';
 import { StudioError } from './errors';
 import { getOwnedProject, sha256Hex } from './projects';
 
 function assertPath(path: string) {
-  if (!STUDIO_FILE_PATH.test(path) || !isSafeUnitPath(path)) {
-    throw new StudioError(400, `Invalid path "${path}". ${STUDIO_FILE_RULE}.`);
+  if (path.length > MAX_STUDIO_PATH_CHARS || !STUDIO_FILE_PATH.test(path) || !isSafeUnitPath(path)) {
+    throw new StudioError(400, `Invalid path "${path.slice(0, 120)}". ${STUDIO_FILE_RULE}, in ${MAX_STUDIO_PATH_CHARS} characters at most.`);
   }
 }
 

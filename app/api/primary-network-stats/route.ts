@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { knownKey, mayResetCache } from '@/lib/api/cache-bounds';
 import { EXPLORER_API_BASE } from "@/lib/pchain-explorer";
 import { TimeSeriesDataPoint, TimeSeriesMetric, STATS_CONFIG, getTimestampsFromTimeRange, createTimeSeriesMetric } from "@/types/stats";
 
@@ -36,6 +37,8 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutM
 
 // Cache storage with stale-while-revalidate pattern
 const cachedData = new Map<string, { data: PrimaryNetworkMetrics; timestamp: number }>();
+// the windows the pages ask for; another value reads as the default, so it makes no key of its own
+const TIME_RANGE_KEYS = Object.keys(STATS_CONFIG.TIME_RANGES) as (keyof typeof STATS_CONFIG.TIME_RANGES)[];
 const revalidatingKeys = new Set<string>();
 const pendingRequests = new Map<string, Promise<PrimaryNetworkMetrics | null>>();
 
@@ -205,9 +208,9 @@ function createResponse(
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const timeRange = searchParams.get('timeRange') || '30d';
+    const timeRange = knownKey(searchParams.get('timeRange'), TIME_RANGE_KEYS, '30d');
     
-    if (searchParams.get('clearCache') === 'true') {
+    if (mayResetCache(searchParams)) {
       cachedData.clear();
       revalidatingKeys.clear();
     }

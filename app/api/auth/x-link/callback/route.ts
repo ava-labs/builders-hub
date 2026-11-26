@@ -1,4 +1,5 @@
 import { getAuthSession } from '@/lib/auth/authSession';
+import { localReturnTarget } from '@/lib/auth/callback-url';
 import { prisma } from '@/prisma/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -33,12 +34,8 @@ function buildReturnTarget(
       ? `${base}/profile?tab=personal&x=linked`
       : `${base}/profile?tab=personal&x=${status}`;
 
-  const returnTo = req.cookies.get('x_link_return_to')?.value;
-  if (!returnTo || !returnTo.startsWith('/') || returnTo.startsWith('//')) {
-    return fallback;
-  }
-
-  const target = new URL(returnTo, base);
+  const target = localReturnTarget(req.cookies.get('x_link_return_to')?.value, base);
+  if (!target) return fallback;
   target.searchParams.set('x', status);
   return target.toString();
 }

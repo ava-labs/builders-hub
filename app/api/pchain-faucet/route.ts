@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isNavigation } from '@/lib/api/navigation';
 import { createAvalancheWalletClient } from '@avalanche-sdk/client';
 import { privateKeyToAvalancheAccount } from '@avalanche-sdk/client/accounts';
 import { formatUnits } from 'viem';
@@ -56,6 +57,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   let claimId: string | null = null;
   
   try {
+    // the faucet page calls this route with fetch: a link or a redirect to it is refused, so no other site can spend
+    // a signed-in visitor's claim
+    if (isNavigation(request)) {
+      return NextResponse.json({ success: false, message: 'Open the faucet page to make a claim' }, { status: 403 });
+    }
     const session = await getAuthSession();
     if (!session?.user?.id) {
       return NextResponse.json(

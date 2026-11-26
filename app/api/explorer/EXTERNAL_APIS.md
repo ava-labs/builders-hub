@@ -1,6 +1,6 @@
 # Explorer External API Calls Documentation
 
-This document lists all external API calls made within the explorer scope, including Glacier (Avalanche SDK), CoinGecko, Dune Analytics, Sourcify, Solokhin, and direct RPC calls.
+This document lists all external API calls made within the explorer scope, including Glacier (Avalanche SDK), CoinGecko, Sourcify, Solokhin, and direct RPC calls.
 
 ---
 
@@ -37,37 +37,7 @@ Used for fetching token prices and AVAX price data.
 
 ---
 
-## 3. Dune Analytics API
-
-Used for fetching address labels from Dune Analytics queries.
-
-| File | Endpoint | Purpose | Parameters |
-|------|----------|---------|------------|
-| `app/api/dune/[address]/route.ts` | `api.dune.com/api/v1/query/${QUERY_ID}/execute` | Start Dune query execution | `query_parameters: { address }`, `performance: 'medium'` |
-| `app/api/dune/[address]/route.ts` | `api.dune.com/api/v1/execution/${executionId}/status` | Check execution status | `executionId` (from cache) |
-| `app/api/dune/[address]/route.ts` | `api.dune.com/api/v1/execution/${executionId}/results` | Get query results | `executionId` |
-
-**Base URL**: `https://api.dune.com/api/v1`  
-**Authentication**: `X-Dune-API-Key` header (from `DUNE_API_KEY` env var)  
-**Rate Limits**: Yes (depends on API plan)  
-**Query ID**: `6275927` (hardcoded)  
-**Response statuses**: `cached`, `completed`, `waiting`, `failed`  
-**Cache**: 
-- Labels: 1 hour (in-memory via `app/api/dune/cache.ts`)
-- Pending executions: 5 minutes (in-memory)
-
-**Flow** (non-blocking, UI polls):
-1. Check cache → return `status: 'cached'` if found
-2. Check pending execution → if exists, check status:
-   - Complete → fetch results, cache, return `status: 'completed'`
-   - Still running → return `status: 'waiting'`
-   - Failed → clear and continue to step 3
-3. Start new execution → store in cache → return `status: 'waiting'`
-4. UI polls every 1.5s until results or timeout (30s)
-
----
-
-## 4. Sourcify API
+## 3. Sourcify API
 
 Used for contract verification and source code retrieval.
 
@@ -86,7 +56,7 @@ None: every explorer component goes through those routes.
 
 ---
 
-## 5. Solokhin API
+## 4. Solokhin API
 
 Used for fetching transaction statistics and history.
 
@@ -104,7 +74,7 @@ Used for fetching transaction statistics and history.
 
 ---
 
-## 6. Direct RPC Calls
+## 5. Direct RPC Calls
 
 Direct JSON-RPC calls to chain RPC endpoints (from `l1-chains.json` or query parameter).
 
@@ -160,7 +130,7 @@ Direct JSON-RPC calls to chain RPC endpoints (from `l1-chains.json` or query par
 
 ---
 
-## 7. Internal API Routes
+## 6. Internal API Routes
 
 These are internal API endpoints called by frontend components (not external APIs).
 
@@ -179,7 +149,6 @@ These are internal API endpoints called by frontend components (not external API
 |---------|-------------|---------------|---------|
 | **Glacier (Data API)** | 4 | No | Proposer: 1 day; supply: 4 hours |
 | **CoinGecko** | 2 | Yes | Yes (60s in-memory) |
-| **Dune Analytics** | 3 | Yes | Yes (1 hour labels / 5 min pending) |
 | **Sourcify** | 4 (client-side) | No | No (client fetches per page load) |
 | **Solokhin API** | 2 | Unknown | Yes (5 min / 30s) |
 | **Direct RPC** | ~15+ | Depends on provider | No |
@@ -187,32 +156,22 @@ These are internal API endpoints called by frontend components (not external API
 
 ---
 
-## Environment Variables Required
-
-- `DUNE_API_KEY` - Dune Analytics API key for address labels
-
----
-
 ## Notes
 
 1. **Glacier API**: four calls remain (section 1): the block proposer, completed validation terms and AVAX supply. Each moves to stats-api when it serves the same data.
 
-2. **Dune Analytics**: Uses a 3-step process (execute → poll → results) with caching to avoid duplicate queries. Labels are cached for 1 hour.
+2. **RPC Calls**: Timeout set to 10-15 seconds. Some chains may have rate limits depending on RPC provider.
 
-3. **RPC Calls**: Timeout set to 10-15 seconds. Some chains may have rate limits depending on RPC provider.
+3. **Sourcify**: contract names, sources and verification, fetched through `/api/sourcify` and `/api/verify`.
 
-4. **Sourcify**: contract names, sources and verification, fetched through `/api/sourcify` and `/api/verify`.
-
-5. **Caching Summary**:
+4. **Caching Summary**:
    - CoinGecko: 60 seconds (in-memory)
    - Solokhin Daily Txs: 5 minutes (in-memory)
    - Solokhin Cumulative Txs: 30 seconds (in-memory)
-   - Dune Labels: 1 hour (in-memory)
-   - Dune Pending Executions: 5 minutes (in-memory)
 
-6. **Error Handling**: All external calls have try-catch blocks and fallback to empty/default values.
+5. **Error Handling**: All external calls have try-catch blocks and fallback to empty/default values.
 
-7. **Cross-Chain (ICM) Events**: Detected via `eth_getLogs` with TeleporterMessenger event topics (SendCrossChainMessage, ReceiveCrossChainMessage).
+6. **Cross-Chain (ICM) Events**: Detected via `eth_getLogs` with TeleporterMessenger event topics (SendCrossChainMessage, ReceiveCrossChainMessage).
 
 ---
 

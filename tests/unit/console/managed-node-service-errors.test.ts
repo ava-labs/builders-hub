@@ -10,7 +10,13 @@ vi.mock('@/lib/auth/authSession', () => ({
 }));
 vi.mock('@/components/toolbox/coreViem/utils/glacier', async () => {
   const { SUBNET_EVM_VM_ID } = await import('@/constants/console');
-  return { getBlockchainInfo: vi.fn(async () => ({ vmId: SUBNET_EVM_VM_ID, blockchainName: 'test' })) };
+  return {
+    getBlockchainInfo: vi.fn(async () => ({
+      vmId: SUBNET_EVM_VM_ID,
+      blockchainName: 'test',
+      subnetId: '2Ld1ozNLbZYHYAyLuNuDALXYZ7m4Ui9dP3jxQ8yRWWnAPV9V3V',
+    })),
+  };
 });
 vi.mock('@/server/services/provision-quota', () => ({
   reserveDailyProvision: vi.fn(async () => ({ allowed: true })),

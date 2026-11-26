@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAuthSession } from '@/lib/auth/authSession';
 import { ServiceErrorSchema } from './types';
+import { validatePublicRpcUrl } from '@/lib/net/public-host';
 
 export async function getUserId(): Promise<{ userId: string | null; error?: NextResponse }> {
   const session = await getAuthSession();
@@ -17,6 +18,16 @@ export async function getUserId(): Promise<{ userId: string | null; error?: Next
           message: 'Please sign in to access managed testnet relayers',
         },
         { status: 401 },
+      ),
+    };
+  }
+  // A session before the terms are accepted has no account row (its id is "pending_<email>"), so it can own nothing.
+  if (session.user.id.startsWith('pending_')) {
+    return {
+      userId: null,
+      error: NextResponse.json(
+        { error: 'Account required', message: 'Finish sign-up to use managed testnet relayers' },
+        { status: 403 },
       ),
     };
   }
@@ -55,4 +66,12 @@ export async function extractServiceErrorMessage(response: Response): Promise<st
     } catch {}
   }
   return null;
+}
+
+/** Null for a URL the relayer service may connect to, else the reason. */
+export function relayerUrlError(config: { rpcUrl: string; wsUrl: string }): string | null {
+  if (!/^https?:\/\//i.test(config.rpcUrl)) return 'rpcUrl must use http or https';
+  if (!/^wss?:\/\//i.test(config.wsUrl)) return 'wsUrl must use ws or wss';
+  // the host rules are the same for both: read the ws URL as its http form
+  return validatePublicRpcUrl(config.rpcUrl) ?? validatePublicRpcUrl(config.wsUrl.replace(/^ws/i, 'http'));
 }

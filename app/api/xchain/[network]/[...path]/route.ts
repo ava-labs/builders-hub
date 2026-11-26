@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { EXPLORER_API_BASE, isPchainNetwork } from "@/lib/pchain-explorer";
+import { BAD_PATH, upstreamPath } from "@/lib/explorer-proxy-path";
 import { softStatus } from "@/lib/explorer-soft-status";
 
 // Same-origin proxy to the X-chain explorer API (plain HTTP on an IP —
@@ -14,7 +15,8 @@ export async function GET(
   if (!isPchainNetwork(network)) {
     return NextResponse.json({ error: "unknown network" }, { status: 404 });
   }
-  const resource = (path ?? []).map(encodeURIComponent).join("/");
+  const resource = upstreamPath(path);
+  if (resource === null) return NextResponse.json(BAD_PATH.body, BAD_PATH.init);
   const qs = req.nextUrl.search;
   const controller = new AbortController();
   // an address read walks its history upstream: an active address can take

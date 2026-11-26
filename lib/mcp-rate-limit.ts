@@ -2,10 +2,11 @@
  * Rate limiting for MCP server endpoints using Redis
  *
  * Implements distributed rate limiting that works across serverless instances.
- * Clients are identified by origin + trusted proxy IP (browsers) or hashed IP.
+ * Clients are identified by the hashed address the edge names.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { clientBucket } from '@/lib/net/clientIp';
 import { createClient } from 'redis';
 import { createHash } from 'crypto';
 
@@ -109,20 +110,22 @@ function hashIp(ip: string): string {
 }
 
 /**
- * Get client identifier from request
- * - Browsers: origin plus hashed trusted-proxy IP
- * - Non-browser: hashed IP address (privacy-preserving)
+ * Get client identifier from request: the hashed address of the caller.
+ *
+ * The address is the one the edge names (lib/net/clientIp.ts), by its /64 for IPv6. Behind Cloudflare the
+ * Vercel header holds a Cloudflare address, which many callers share, so it is not read first. The Origin
+ * header is not part of the key: a caller sets it, and each value was a budget of its own.
  */
 export function getClientId(request: NextRequest): string {
-  const origin = request.headers.get('origin');
-  const vercelIp = request.headers.get('x-vercel-forwarded-for')?.split(',')[0]?.trim();
-  const realIp = request.headers.get('x-real-ip')?.trim();
-  // Use the proxy-nearest (rightmost) entry as the generic fallback so a caller-
-  // supplied leftmost X-Forwarded-For value cannot cheaply rotate the bucket.
-  const forwarded = request.headers.get('x-forwarded-for')?.split(',').map((part) => part.trim()).filter(Boolean);
-  const ip = vercelIp || realIp || forwarded?.[forwarded.length - 1] || 'unknown';
-  const ipId = hashIp(ip);
-  return origin ? `origin:${origin}:ip:${ipId}` : `ip:${ipId}`;
+  let ip = clientBucket(request);
+  if (ip === 'unknown') {
+    // Not through the edge (local, or a direct call). Use the proxy-nearest (rightmost) entry so a caller-
+    // supplied leftmost X-Forwarded-For value cannot cheaply rotate the bucket.
+    const realIp = request.headers.get('x-real-ip')?.trim();
+    const forwarded = request.headers.get('x-forwarded-for')?.split(',').map((part) => part.trim()).filter(Boolean);
+    ip = realIp || forwarded?.[forwarded.length - 1] || 'unknown';
+  }
+  return `ip:${hashIp(ip)}`;
 }
 
 /** Charge batches by item and data-producing tool calls by their higher cost. */

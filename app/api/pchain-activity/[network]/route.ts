@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { EXPLORER_API_BASE, type PchainStakingSeries } from "@/lib/pchain-explorer";
+import { EXPLORER_API_BASE, isPchainNetwork, type PchainStakingSeries } from "@/lib/pchain-explorer";
 
 // Staking money-flow for the P-Chain overview and the staking detail
 // sheets: AVAX rewards paid per day (the past ?days) and stake unlocking
@@ -15,6 +15,7 @@ export async function GET(
   { params }: { params: Promise<{ network: string }> },
 ) {
   const { network } = await params;
+  if (!isPchainNetwork(network)) return NextResponse.json({ error: "unknown network" }, { status: 404 });
   const raw = Number(req.nextUrl.searchParams.get("days") ?? 30);
   const days = (WINDOWS as readonly number[]).includes(raw) ? raw : 30;
 

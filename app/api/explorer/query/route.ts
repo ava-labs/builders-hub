@@ -24,7 +24,8 @@ import { isKept, runKept } from "@/lib/explorer-query/run-cache";
 import { profileSql, type DrillProfile } from "@/lib/explorer-query/drill-profile";
 import { sourceNotes } from "@/lib/explorer-query/sources";
 import { NETWORK_ID, NETWORK_SLUG, targetOf } from "@/lib/explorer-query/target";
-import { checkChatRateLimit, formatResetTime, getClientIP, type RateLimits } from "@/lib/chat/rateLimit";
+import { checkChatRateLimit, formatResetTime, type RateLimits } from "@/lib/chat/rateLimit";
+import { clientBucket } from "@/lib/net/clientIp";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { TRACE, askerOf, sendQuestion, sendStage, sourceOf, type Asked, type Asker, type Stage } from "@/lib/explorer-query/analytics";
 import type { ModelCall } from "@/lib/explorer-query/meter";
@@ -117,8 +118,16 @@ const READS: RateLimits = { anonymous: { maxRequests: 120, windowMs: 3600_000 },
 /** a 429 when this address has run too many reads the run cache did not answer; null when the read may run */
 function overReads(req: Request, sql: string, chainId: number): NextResponse | null {
   if (isKept(sql, chainId)) return null;
-  const limit = checkChatRateLimit(getClientIP(req), false, READS, "query-read");
+  const limit = checkChatRateLimit(clientBucket(req), false, READS, "query-read");
   return limit.allowed ? null : NextResponse.json({ error: `This address has run ${limit.limit} queries this hour. Try again ${formatResetTime(limit.resetTime)}.` }, { status: 429 });
+}
+
+/** a 429 when this address has asked for too many layouts and readings this hour; null when the model may run. A
+    layout or a reading is a model call and, on an instance that did not answer, a read of the kept SQL again, and no
+    question is counted for it */
+function overLayouts(req: Request): NextResponse | null {
+  const limit = checkChatRateLimit(clientBucket(req), false, READS, "query-layout");
+  return limit.allowed ? null : NextResponse.json({ error: `This address has asked for ${limit.limit} layouts this hour. Try again ${formatResetTime(limit.resetTime)}.` }, { status: 429 });
 }
 
 /** the answer's read while it is fresh, else the kept SQL read again with its names and totals */
@@ -257,6 +266,8 @@ export async function POST(req: Request) {
     if (!recipe || !guardSql(recipe.sql, chainId).ok) return NextResponse.json({ error: "unknown answer" }, { status: 404 });
     // a kept layout: only its reading is written again, from fresh rows
     if (recipe.visual && body.reading) {
+      const over = overLayouts(req);
+      if (over) return over;
       const t0 = Date.now();
       counted("reader", recipe.question, body.key);
       try {
@@ -270,6 +281,8 @@ export async function POST(req: Request) {
       }
     }
     if (recipe.visual) return NextResponse.json({ visual: recipe.visual, designer: true, ms: 0 });
+    const over = overLayouts(req);
+    if (over) return over;
     counted("designer", recipe.question, body.key);
     try {
       const { result, names, totals, anchor } = await readOf(body.key, recipe.sql, chainId, baseUrl);
@@ -286,6 +299,8 @@ export async function POST(req: Request) {
 
   // rows the reader made by hand: laid out for this reader only, never kept
   if (body.design && Array.isArray(body.design.rows) && Array.isArray(body.design.columns)) {
+    const over = overLayouts(req);
+    if (over) return over;
     const d = body.design;
     const question = String(d.question ?? "").slice(0, 1500);
     counted("designer", question);
@@ -339,7 +354,7 @@ export async function POST(req: Request) {
   // a suggestion runs its fixed SQL and asks no model: it is a read, counted with the reads and not with the questions.
   // Any other question takes the same budget as the chat: model calls are the cost there
   const fixed = history.length === 0 && !!fixedRecipe(chainId, prompt, symbol);
-  const limit = fixed ? checkChatRateLimit(getClientIP(req), false, READS, "query-read") : checkChatRateLimit(isAuthenticated ? session!.user!.id! : getClientIP(req), isAuthenticated);
+  const limit = fixed ? checkChatRateLimit(clientBucket(req), false, READS, "query-read") : checkChatRateLimit(isAuthenticated ? session!.user!.id! : clientBucket(req), isAuthenticated);
   if (!limit.allowed) {
     // signed out, the reader can lift the question limit now: the page offers sign-in
     const when = formatResetTime(limit.resetTime);

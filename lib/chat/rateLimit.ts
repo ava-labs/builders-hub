@@ -3,7 +3,7 @@
  *
  * Implements tiered rate limiting for the chat API:
  * - Anonymous users: Limited by IP address (10 messages per hour)
- * - Authenticated users: High limit per user ID (1000 messages per hour)
+ * - Authenticated users: High limit per user ID (200 messages per hour)
  *
  * Uses in-memory storage with automatic cleanup.
  * For production scale, consider upgrading to Redis.
@@ -33,8 +33,9 @@ const RATE_LIMITS: RateLimits = {
     maxRequests: 10,
     windowMs: 60 * 60 * 1000, // 1 hour
   },
+  // one message runs up to 15 model steps, so an account's hour is a person's hour of questions, not a script's
   authenticated: {
-    maxRequests: 1000,
+    maxRequests: 200,
     windowMs: 60 * 60 * 1000, // 1 hour
   },
 };

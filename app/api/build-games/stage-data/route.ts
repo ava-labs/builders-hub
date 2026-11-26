@@ -109,6 +109,12 @@ export const POST = withAuth(
         );
       }
 
+      // The review result of a stage (stage1_result, stages) is in the same record. The reviewers write it, and a
+      // member's body cannot: the two keys are left out of what a member sends.
+      const submitted = { ...(form_data.build_games as Record<string, Prisma.InputJsonValue>) };
+      delete submitted.stage1_result;
+      delete submitted.stages;
+
       const result = await prisma.$transaction(async (tx) => {
         // Every query below uses the ID of the project the membership check returned
         const existing = await tx.formData.findFirst({
@@ -122,10 +128,7 @@ export const POST = withAuth(
           const mergedData: Prisma.InputJsonValue = {
             build_games: {
               ...(existingBuildGames as Record<string, Prisma.InputJsonValue>),
-              ...(form_data.build_games as Record<
-                string,
-                Prisma.InputJsonValue
-              >),
+              ...submitted,
               stages:
                 existingBuildGames &&
                 (existingBuildGames as Record<string, Prisma.InputJsonValue>).stages
@@ -145,7 +148,7 @@ export const POST = withAuth(
             project_id: project.id,
             origin: "build_games",
             form_data: {
-              build_games: form_data.build_games as Prisma.InputJsonValue,
+              build_games: submitted,
               stages: undefined,
             },
             timestamp: new Date(),

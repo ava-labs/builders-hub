@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import l1Chains from "@/constants/l1-chains.json";
+import { clientBucket } from "@/lib/net/clientIp";
 
 // The explorer's read path to our dedicated C-Chain and Fuji nodes. The node
 // URL carries a token and the node is paid for, so this route forwards only
@@ -110,7 +111,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cha
     if (why) return NextResponse.json({ error: why }, { status: 403 });
   }
 
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
+  const ip = clientBucket(req);
   const allowed = relay ? allow(`${ip}|${chainId}`, calls.length, RELAY_MAX_PER_WINDOW) : allow(ip, calls.length);
   if (!allowed) return NextResponse.json({ error: "rate limit" }, { status: 429, headers: { "retry-after": "30" } });
 

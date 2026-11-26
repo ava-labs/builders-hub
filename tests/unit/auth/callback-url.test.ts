@@ -31,3 +31,20 @@ describe("auth page callback destinations", () => {
     expect(getAuthCallbackUrl(value)).toBe("/");
   });
 });
+
+describe('localReturnTarget', () => {
+  const BASE = 'https://build.avax.network';
+
+  it('keeps a path of this site', async () => {
+    const { localReturnTarget } = await import('@/lib/auth/callback-url');
+    expect(localReturnTarget('/profile?tab=personal', BASE)?.toString()).toBe(`${BASE}/profile?tab=personal`);
+    expect(localReturnTarget('/', BASE)?.toString()).toBe(`${BASE}/`);
+  });
+
+  it('refuses a value that a URL parser reads as another site', async () => {
+    const { localReturnTarget } = await import('@/lib/auth/callback-url');
+    for (const value of ['/\\other.example', '/\t/other.example', '//other.example', 'https://other.example/', '/\n/other.example', '', undefined]) {
+      expect(localReturnTarget(value, BASE), JSON.stringify(value)).toBeNull();
+    }
+  });
+});

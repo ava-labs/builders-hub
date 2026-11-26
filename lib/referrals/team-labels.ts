@@ -30,7 +30,8 @@ export const OTHER_TEAM_SENTINEL = "none";
 export const OTHER_TEAM_CLIENT_VALUE = "other";
 
 export function isReferralTeamId(value: unknown): value is string {
-  return typeof value === "string" && value in REFERRAL_TEAM_LABELS;
+  // an own key of the list: "constructor" and "toString" are in every object, and they are no team
+  return typeof value === "string" && Object.hasOwn(REFERRAL_TEAM_LABELS, value);
 }
 
 export function isOtherTeam(value: unknown): boolean {

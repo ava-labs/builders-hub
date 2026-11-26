@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { knownKey, mayResetCache, trimCache } from '@/lib/api/cache-bounds';
 import { TimeSeriesDataPoint, TimeSeriesMetric, ICMDataPoint, ICMMetric, STATS_CONFIG, getTimestampsFromTimeRange, createTimeSeriesMetric, createICMMetric } from "@/types/stats";
 import { getChainICMData } from "@/lib/icm-clickhouse";
 import { DEDICATED_STATS_BASE_URL, resolveDedicatedMetricsChain } from "@/lib/dedicated-stats";
@@ -51,6 +52,8 @@ interface ChainMetrics {
 
 // Cache storage
 const cachedData = new Map<string, { data: ChainMetrics; timestamp: number; icmTimeRange: string }>();
+const MAX_CACHED_ANSWERS = 500;
+const DAY_SECONDS = 24 * 60 * 60;
 const revalidatingKeys = new Set<string>();
 const pendingRequests = new Map<string, Promise<Fresh | null>>();
 
@@ -764,20 +767,24 @@ export async function GET(
 ) {
   try {
     const { searchParams } = new URL(request.url);
-    const timeRange = searchParams.get('timeRange') || '30d';
+    // the windows the charts ask for; another value reads as the default, so it makes no key of its own
+    const timeRange = knownKey(searchParams.get('timeRange'), ['7d', '30d', '90d', '1y', 'all'], '30d');
     const startTimestampParam = searchParams.get('startTimestamp');
     const endTimestampParam = searchParams.get('endTimestamp');
     const metricsParam = searchParams.get('metrics');
     const resolvedParams = await params;
     const chainId = resolvedParams.chainId;
     
-    if (!chainId) {
+    // a chain ID, or a word such as "all": it is one path segment of the metrics API
+    if (!chainId || !/^[A-Za-z0-9_-]{1,64}$/.test(chainId)) {
       return createResponse({ error: 'Chain ID is required' }, { source: 'error' }, 400);
     }
 
-    // Parse timestamps
-    const startTimestamp = startTimestampParam ? parseInt(startTimestampParam, 10) : undefined;
-    const endTimestamp = endTimestampParam ? parseInt(endTimestampParam, 10) : undefined;
+    // Parse timestamps. The series are daily, so a custom window starts and ends on a day: each second of a day
+    // would else be a key of its own in the cache.
+    const toDay = (value: string): number => Math.floor(parseInt(value, 10) / DAY_SECONDS) * DAY_SECONDS;
+    const startTimestamp = startTimestampParam ? toDay(startTimestampParam) : undefined;
+    const endTimestamp = endTimestampParam ? toDay(endTimestampParam) : undefined;
     
     // Validate timestamps
     if (startTimestamp !== undefined && isNaN(startTimestamp)) {
@@ -809,10 +816,11 @@ export async function GET(
       ? `${chainId}-${startTimestamp}-${endTimestamp}-${metricsKey}`
       : `${chainId}-${timeRange}-${metricsKey}`;
     
-    if (searchParams.get('clearCache') === 'true') {
+    if (mayResetCache(searchParams)) {
       cachedData.clear();
       revalidatingKeys.clear();
     }
+    trimCache(cachedData, MAX_CACHED_ANSWERS);
     
     const cached = cachedData.get(cacheKey);
     const cacheAge = cached ? Date.now() - cached.timestamp : Infinity;

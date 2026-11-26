@@ -1,4 +1,4 @@
-import { getClientIP } from '@/lib/net/clientIp'
+import { clientBucket } from '@/lib/net/clientIp'
 
 const store = new Map<string, { count: number; resetAt: number }>()
 
@@ -19,7 +19,7 @@ export function checkRateLimit(
 ): RateLimitResult {
   // Shared resolver: the leftmost x-forwarded-for entry used here before is
   // set by the client, so the limit was effectively opt-out.
-  const clientId = getClientIP(request)
+  const clientId = clientBucket(request)
 
   const now = Date.now()
 

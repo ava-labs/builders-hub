@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { trimCache } from "@/lib/api/cache-bounds";
 
 // USD prices for token contracts on one chain, by way of DefiLlama's
 // batched price API (no key, one request for many addresses). Held a
@@ -16,6 +17,7 @@ interface LlamaResponse {
 const cache = new Map<string, { at: number; prices: Record<string, number> }>();
 const TTL_MS = 60_000;
 const MAX_ADDRESSES = 60;
+const MAX_CACHED_SETS = 500;
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ chainId: string }> }) {
   const { chainId } = await params;
@@ -48,6 +50,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ chai
       if (addr && typeof v.price === "number" && (v.confidence ?? 1) >= 0.8) prices[addr] = v.price;
     }
     cache.set(key, { at: Date.now(), prices });
+    trimCache(cache, MAX_CACHED_SETS);
     return NextResponse.json({ prices }, { headers: { "Cache-Control": "public, max-age=60, stale-while-revalidate=300" } });
   } catch (e) {
     if (hit) return NextResponse.json({ prices: hit.prices, stale: true });

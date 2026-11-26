@@ -74,6 +74,7 @@ export function PublishedSite({
     onError: (message) => console.warn(`[${title}]`, message),
     theme,
     app: context,
+    publishedBy: owner,
   });
 
   if (!doc) return null;

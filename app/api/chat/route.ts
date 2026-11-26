@@ -8,10 +8,13 @@ import { embedQuery, analyzeQueryIntent } from '@/lib/embeddings';
 import { getAuthSession } from '@/lib/auth/authSession';
 import {
   checkChatRateLimit,
-  getClientIP,
   createRateLimitHeaders,
   formatResetTime,
 } from '@/lib/chat/rateLimit';
+import { clientBucket } from '@/lib/net/clientIp';
+import { consumeQuota } from '@/lib/verification/limits';
+import { MAX_CHAT_MESSAGES, fitsChat, isClientMessage, loadNoUrls } from '@/lib/chat/client-messages';
+import { searchChannelVideos } from '@/lib/chat/channel-videos';
 import { searchTools, formatToolsForContext } from '@/lib/chat/tools-search';
 import { docsTools, githubTools } from '@/lib/mcp/tools';
 import { componentNames, getCatalogDescription } from '@/lib/chat/catalog';
@@ -28,14 +31,11 @@ import { siteBaseUrl } from '@/lib/chat/site-url';
 import { CHAT_MODEL, CHAT_SETTINGS, withoutReasoning } from '@/lib/chat/model';
 
 /* The envelope the chat clients send (AI SDK UI messages, plus the options the
-   bubble and the chat page add). Each message is checked to be an object with a
-   text role; its parts change with the SDK and are read by the SDK itself. */
+   bubble and the chat page add). Each message is a turn of the reader or of the
+   assistant with no file part (lib/chat/client-messages.ts); the other parts
+   change with the SDK and are read by the SDK itself. */
 const chatBodySchema = z.object({
-  messages: z.array(
-    z.custom<UIMessage>(
-      (m) => typeof m === 'object' && m !== null && 'role' in m && typeof m.role === 'string'
-    )
-  ),
+  messages: z.array(z.custom<UIMessage>(isClientMessage)).max(MAX_CHAT_MESSAGES),
   id: z.string().optional(),
   source: z.string().optional(),
   page: z
@@ -252,6 +252,12 @@ export async function POST(req: Request) {
     });
   }
   const { messages, id: visitorId, source, page } = body;
+  if (!fitsChat(messages)) {
+    return new Response(
+      JSON.stringify({ error: 'Conversation too long', message: 'This conversation is too long. Start a new chat.' }),
+      { status: 413, headers: { 'Content-Type': 'application/json' } },
+    );
+  }
   const isBubble = source === 'bubble';
   // the page the visitor has open: identity for the prompt, data on demand
   const pageRef = parsePageRef(page?.path);
@@ -264,7 +270,7 @@ export async function POST(req: Request) {
   // Check rate limit based on authentication status
   const session = await getAuthSession();
   const isAuthenticated = !!session?.user?.id;
-  const identifier = isAuthenticated ? session.user.id : getClientIP(req);
+  const identifier = isAuthenticated ? session.user.id : clientBucket(req);
 
   const rateLimitResult = checkChatRateLimit(identifier, isAuthenticated);
 
@@ -285,6 +291,19 @@ export async function POST(req: Request) {
           ...createRateLimitHeaders(rateLimitResult),
         },
       }
+    );
+  }
+
+  // The counter above lives in one instance's memory. This one is shared (Redis, with a local fallback), so the
+  // limit holds over all instances.
+  const shared = await consumeQuota(`chat:${isAuthenticated ? 'auth' : 'anon'}:${identifier}`, {
+    limit: rateLimitResult.limit,
+    windowMs: 60 * 60 * 1000,
+  });
+  if (!shared.allowed) {
+    return new Response(
+      JSON.stringify({ error: 'Rate limit exceeded', message: 'Message limit reached. Please try again later.' }),
+      { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': String(shared.retryAfterSeconds) } },
     );
   }
 
@@ -362,28 +381,22 @@ export async function POST(req: Request) {
   let youtubeContext = '';
   if (lastUserMessageText) {
     try {
-      const baseUrl = siteBaseUrl();
-
-      const youtubeResponse = await fetch(`${baseUrl}/api/youtube/search?q=${encodeURIComponent(lastUserMessageText)}&limit=3`);
-
-      if (youtubeResponse.ok) {
-        const youtubeData = await youtubeResponse.json();
-        if (youtubeData.videos && youtubeData.videos.length > 0) {
-          youtubeContext = '\n\n=== RELEVANT YOUTUBE VIDEOS ===\n\n';
-          youtubeContext += 'IMPORTANT: To show these videos, call render_component("YouTubeEmbed", { videoId: "...", title: "..." }) to embed them inline. Do NOT just paste a YouTube link.\n\n';
-          for (const video of youtubeData.videos) {
-            youtubeContext += `- **${video.title}** → render_component("YouTubeEmbed", { videoId: "${video.videoId}", title: "${video.title.replace(/"/g, '\\"')}" })\n`;
-            youtubeContext += `  Description: ${video.description.slice(0, 200)}...\n\n`;
-          }
-          youtubeContext += '=== END YOUTUBE VIDEOS ===\n';
-          console.log(`Found ${youtubeData.videos.length} relevant YouTube videos`);
-
-          // Track YouTube search results
-          captureServerEvent('ai_chat_youtube_search', {
-            query: lastUserMessageText.slice(0, 200),
-            results_count: youtubeData.videos.length,
-          }, visitorId);
+      const videos = await searchChannelVideos(lastUserMessageText, 3);
+      if (videos.length > 0) {
+        youtubeContext = '\n\n=== RELEVANT YOUTUBE VIDEOS ===\n\n';
+        youtubeContext += 'IMPORTANT: To show these videos, call render_component("YouTubeEmbed", { videoId: "...", title: "..." }) to embed them inline. Do NOT just paste a YouTube link.\n\n';
+        for (const video of videos) {
+          youtubeContext += `- **${video.title}** → render_component("YouTubeEmbed", { videoId: "${video.videoId}", title: "${video.title.replace(/"/g, '\\"')}" })\n`;
+          youtubeContext += `  Description: ${video.description.slice(0, 200)}...\n\n`;
         }
+        youtubeContext += '=== END YOUTUBE VIDEOS ===\n';
+        console.log(`Found ${videos.length} relevant YouTube videos`);
+
+        // Track YouTube search results
+        captureServerEvent('ai_chat_youtube_search', {
+          query: lastUserMessageText.slice(0, 200),
+          results_count: videos.length,
+        }, visitorId);
       }
     } catch (error) {
       console.error('YouTube search error:', error);
@@ -602,6 +615,7 @@ export async function POST(req: Request) {
   result = streamText({
     model: anthropic(CHAT_MODEL),
     ...CHAT_SETTINGS,
+    experimental_download: loadNoUrls,
     messages: [
       {
         role: 'system',
