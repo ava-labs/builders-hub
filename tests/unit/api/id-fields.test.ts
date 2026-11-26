@@ -86,4 +86,24 @@ describe('POST /api/build-games/stage-data', () => {
     expect(db.formFindFirst).toHaveBeenCalledWith({ where: { project_id: 'project-1', origin: 'build_games' } });
     expect(db.formCreate.mock.calls[0][0].data.project_id).toBe('project-1');
   });
+  // the review result of a stage is in the same record, and the reviewers write it
+  it('does not take the review result keys from a member', async () => {
+    const sent = { answer: 'a', stage1_result: 'accepted', stages: { '2': 'accepted' } };
+    db.projectFindFirst.mockResolvedValue({ id: 'project-1' });
+    db.formFindFirst.mockResolvedValue(null);
+    db.formCreate.mockResolvedValue({ form_data: {} });
+    await saveStage(post('/api/build-games/stage-data', { project_id: 'project-1', form_data: { build_games: sent } }), ctx);
+    expect(db.formCreate.mock.calls[0][0].data.form_data.build_games).toEqual({ answer: 'a' });
+
+    db.formFindFirst.mockResolvedValue({ id: 'f1', form_data: { build_games: { old: 1, stage1_result: 'rejected', stages: { '2': 'rejected' } } } });
+    db.formUpdate.mockResolvedValue({ form_data: {} });
+    await saveStage(post('/api/build-games/stage-data', { project_id: 'project-1', form_data: { build_games: sent } }), ctx);
+    expect(db.formUpdate.mock.calls[0][0].data.form_data.build_games).toEqual({
+      old: 1,
+      answer: 'a',
+      stage1_result: 'rejected',
+      stages: { '2': 'rejected' },
+    });
+  });
 });
+
