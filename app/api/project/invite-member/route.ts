@@ -2,7 +2,7 @@ import { Session } from 'next-auth';
 import { withAuth } from "@/lib/protectedRoute";
 import { prisma } from "@/prisma/prisma";
 import { generateInvitation } from "@/server/services/inviteProjectMember";
-import { isProjectMemberOrInvitee } from "@/server/services/projectMembership";
+import { isConfirmedProjectMember } from "@/server/services/projectMembership";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { inviteSchema, inviteErrorMessage } from "@/lib/invitations/inviteSchema";
 import { NextResponse } from "next/server";
@@ -49,9 +49,11 @@ export const POST = withAuth(async (request, _context: unknown, session: Session
       );
     }
 
-    // If project_id is provided, verify user is a member of the project
+    // If project_id is provided, verify user is a member of the project. An invitation
+    // changes the team, so the caller must have confirmed: an invitee who has not
+    // accepted yet cannot invite.
     if (projectId) {
-      const isMember = await isProjectMemberOrInvitee(session.user.id, projectId);
+      const isMember = await isConfirmedProjectMember(session.user.id, projectId);
       if (!isMember) {
         return NextResponse.json(
           { error: "Forbidden: You must be a member of the project to invite others" },
