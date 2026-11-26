@@ -55,7 +55,7 @@ describe('text ClickHouse would read another way than the guard', () => {
     expect(one('version()')).toBe('version() reads the server and no table, which Query does not allow');
     expect(one('hostName()')).toBe('hostName() reads the server and no table, which Query does not allow');
     expect(one('currentUser ()')).toBe('currentUser() reads the server and no table, which Query does not allow');
-    for (const fn of ['currentDatabase()', 'USER()', "getSetting('max_threads')", 'serverUUID()', 'queryID()', 'filesystemAvailable()']) expect(one(fn), fn).toMatch(/reads the server and no table/);
+    for (const fn of ['currentDatabase()', 'USER()', "getSetting('max_threads')", 'serverUUID()', 'queryID()', 'filesystemAvailable()', 'fullHostName()']) expect(one(fn), fn).toMatch(/reads the server and no table/);
     expect(error(`SELECT 1 AS a FROM raw_blocks WHERE chain_id = 43114 AND ${W} AND (SELECT tcpPort()) > 0`)).toMatch(/^tcpPort\(\) reads the server/);
     expect(error(`SELECT version, uptime, count() AS n FROM (SELECT 'v1' AS version, 1 AS uptime FROM raw_blocks WHERE chain_id = 43114 AND ${W}) WHERE version IN ('v1') GROUP BY version, uptime`)).toBe('');
   });
@@ -72,6 +72,28 @@ describe('text ClickHouse would read another way than the guard', () => {
     expect(error(`WITH numbers AS (SELECT block_number AS x FROM raw_blocks WHERE chain_id = 43114 AND ${W}) SELECT count() AS n, max(x) AS hi FROM numbers`)).toBe('');
     expect(error(`SELECT toDate(block_time) AS t, count() AS n FROM raw_blocks WHERE chain_id = 43114 AND ${W} GROUP BY t ORDER BY t WITH FILL FROM toDate(now() - INTERVAL 1 DAY) TO toDate(now())`)).toBe('');
     expect(error(`SELECT i, count() AS n FROM raw_blocks ARRAY JOIN range(2) AS i WHERE chain_id = 43114 AND ${W} GROUP BY i`)).toBe('');
+  });
+
+  it('is refused for a parenthesis with no partner, which would end the parentheses the server writes around the query', () => {
+    const CLOSES = 'a parenthesis closes with none open: write each ( with its )';
+    expect(error(`SELECT 1 AS x FROM raw_blocks WHERE chain_id = 43114 AND ${W}) AS a, raw_logs AS n WHERE 1 IN (SELECT 1`)).toBe(CLOSES);
+    expect(error(`${BLOCKS})`)).toBe(CLOSES);
+    expect(error(`SELECT 1 AS x FROM raw_blocks WHERE chain_id = 43114 AND (${W}`)).toBe('a parenthesis is left open: write each ( with its )');
+    // a parenthesis in a string or in a quoted name is text
+    expect(error(`SELECT ')' AS "(", count() AS n FROM raw_blocks WHERE chain_id = 43114 AND (${W})`)).toBe('');
+  });
+
+  it('is refused for a curly quote outside a string, which ClickHouse reads as a quote', () => {
+    expect(error(`SELECT \u2018(\u2019 AS s FROM raw_blocks WHERE chain_id = 43114 AND ${W})`)).toMatch(/not as a curly quote/);
+    expect(error(`SELECT count() AS \u201cn\u201d FROM raw_blocks WHERE chain_id = 43114 AND ${W}`)).toMatch(/not as a curly quote/);
+    expect(error(`SELECT 'Trader Joe\u2019s' AS dex, count() AS n FROM raw_blocks WHERE chain_id = 43114 AND ${W}`)).toBe('');
+  });
+
+  it('is refused past the length cap before any other check reads it', () => {
+    const long = `SELECT 1 FROM raw_blocks WHERE ${'address IN ('.repeat(20_000)}`;
+    const start = performance.now();
+    expect(error(long)).toBe('query too long (12000 chars max)');
+    expect(performance.now() - start).toBeLessThan(200);
   });
 
   it('is refused for a character that does not show, a quote left open, a # comment and a $ outside a string', () => {
