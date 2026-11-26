@@ -31,12 +31,12 @@ function isBlockedHost(rawHost: string): boolean {
     /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(host) ||
     /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(host) || // CGNAT 100.64.0.0/10
     (isIpv6 &&
-      (host === '::1' || // IPv6 loopback
-        host === '::' ||
-        host.startsWith('fe80:') || // link-local
+      (host.startsWith('::') || // loopback ::1, unspecified ::, IPv4-compatible ::a.b.c.d, IPv4-mapped ::ffff:a.b.c.d
+        /^fe[89ab]/.test(host) || // link-local fe80::/10
         host.startsWith('fc') || // ULA fc00::/7
         host.startsWith('fd') ||
-        host.includes('::ffff:') || // IPv4-mapped (e.g. ::ffff:169.254.169.254)
+        host.startsWith('64:ff9b:') || // NAT64: an IPv4 address behind an IPv6 prefix
+        host.includes('::ffff:') ||
         host.includes('169.254') ||
         host.includes('127.0.0.1')))
   );
