@@ -13,10 +13,11 @@ export async function GET(
   { params }: { params: Promise<{ tool: string }> }
 ) {
   const { tool } = await params;
-  const scriptUrl = INSTALL_SCRIPTS[tool];
+  const scriptUrl = Object.hasOwn(INSTALL_SCRIPTS, tool) ? INSTALL_SCRIPTS[tool] : undefined;
 
   if (!scriptUrl) {
-    return new NextResponse(`Unknown tool: ${tool}\nAvailable: ${Object.keys(INSTALL_SCRIPTS).join(', ')}\n`, {
+    // the answer does not repeat the caller's text: a shell can read the body of this endpoint
+    return new NextResponse(`Unknown tool\nAvailable: ${Object.keys(INSTALL_SCRIPTS).join(', ')}\n`, {
       status: 404,
       headers: { 'Content-Type': 'text/plain; charset=utf-8' },
     });
