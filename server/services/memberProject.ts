@@ -168,6 +168,9 @@ export async function UpdateRoleMember(member_id: string, role: string, project_
   return updatedMember;
 }
 
+/* The two project reads below return each member with the public part of the member's profile. A member row can be
+   made from a user ID alone, so the account email and the Telegram name of a member are not part of it: a viewer
+   reads an email only from GetMembersByProjectId (memberEmailFor). */
 export async function GetProjectsByUserId(user_id: string) {
   const user = await prisma.user.findUnique({
     where: { id: user_id },
@@ -192,10 +195,8 @@ export async function GetProjectsByUserId(user_id: string) {
             select: {
               id: true,
               name: true,
-              email: true,
               bio: true,
               additional_social_accounts: true,
-              telegram_account: true,
               image: true,
               user_name: true,
             },
@@ -238,10 +239,8 @@ export async function GetProjectByIdWithMembers(project_id: string) {
             select: {
               id: true,
               name: true,
-              email: true,
               bio: true,
               additional_social_accounts: true,
-              telegram_account: true,
               image: true,
               user_name: true,
             },

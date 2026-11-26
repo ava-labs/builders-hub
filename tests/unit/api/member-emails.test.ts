@@ -24,7 +24,7 @@ vi.mock('@/server/services/projects', () => ({
 }));
 
 import { memberEmailFor } from '@/server/services/projectMembership';
-import { GetMembersByProjectId } from '@/server/services/memberProject';
+import { GetMembersByProjectId, GetProjectByIdWithMembers } from '@/server/services/memberProject';
 import { POST as createProject } from '@/app/api/projects/route';
 
 beforeEach(() => {
@@ -85,5 +85,14 @@ describe('POST /api/projects', () => {
       expect((await post(body)).status).toBe(400);
     }
     expect(db.createProjectWithMembers).not.toHaveBeenCalled();
+  });
+});
+
+describe('GetProjectByIdWithMembers', () => {
+  it('reads no account email and no Telegram name of a member', async () => {
+    db.projectFindUnique.mockResolvedValue({ id: 'project-1', members: [] });
+    await GetProjectByIdWithMembers('project-1');
+    const select = db.projectFindUnique.mock.calls[0][0].include.members.include.user.select;
+    expect(Object.keys(select).sort()).toEqual(['additional_social_accounts', 'bio', 'id', 'image', 'name', 'user_name']);
   });
 });
