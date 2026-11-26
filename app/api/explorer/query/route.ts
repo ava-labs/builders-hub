@@ -122,6 +122,14 @@ function overReads(req: Request, sql: string, chainId: number): NextResponse | n
   return limit.allowed ? null : NextResponse.json({ error: `This address has run ${limit.limit} queries this hour. Try again ${formatResetTime(limit.resetTime)}.` }, { status: 429 });
 }
 
+/** a 429 when this address has asked for too many layouts and readings this hour; null when the model may run. A
+    layout or a reading is a model call and, on an instance that did not answer, a read of the kept SQL again, and no
+    question is counted for it */
+function overLayouts(req: Request): NextResponse | null {
+  const limit = checkChatRateLimit(clientBucket(req), false, READS, "query-layout");
+  return limit.allowed ? null : NextResponse.json({ error: `This address has asked for ${limit.limit} layouts this hour. Try again ${formatResetTime(limit.resetTime)}.` }, { status: 429 });
+}
+
 /** the answer's read while it is fresh, else the kept SQL read again with its names and totals */
 async function readOf(key: string, sql: string, chainId: number, baseUrl: string): Promise<Read> {
   const hit = reads.get(key);
@@ -258,6 +266,8 @@ export async function POST(req: Request) {
     if (!recipe || !guardSql(recipe.sql, chainId).ok) return NextResponse.json({ error: "unknown answer" }, { status: 404 });
     // a kept layout: only its reading is written again, from fresh rows
     if (recipe.visual && body.reading) {
+      const over = overLayouts(req);
+      if (over) return over;
       const t0 = Date.now();
       counted("reader", recipe.question, body.key);
       try {
@@ -271,6 +281,8 @@ export async function POST(req: Request) {
       }
     }
     if (recipe.visual) return NextResponse.json({ visual: recipe.visual, designer: true, ms: 0 });
+    const over = overLayouts(req);
+    if (over) return over;
     counted("designer", recipe.question, body.key);
     try {
       const { result, names, totals, anchor } = await readOf(body.key, recipe.sql, chainId, baseUrl);
@@ -287,6 +299,8 @@ export async function POST(req: Request) {
 
   // rows the reader made by hand: laid out for this reader only, never kept
   if (body.design && Array.isArray(body.design.rows) && Array.isArray(body.design.columns)) {
+    const over = overLayouts(req);
+    if (over) return over;
     const d = body.design;
     const question = String(d.question ?? "").slice(0, 1500);
     counted("designer", question);

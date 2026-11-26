@@ -5,7 +5,8 @@ const isKept = vi.hoisted(() => vi.fn(() => false));
 
 vi.mock('@/lib/explorer-query/answer', () => ({ answerQuestion: vi.fn(), drillSql: vi.fn((sql: string) => ({ ok: true, sql })), keptWords: vi.fn() }));
 vi.mock('@/lib/explorer-query/run-cache', () => ({ runKept, isKept }));
-vi.mock('@/lib/explorer-query/visual', () => ({ designVisual: vi.fn() }));
+const designVisual = vi.hoisted(() => vi.fn());
+vi.mock('@/lib/explorer-query/visual', () => ({ designVisual }));
 vi.mock('@/lib/explorer-query/reading', () => ({ writeReading: vi.fn() }));
 vi.mock('@/lib/explorer-query/clickhouse', () => ({ runQuery: vi.fn(), anchored: vi.fn(), indexState: vi.fn(async () => null) }));
 vi.mock('@/lib/explorer-query/enrich', () => ({ nameRows: vi.fn(async () => ({})) }));
@@ -53,5 +54,21 @@ describe('reads with no model', () => {
   it("leave the address's questions their own budget", async () => {
     for (let i = 0; i < 121; i++) await post({ sql: SQL }, '198.51.100.4');
     expect(checkChatRateLimit('198.51.100.4', false).allowed).toBe(true);
+  });
+});
+
+describe('layouts a model writes', () => {
+  const design = { design: { question: 'q', columns: [{ name: 'n', type: 'UInt64' }], rows: [{ n: 1 }] } };
+
+  it('stop at 120 an hour per address, with a budget apart from the reads', async () => {
+    designVisual.mockReset().mockResolvedValue({ visual: { kind: 'table' }, fromDesigner: false, ms: 0, steps: 0 });
+    for (let i = 0; i < 120; i++) expect((await post(design, '198.51.100.5')).status).toBe(200);
+    const over = await post(design, '198.51.100.5');
+    expect(over.status).toBe(429);
+    expect((await over.json()).error).toMatch(/^This address has asked for 120 layouts this hour\. Try again /);
+    expect(designVisual).toHaveBeenCalledTimes(120);
+    // the address still has its reads, and another address its layouts
+    expect((await post({ sql: SQL }, '198.51.100.5')).status).toBe(200);
+    expect((await post(design, '198.51.100.6')).status).toBe(200);
   });
 });
