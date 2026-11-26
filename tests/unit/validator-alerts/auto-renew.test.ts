@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// the unsubscribe links of a notice are signed with the cron key
+vi.hoisted(() => {
+  vi.stubEnv('CRON_SECRET', 'test-key');
+});
+
 // Synthetic data only: example.com addresses and made-up ids.
 const mail = vi.hoisted(() => ({ sendMail: vi.fn() }));
 const rpc = vi.hoisted(() => ({ pchainPost: vi.fn() }));

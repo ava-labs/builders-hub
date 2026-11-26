@@ -1,4 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+// the unsubscribe links of a notice are signed with the cron key
+vi.hoisted(() => {
+  vi.stubEnv('CRON_SECRET', 'test-key');
+});
 import { groupNotices } from '@/scripts/notify-migration/map';
 import { legacyNotifyNoticeTemplate } from '@/server/templates/validator-alerts';
 import { generateUnsubscribeToken } from '@/server/services/unsubscribe-token';
@@ -73,5 +78,27 @@ describe('legacyNotifyNoticeTemplate', () => {
 
   it('has no em dash', () => {
     expect(`${notice.subject}${notice.html}${notice.text}`).not.toContain('\u2014');
+  });
+});
+
+describe('unsubscribe tokens', () => {
+  it('pass only for the alert they were made for', async () => {
+    const { verifyUnsubscribeToken } = await import('@/server/services/unsubscribe-token');
+    const token = generateUnsubscribeToken('a1');
+    expect(verifyUnsubscribeToken('a1', token)).toBe(true);
+    expect(verifyUnsubscribeToken('a2', token)).toBe(false);
+    expect(verifyUnsubscribeToken('a1', '')).toBe(false);
+    expect(verifyUnsubscribeToken('a1', `${token}0`)).toBe(false);
+  });
+
+  it('are not made, and do not pass, when no key is set', async () => {
+    const { verifyUnsubscribeToken } = await import('@/server/services/unsubscribe-token');
+    const token = generateUnsubscribeToken('a1');
+    vi.stubEnv('CRON_SECRET', '');
+    vi.stubEnv('VALIDATOR_ALERTS_API_KEY', '');
+    vi.stubEnv('NEXTAUTH_SECRET', '');
+    expect(verifyUnsubscribeToken('a1', token)).toBe(false);
+    expect(() => generateUnsubscribeToken('a1')).toThrow(/No key is set/);
+    vi.stubEnv('CRON_SECRET', 'test-key');
   });
 });
