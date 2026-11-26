@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { mayResetCache } from "@/lib/api/cache-bounds";
 import { getICMFlowData, getICMFlowDataBothSides, type IcmNetwork } from "@/lib/icm-clickhouse";
 
 interface ICMFlowData {
@@ -42,6 +43,7 @@ const cachedFlowData: Map<string, { data: ICMFlowResponse; timestamp: number }> 
 const CACHE_DURATION = 4 * 60 * 60 * 1000; // 4 hours
 // A both-sides answer that fell back to deliveries alone is kept only this long, so the next ask tries the sends again
 const PARTIAL_DURATION = 5 * 60 * 1000;
+const WINDOW_DAYS = [1, 7, 30, 90, 365, 3650];
 
 /* Opt-in: sides=both counts each direction once, as the larger of its sender's sends and its receiver's deliveries
    (lib/icm-clickhouse.ts getICMFlowDataBothSides); the city draws it. Without it, the flows are the receivers'
@@ -54,8 +56,12 @@ const networkOf = (searchParams: URLSearchParams): IcmNetwork => (searchParams.g
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const days = parseInt(searchParams.get('days') || '30', 10);
-    const clearCache = searchParams.get('clearCache') === 'true';
+    // the windows the pages ask for (components/explorer-v2/time-range.tsx): each window is one scan of the logs
+    const days = Number(searchParams.get('days') || '30');
+    if (!WINDOW_DAYS.includes(days)) {
+      return NextResponse.json({ error: `days is one of ${WINDOW_DAYS.join(', ')}` }, { status: 400 });
+    }
+    const clearCache = mayResetCache(searchParams);
     const sides = sidesOf(searchParams);
     const network = networkOf(searchParams);
     const key = `${network}|${days}|${sides}`;

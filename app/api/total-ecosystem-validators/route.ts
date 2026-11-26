@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { knownKey, mayResetCache } from '@/lib/api/cache-bounds';
 import l1ChainsData from "@/constants/l1-chains.json";
 import { TimeSeriesDataPoint, TimeSeriesMetric, STATS_CONFIG, getTimestampsFromTimeRange, createTimeSeriesMetric } from "@/types/stats";
 import { DEDICATED_STATS_BASE_URL } from '@/lib/dedicated-stats';
@@ -39,6 +40,8 @@ interface TotalEcosystemValidatorsResponse {
 }
 
 const cachedData = new Map<string, { data: TotalEcosystemValidatorsResponse; timestamp: number }>();
+// the windows the pages ask for; another value reads as the default, so it makes no key of its own
+const TIME_RANGE_KEYS = Object.keys(STATS_CONFIG.TIME_RANGES) as (keyof typeof STATS_CONFIG.TIME_RANGES)[];
 const revalidatingKeys = new Set<string>();
 const pendingRequests = new Map<string, Promise<TotalEcosystemValidatorsResponse | null>>();
 
@@ -219,9 +222,9 @@ function createResponse(
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const timeRange = searchParams.get('timeRange') || 'all';
+    const timeRange = knownKey(searchParams.get('timeRange'), TIME_RANGE_KEYS, 'all');
 
-    if (searchParams.get('clearCache') === 'true') {
+    if (mayResetCache(searchParams)) {
       cachedData.clear();
       revalidatingKeys.clear();
     }

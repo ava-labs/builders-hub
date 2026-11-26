@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { mayResetCache } from '@/lib/api/cache-bounds';
 import { STATS_CONFIG } from "@/types/stats";
 import { getChainICMCount } from "@/lib/icm-clickhouse";
 import { DEDICATED_STATS_BASE_URL, toStatsChainId } from "@/lib/dedicated-stats";
@@ -484,14 +485,14 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const timeRangeParam = searchParams.get('timeRange') || 'day';
-    const timeRange: TimeRangeKey = timeRangeParam in TIME_RANGE_CONFIG ? (timeRangeParam as TimeRangeKey) : 'day';
+    const timeRange: TimeRangeKey = Object.hasOwn(TIME_RANGE_CONFIG, timeRangeParam) ? (timeRangeParam as TimeRangeKey) : 'day';
     const network = searchParams.get('network') ?? 'mainnet';
     if (!isPchainNetwork(network)) {
       return createResponse({ error: `unknown network '${network}'` }, { source: 'error' }, 400);
     }
     const key = `${network}:${timeRange}`;
     
-    if (searchParams.get('clearCache') === 'true') {
+    if (mayResetCache(searchParams)) {
       cachedData.clear();
       chainDataCache.clear();
       revalidatingKeys.clear();

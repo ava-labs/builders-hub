@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { mayResetCache } from "@/lib/api/cache-bounds";
 import icttTokens from "@/constants/ictt-tokens.json";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { getGlobalICTTTransfers, type ICTTTransfer } from "@/lib/ictt-clickhouse";
@@ -100,7 +101,7 @@ async function fetchTokenPrices(
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const clearCache = searchParams.get("clearCache") === "true";
+    const clearCache = mayResetCache(searchParams);
     const limit = parseInt(searchParams.get("limit") || "100");
     const offset = parseInt(searchParams.get("offset") || "0");
 

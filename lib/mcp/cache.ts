@@ -1,6 +1,7 @@
 /**
  * Generic in-memory cache with TTL presets for the MCP server.
  */
+import { trimCache } from '@/lib/api/cache-bounds';
 
 // ---------------------------------------------------------------------------
 // Named TTL presets (milliseconds)
@@ -29,6 +30,8 @@ interface CacheEntry<T> {
 }
 
 const store = new Map<string, CacheEntry<unknown>>();
+// a tool call can put a caller's value in the key (a block height, an address): the store has a size
+const MAX_ENTRIES = 2_000;
 
 /**
  * Retrieve a cached value, or undefined if missing / expired.
@@ -47,7 +50,9 @@ export function getCached<T>(key: string, ttlMs: number): T | undefined {
  * Store a value in the cache.
  */
 export function setCache<T>(key: string, data: T): void {
+  store.delete(key);
   store.set(key, { data, timestamp: Date.now() });
+  trimCache(store, MAX_ENTRIES);
 }
 
 /**
