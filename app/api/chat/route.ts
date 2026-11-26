@@ -12,6 +12,7 @@ import {
   formatResetTime,
 } from '@/lib/chat/rateLimit';
 import { clientBucket } from '@/lib/net/clientIp';
+import { consumeQuota } from '@/lib/verification/limits';
 import { MAX_CHAT_MESSAGES, fitsChat, isClientMessage, loadNoUrls } from '@/lib/chat/client-messages';
 import { searchChannelVideos } from '@/lib/chat/channel-videos';
 import { searchTools, formatToolsForContext } from '@/lib/chat/tools-search';
@@ -290,6 +291,19 @@ export async function POST(req: Request) {
           ...createRateLimitHeaders(rateLimitResult),
         },
       }
+    );
+  }
+
+  // The counter above lives in one instance's memory. This one is shared (Redis, with a local fallback), so the
+  // limit holds over all instances.
+  const shared = await consumeQuota(`chat:${isAuthenticated ? 'auth' : 'anon'}:${identifier}`, {
+    limit: rateLimitResult.limit,
+    windowMs: 60 * 60 * 1000,
+  });
+  if (!shared.allowed) {
+    return new Response(
+      JSON.stringify({ error: 'Rate limit exceeded', message: 'Message limit reached. Please try again later.' }),
+      { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': String(shared.retryAfterSeconds) } },
     );
   }
 
