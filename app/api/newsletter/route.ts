@@ -2,6 +2,13 @@ import { NextResponse } from 'next/server';
 import { isHubSpotEnabled, skipHubSpot } from '@/server/services/hubspot';
 import { z } from 'zod';
 import { readJsonBody } from '@/lib/api/json-body';
+import { isValidEmail } from '@/lib/email';
+import { clientBucket } from '@/lib/net/clientIp';
+import { normalizeEmail } from '@/lib/utils';
+import { consumeQuota } from '@/lib/verification/limits';
+
+// Sign-ups one client address may send: each one writes a consent record for the address it names.
+const SIGNUPS_PER_CLIENT = { limit: 20, windowMs: 60 * 60 * 1000 };
 
 const HUBSPOT_API_KEY = process.env.HUBSPOT_API_KEY;
 const HUBSPOT_PORTAL_ID = process.env.HUBSPOT_PORTAL_ID;
@@ -36,13 +43,19 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-    console.log('Received newsletter signup:', formData);
-
     if (!formData.email) {
       return NextResponse.json(
         { success: false, message: 'Email is required' },
         { status: 400 }
       );
+    }
+    formData.email = normalizeEmail(formData.email);
+    if (!isValidEmail(formData.email)) {
+      return NextResponse.json({ success: false, message: 'Enter a valid email address.' }, { status: 400 });
+    }
+    const client = await consumeQuota(`newsletter:${clientBucket(request)}`, SIGNUPS_PER_CLIENT);
+    if (!client.allowed) {
+      return NextResponse.json({ success: false, message: 'Too many sign-ups. Try again later.' }, { status: 429 });
     }
 
     const hubspotPayload = {

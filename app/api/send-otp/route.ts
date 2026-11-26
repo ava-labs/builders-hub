@@ -4,6 +4,12 @@ import { normalizeEmail } from '@/lib/utils';
 import { isValidEmail } from '@/lib/email';
 import { z } from 'zod';
 import { readJsonBody } from '@/lib/api/json-body';
+import { clientBucket } from '@/lib/net/clientIp';
+import { consumeQuota } from '@/lib/verification/limits';
+
+// Codes one client address may ask for, over every email address. The count per email address is in sendOTP. The
+// number is high enough for a room of people behind one address.
+const SENDS_PER_CLIENT = { limit: 120, windowMs: 10 * 60 * 1000 };
 
 // The address format check stays in the handler (isValidEmail).
 const bodySchema = z.object({
@@ -49,6 +55,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Enter a valid email address.' },
         { status: 400 }
+      );
+    }
+
+    const client = await consumeQuota(`otp-send:${clientBucket(request)}`, SENDS_PER_CLIENT);
+    if (!client.allowed) {
+      return NextResponse.json(
+        { error: 'Too many codes requested from this network. Try again in a few minutes.' },
+        { status: 429, headers: { 'Retry-After': String(client.retryAfterSeconds) } }
       );
     }
 
