@@ -9,6 +9,7 @@ const db = vi.hoisted(() => ({
   memberFindMany: vi.fn(),
   memberUpdateMany: vi.fn(),
   createProjectWithMembers: vi.fn(),
+  getFilteredProjects: vi.fn(),
 }));
 
 vi.mock('@/prisma/prisma', () => ({
@@ -17,18 +18,22 @@ vi.mock('@/prisma/prisma', () => ({
     member: { findMany: db.memberFindMany, updateMany: db.memberUpdateMany },
   },
 }));
-vi.mock('@/lib/auth/authSession', () => ({ getAuthSession: async () => ({ user: { id: 'me', email: 'me@example.com' } }) }));
+const roles = vi.hoisted(() => ({ list: [] as string[] }));
+vi.mock('@/lib/auth/authSession', () => ({
+  getAuthSession: async () => ({ user: { id: 'me', email: 'me@example.com', custom_attributes: roles.list } }),
+}));
 vi.mock('@/server/services/projects', () => ({
   createProjectWithMembers: db.createProjectWithMembers,
-  getFilteredProjects: vi.fn(),
+  getFilteredProjects: db.getFilteredProjects,
 }));
 
 import { memberEmailFor } from '@/server/services/projectMembership';
 import { GetMembersByProjectId, GetProjectByIdWithMembers } from '@/server/services/memberProject';
-import { POST as createProject } from '@/app/api/projects/route';
+import { GET as listProjects, POST as createProject } from '@/app/api/projects/route';
 
 beforeEach(() => {
   for (const fn of Object.values(db)) fn.mockReset();
+  roles.list = [];
 });
 
 describe('memberEmailFor', () => {
@@ -94,5 +99,26 @@ describe('GetProjectByIdWithMembers', () => {
     await GetProjectByIdWithMembers('project-1');
     const select = db.projectFindUnique.mock.calls[0][0].include.members.include.user.select;
     expect(Object.keys(select).sort()).toEqual(['additional_social_accounts', 'bio', 'id', 'image', 'name', 'user_name']);
+  });
+});
+
+describe('GET /api/projects', () => {
+  const list = (query = '') => listProjects(new NextRequest(`http://localhost/api/projects${query}`), {});
+
+  it('lists all projects only for the showcase role, as the showcase page does', async () => {
+    expect((await list()).status).toBe(403);
+    expect(db.getFilteredProjects).not.toHaveBeenCalled();
+    roles.list = ['showcase'];
+    db.getFilteredProjects.mockResolvedValue({ projects: [], total: 0 });
+    expect((await list('?page=2&pageSize=50')).status).toBe(200);
+    expect(db.getFilteredProjects).toHaveBeenCalledWith({ page: 2, pageSize: 50, search: undefined, event: undefined });
+  });
+
+  it('refuses a page size above the cap, and a page that is no number', async () => {
+    roles.list = ['devrel'];
+    for (const query of ['?pageSize=100000', '?pageSize=0', '?pageSize=-5', '?page=0', '?page=x', '?pageSize=x']) {
+      expect((await list(query)).status, query).toBe(400);
+    }
+    expect(db.getFilteredProjects).not.toHaveBeenCalled();
   });
 });

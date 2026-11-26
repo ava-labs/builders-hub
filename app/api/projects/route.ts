@@ -2,14 +2,26 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createProjectWithMembers, getFilteredProjects, GetProjectOptions } from '@/server/services/projects';
 import { withAuth } from '@/lib/protectedRoute';
 import { MemberStatus } from "@/types/project";
+import { hasShowcaseRole } from '@/lib/auth/roles';
 import { z } from 'zod';
+
+/* The list of all projects is the showcase's data: the page asks for the showcase role, and so does this read. */
+const MAX_PAGE_SIZE = 100;
 
 export const GET = withAuth(async (req: NextRequest, context: any, session: any) => {
   try {
+    if (!hasShowcaseRole(session.user.custom_attributes)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
     const searchParams = req.nextUrl.searchParams;
+    const page = Math.floor(Number(searchParams.get('page') || 1));
+    const pageSize = Math.floor(Number(searchParams.get('pageSize') || 12));
+    if (!(page >= 1) || !(pageSize >= 1) || pageSize > MAX_PAGE_SIZE) {
+      return NextResponse.json({ error: `page starts at 1, and pageSize is 1 to ${MAX_PAGE_SIZE}` }, { status: 400 });
+    }
     const options: GetProjectOptions = {
-      page: Number(searchParams.get('page') || 1),
-      pageSize: Number(searchParams.get('pageSize') || 12),
+      page,
+      pageSize,
       search: searchParams.get('search') || undefined,
       event: searchParams.get('events') || undefined,
     };
