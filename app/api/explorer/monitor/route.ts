@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { readJsonBody } from "@/lib/api/json-body";
 import { siteBaseUrl } from "@/lib/chat/site-url";
-import { getClientIP } from "@/lib/chat/rateLimit";
+import { clientBucket } from "@/lib/net/clientIp";
 import { checkedSpec, monitorTokens, readMonitor } from "@/lib/explorer-query/monitor-feed";
 
 /* A Query monitor's feed (lib/explorer-query/monitor.ts): POST { spec, from? } reads the chain's RPC from block
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
   if (!spec) return NextResponse.json({ error: "not a monitor this chain can read" }, { status: 400 });
   const from = body.from === undefined || body.from === null ? null : Number(body.from);
   if (from !== null && (!Number.isInteger(from) || from < 0)) return NextResponse.json({ error: "from is a block number" }, { status: 400 });
-  if (!allow(getClientIP(req))) return NextResponse.json({ error: "Too many reads. The monitor tries again shortly." }, { status: 429 });
+  if (!allow(clientBucket(req))) return NextResponse.json({ error: "Too many reads. The monitor tries again shortly." }, { status: 429 });
   try {
     const tokens = spec.token ? undefined : await monitorTokens(spec.chainId, siteBaseUrl());
     const read = await readMonitor(spec, from, tokens);

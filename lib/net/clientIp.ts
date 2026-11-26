@@ -74,3 +74,9 @@ export function rateBucket(ip: string): string {
   const groups = ip.includes('::') ? [...left, ...Array(Math.max(0, 8 - left.length - right.length)).fill('0'), ...right] : left;
   return `${groups.slice(0, 4).map((g) => g.replace(/^0+(?=.)/, '') || '0').join(':')}::/64`;
 }
+
+/** The rate-limit bucket of a request: its client IP from the edge's headers, as a bucket. A request header that the
+ *  client sets (Origin, X-Forwarded-For) has no part in it, so a caller cannot choose a new bucket. */
+export function clientBucket(request: Request): string {
+  return rateBucket(getClientIP(request));
+}

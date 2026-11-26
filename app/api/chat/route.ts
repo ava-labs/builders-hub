@@ -8,10 +8,10 @@ import { embedQuery, analyzeQueryIntent } from '@/lib/embeddings';
 import { getAuthSession } from '@/lib/auth/authSession';
 import {
   checkChatRateLimit,
-  getClientIP,
   createRateLimitHeaders,
   formatResetTime,
 } from '@/lib/chat/rateLimit';
+import { clientBucket } from '@/lib/net/clientIp';
 import { searchTools, formatToolsForContext } from '@/lib/chat/tools-search';
 import { docsTools, githubTools } from '@/lib/mcp/tools';
 import { componentNames, getCatalogDescription } from '@/lib/chat/catalog';
@@ -264,7 +264,7 @@ export async function POST(req: Request) {
   // Check rate limit based on authentication status
   const session = await getAuthSession();
   const isAuthenticated = !!session?.user?.id;
-  const identifier = isAuthenticated ? session.user.id : getClientIP(req);
+  const identifier = isAuthenticated ? session.user.id : clientBucket(req);
 
   const rateLimitResult = checkChatRateLimit(identifier, isAuthenticated);
 

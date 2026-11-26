@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { getClientId } from '@/lib/mcp-rate-limit';
+import { clientBucket } from '@/lib/net/clientIp';
 import { checkRateLimit } from '@/lib/rateLimit';
 import { StudioError } from '@/server/services/studio/errors';
 import { publicSite } from '@/server/services/studio/sites';
@@ -13,7 +13,7 @@ const LIMIT = { windowMs: 60_000, maxRequests: 60 };
 /** Token data for a published site's visitors, scoped to the contracts and chains that site was published with. */
 export async function GET(request: NextRequest, { params }: { params: Promise<{ owner: string; site: string }> }) {
   const { owner, site } = await params;
-  const limit = checkRateLimit(`builder-tokens:${getClientId(request)}`, LIMIT);
+  const limit = checkRateLimit(`builder-tokens:${clientBucket(request)}`, LIMIT);
   if (!limit.allowed)
     return NextResponse.json({ error: 'rate_limited', message: 'Too many requests' }, { status: 429 });
 

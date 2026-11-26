@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { getClientId } from '@/lib/mcp-rate-limit';
+import { clientBucket } from '@/lib/net/clientIp';
 import { checkRateLimit } from '@/lib/rateLimit';
 
 /* The same-origin relay for the Avalanche public API. iOS WebKit can refuse the CORS preflight that every JSON-RPC
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const namespace = ENDPOINTS[endpoint];
   if (!host || !namespace) return fail(404, 'Unknown endpoint');
 
-  if (!checkRateLimit(`avalanche-api:${getClientId(request)}`, LIMIT).allowed) return fail(429, 'Too many requests');
+  if (!checkRateLimit(`avalanche-api:${clientBucket(request)}`, LIMIT).allowed) return fail(429, 'Too many requests');
 
   const body = await request.text();
   if (body.length > MAX_BODY) return fail(413, 'Request too large');

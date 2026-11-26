@@ -1,6 +1,6 @@
 import "server-only";
 import { after, NextRequest, NextResponse } from "next/server";
-import { getClientId } from "@/lib/mcp-rate-limit";
+import { clientBucket } from "@/lib/net/clientIp";
 import { knownChain, isAddress } from "./chains";
 import { submitVerification, type StandardJsonInput } from "./service";
 import { findVerified, getJob, readStandardJsonInput } from "./store";
@@ -182,7 +182,7 @@ async function verifySourceCode(
       normalizeConstructorArgs(params.get("constructorArguments")) ??
       // Etherscan's own docs have carried this typo for years and tools copied it.
       normalizeConstructorArgs(params.get("constructorArguements")),
-    clientId: getClientId(request),
+    clientId: clientBucket(request),
   });
 
   if (!result.ok) {

@@ -24,7 +24,8 @@ import { isKept, runKept } from "@/lib/explorer-query/run-cache";
 import { profileSql, type DrillProfile } from "@/lib/explorer-query/drill-profile";
 import { sourceNotes } from "@/lib/explorer-query/sources";
 import { NETWORK_ID, NETWORK_SLUG, targetOf } from "@/lib/explorer-query/target";
-import { checkChatRateLimit, formatResetTime, getClientIP, type RateLimits } from "@/lib/chat/rateLimit";
+import { checkChatRateLimit, formatResetTime, type RateLimits } from "@/lib/chat/rateLimit";
+import { clientBucket } from "@/lib/net/clientIp";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { TRACE, askerOf, sendQuestion, sendStage, sourceOf, type Asked, type Asker, type Stage } from "@/lib/explorer-query/analytics";
 import type { ModelCall } from "@/lib/explorer-query/meter";
@@ -117,7 +118,7 @@ const READS: RateLimits = { anonymous: { maxRequests: 120, windowMs: 3600_000 },
 /** a 429 when this address has run too many reads the run cache did not answer; null when the read may run */
 function overReads(req: Request, sql: string, chainId: number): NextResponse | null {
   if (isKept(sql, chainId)) return null;
-  const limit = checkChatRateLimit(getClientIP(req), false, READS, "query-read");
+  const limit = checkChatRateLimit(clientBucket(req), false, READS, "query-read");
   return limit.allowed ? null : NextResponse.json({ error: `This address has run ${limit.limit} queries this hour. Try again ${formatResetTime(limit.resetTime)}.` }, { status: 429 });
 }
 
@@ -339,7 +340,7 @@ export async function POST(req: Request) {
   // a suggestion runs its fixed SQL and asks no model: it is a read, counted with the reads and not with the questions.
   // Any other question takes the same budget as the chat: model calls are the cost there
   const fixed = history.length === 0 && !!fixedRecipe(chainId, prompt, symbol);
-  const limit = fixed ? checkChatRateLimit(getClientIP(req), false, READS, "query-read") : checkChatRateLimit(isAuthenticated ? session!.user!.id! : getClientIP(req), isAuthenticated);
+  const limit = fixed ? checkChatRateLimit(clientBucket(req), false, READS, "query-read") : checkChatRateLimit(isAuthenticated ? session!.user!.id! : clientBucket(req), isAuthenticated);
   if (!limit.allowed) {
     // signed out, the reader can lift the question limit now: the page offers sign-in
     const when = formatResetTime(limit.resetTime);
