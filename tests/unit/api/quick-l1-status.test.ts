@@ -32,4 +32,12 @@ describe('GET /api/quick-l1/status/:jobId', () => {
     for (const id of ['x/../../openapi.json', '..', 'a\\b', 'a/b', 'x'.repeat(129)]) expect((await get(id)).status, id).toBe(404);
     expect(fetchMock).not.toHaveBeenCalled();
   });
+  it('leaves an address inside the cluster out of a failed step', async () => {
+    fetchMock.mockImplementation(
+      async () => Response.json({ status: 'failed', error: 'no answer from http://node-api.managed.svc:3454/ext/bc/abc/rpc after 60 s' }),
+    );
+    const body = await (await get('job_abc')).json();
+    expect(body.error).toBe('no answer from the node service/ext/bc/abc/rpc after 60 s');
+    expect(body.status).toBe('failed');
+  });
 });

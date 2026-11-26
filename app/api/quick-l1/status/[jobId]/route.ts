@@ -49,7 +49,9 @@ export async function GET(
         'x-user-id': userId,
       },
     });
-    const text = await res.text();
+    // A failed step can name the address the deploy service used inside the cluster. The caller gets the text
+    // with that address left out.
+    const text = (await res.text()).replace(/https?:\/\/[a-z0-9.-]+:\d+/gi, 'the node service');
     return new NextResponse(text, {
       status: res.status,
       headers: { 'content-type': res.headers.get('content-type') ?? 'application/json' },
