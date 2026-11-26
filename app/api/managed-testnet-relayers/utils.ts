@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAuthSession } from '@/lib/auth/authSession';
 import { ServiceErrorSchema } from './types';
-import { validatePublicRpcUrl } from '@/app/api/console/l1-upgrade/rpc-utils';
+import { validatePublicRpcUrl } from '@/lib/net/public-host';
 
 export async function getUserId(): Promise<{ userId: string | null; error?: NextResponse }> {
   const session = await getAuthSession();
