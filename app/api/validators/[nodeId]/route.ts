@@ -48,7 +48,8 @@ export async function GET(
   try {
     const { nodeId } = await params;
 
-    if (!nodeId || !nodeId.startsWith('NodeID-')) {
+    // NodeID- and the ID in base58: one path segment of the upstream, with no slash, dot or percent sign
+    if (!nodeId || !/^NodeID-[1-9A-HJ-NP-Za-km-z]{1,60}$/.test(nodeId)) {
       return NextResponse.json(
         { error: 'Invalid Node ID format. Expected format: NodeID-xxx' },
         { status: 400 }

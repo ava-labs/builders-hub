@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { toStatsChainId } from "@/lib/dedicated-stats";
 import { softStatus } from "@/lib/explorer-soft-status";
 import { isCrawler } from "@/lib/net/crawler";
 import { getTrace, type TraceMiss } from "@/lib/trace-stats";
@@ -24,6 +25,7 @@ const STATUS: Record<TraceMiss, number> = {
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ chainId: string; txHash: string }> }) {
   const { chainId, txHash } = await params;
+  if (!/^\d{1,12}$/.test(toStatsChainId(chainId))) return NextResponse.json({ error: "invalid chain" }, { status: 400 });
   const hash = txHash.toLowerCase();
   if (!/^0x[0-9a-f]{64}$/.test(hash)) return NextResponse.json({ error: "invalid transaction hash" }, { status: 400 });
   const raw = req.nextUrl.searchParams.get("block") ?? "";

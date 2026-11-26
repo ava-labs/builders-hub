@@ -771,7 +771,8 @@ export async function GET(
     const resolvedParams = await params;
     const chainId = resolvedParams.chainId;
     
-    if (!chainId) {
+    // a chain ID, or a word such as "all": it is one path segment of the metrics API
+    if (!chainId || !/^[A-Za-z0-9_-]{1,64}$/.test(chainId)) {
       return createResponse({ error: 'Chain ID is required' }, { source: 'error' }, 400);
     }
 

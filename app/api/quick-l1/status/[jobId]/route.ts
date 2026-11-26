@@ -3,6 +3,7 @@ import { getMockJob } from '@/lib/quick-l1/mock-orchestrator';
 import type { DeploymentJob } from '@/lib/quick-l1/types';
 import { getUserId } from '@/app/api/managed-testnet-nodes/utils';
 import { withQuickL1WafToken } from '@/lib/quick-l1/waf';
+import { upstreamPath } from '@/lib/explorer-proxy-path';
 
 /**
  * GET /api/quick-l1/status/:jobId
@@ -26,6 +27,10 @@ export async function GET(
   }
 
   const { jobId } = await params;
+  // a job ID is one path segment of the deploy service's status route, and it goes there with the service's secret
+  if (jobId.length > 128 || upstreamPath([jobId]) === null) {
+    return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+  }
 
   const upstream = process.env.QUICK_L1_SERVICE_URL;
   if (upstream) {

@@ -63,3 +63,30 @@ describe('the Explorer proxies', () => {
     expect(new URL(String(fetchMock.mock.calls[0][0])).pathname).toBe(`${prefix}tx/${HASH}`);
   });
 });
+
+describe('routes that put one request value into an upstream path', () => {
+  const fetchMock = vi.fn();
+  beforeEach(() => {
+    fetchMock.mockReset().mockImplementation(async () => new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } }));
+    vi.stubGlobal('fetch', fetchMock);
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  const STEERED = '43114/../../evm-api/chains?';
+
+  it('refuse a value that is not of its format, before any fetch', async () => {
+    const { GET: validators } = await import('@/app/api/validators/[nodeId]/route');
+    const { GET: activity } = await import('@/app/api/pchain-activity/[network]/route');
+    const { GET: trace } = await import('@/app/api/trace/[chainId]/[txHash]/route');
+    const { GET: icm } = await import('@/app/api/explorer/[chainId]/icm/route');
+    const { GET: stats } = await import('@/app/api/chain-stats/[chainId]/route');
+    const req = (url: string) => new NextRequest(`http://localhost${url}`);
+
+    expect((await validators(req('/api/validators/x'), { params: Promise.resolve({ nodeId: 'NodeID-/../../../evm-api/chains' }) })).status).toBe(400);
+    expect((await activity(req('/api/pchain-activity/x'), { params: Promise.resolve({ network: STEERED }) })).status).toBe(404);
+    expect((await trace(req(`/api/trace/x/${HASH}?block=1`), { params: Promise.resolve({ chainId: STEERED, txHash: HASH }) })).status).toBe(400);
+    expect((await icm(req('/api/explorer/x/icm'), { params: Promise.resolve({ chainId: STEERED }) })).status).toBe(400);
+    expect((await stats(req('/api/chain-stats/x'), { params: Promise.resolve({ chainId: STEERED }) })).status).toBe(400);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
