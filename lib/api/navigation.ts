@@ -8,5 +8,6 @@
  * header and is not a page load.
  */
 export function isNavigation(request: Request): boolean {
-  return request.headers.get('sec-fetch-mode') === 'navigate';
+  // a request with no headers at all (a test's stand-in) is not a page load
+  return request.headers?.get('sec-fetch-mode') === 'navigate';
 }
