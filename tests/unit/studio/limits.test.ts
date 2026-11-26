@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /* What a builder can make the server spend has a limit that the builder cannot clear: each call to the model and each
    compile is counted on its own, a compile takes one of the compiler's slots, and a project's parameters and its file
-   paths, which go to the model on each step, have a size. */
+   paths, which go to the model on each step, have a size. An archived project's public site comes down with it. */
 
 const { consumeQuota, acquireCompileSlot, compileSources, prisma } = vi.hoisted(() => ({
   consumeQuota: vi.fn(),
@@ -11,6 +11,8 @@ const { consumeQuota, acquireCompileSlot, compileSources, prisma } = vi.hoisted(
   prisma: {
     studioMessage: { count: vi.fn(), findMany: vi.fn() },
     studioProject: { findFirst: vi.fn(), update: vi.fn() },
+    studioSite: { deleteMany: vi.fn() },
+    $transaction: vi.fn(),
   },
 }));
 
@@ -21,7 +23,7 @@ vi.mock('@/lib/blueprints', () => ({ listBlueprintIds: () => [], loadBlueprint: 
 
 import { compileForBuilder } from '@/server/services/studio/compile-limit';
 import { readFile } from '@/server/services/studio/files';
-import { updateProject } from '@/server/services/studio/projects';
+import { archiveProject, updateProject } from '@/server/services/studio/projects';
 import { assertChatQuota } from '@/server/services/studio/quota';
 import { planImport } from '@/lib/studio/import';
 import { MAX_STUDIO_PARAMS_CHARS, MAX_STUDIO_PATH_CHARS } from '@/types/studio';
@@ -36,6 +38,7 @@ beforeEach(() => {
   prisma.studioMessage.findMany.mockResolvedValue([]);
   prisma.studioProject.findFirst.mockResolvedValue(PROJECT);
   prisma.studioProject.update.mockImplementation((args: unknown) => args);
+  prisma.studioSite.deleteMany.mockImplementation((args: unknown) => ({ deleteSite: args }));
 });
 
 describe('the chat quota', () => {
@@ -101,5 +104,16 @@ describe('sizes that go to the model', () => {
     ]);
     expect(plan.skipped.map((f) => f.reason)).toEqual(['folder or file name Studio cannot store']);
     expect(plan.files.map((f) => f.path)).toEqual(['contracts/Token.sol']);
+  });
+});
+
+describe('archiving a project', () => {
+  it('removes its public site in the same transaction', async () => {
+    await archiveProject('me', 'proj-1');
+    expect(prisma.studioSite.deleteMany).toHaveBeenCalledWith({ where: { project_id: 'proj-1' } });
+    const [steps] = prisma.$transaction.mock.calls[0];
+    expect(steps).toHaveLength(2);
+    expect(steps[0]).toEqual({ deleteSite: { where: { project_id: 'proj-1' } } });
+    expect(steps[1].data.archived_at).toBeInstanceOf(Date);
   });
 });

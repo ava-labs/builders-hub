@@ -115,7 +115,11 @@ export async function addBlueprint(userId: string, projectId: string, blueprintI
 
 export async function archiveProject(userId: string, projectId: string) {
   const project = await getOwnedProject(userId, projectId);
-  await prisma.studioProject.update({ where: { id: project.id }, data: { archived_at: new Date() } });
+  // the public site of an archived project comes down with it: no Studio route can reach the project after this
+  await prisma.$transaction([
+    prisma.studioSite.deleteMany({ where: { project_id: project.id } }),
+    prisma.studioProject.update({ where: { id: project.id }, data: { archived_at: new Date() } }),
+  ]);
 }
 
 /** Everything the workspace shows on load, in one round trip. */
