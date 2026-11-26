@@ -12,6 +12,7 @@ import {
   formatResetTime,
 } from '@/lib/chat/rateLimit';
 import { clientBucket } from '@/lib/net/clientIp';
+import { MAX_CHAT_MESSAGES, fitsChat, isClientMessage, loadNoUrls } from '@/lib/chat/client-messages';
 import { searchTools, formatToolsForContext } from '@/lib/chat/tools-search';
 import { docsTools, githubTools } from '@/lib/mcp/tools';
 import { componentNames, getCatalogDescription } from '@/lib/chat/catalog';
@@ -28,14 +29,11 @@ import { siteBaseUrl } from '@/lib/chat/site-url';
 import { CHAT_MODEL, CHAT_SETTINGS, withoutReasoning } from '@/lib/chat/model';
 
 /* The envelope the chat clients send (AI SDK UI messages, plus the options the
-   bubble and the chat page add). Each message is checked to be an object with a
-   text role; its parts change with the SDK and are read by the SDK itself. */
+   bubble and the chat page add). Each message is a turn of the reader or of the
+   assistant with no file part (lib/chat/client-messages.ts); the other parts
+   change with the SDK and are read by the SDK itself. */
 const chatBodySchema = z.object({
-  messages: z.array(
-    z.custom<UIMessage>(
-      (m) => typeof m === 'object' && m !== null && 'role' in m && typeof m.role === 'string'
-    )
-  ),
+  messages: z.array(z.custom<UIMessage>(isClientMessage)).max(MAX_CHAT_MESSAGES),
   id: z.string().optional(),
   source: z.string().optional(),
   page: z
@@ -252,6 +250,12 @@ export async function POST(req: Request) {
     });
   }
   const { messages, id: visitorId, source, page } = body;
+  if (!fitsChat(messages)) {
+    return new Response(
+      JSON.stringify({ error: 'Conversation too long', message: 'This conversation is too long. Start a new chat.' }),
+      { status: 413, headers: { 'Content-Type': 'application/json' } },
+    );
+  }
   const isBubble = source === 'bubble';
   // the page the visitor has open: identity for the prompt, data on demand
   const pageRef = parsePageRef(page?.path);
@@ -602,6 +606,7 @@ export async function POST(req: Request) {
   result = streamText({
     model: anthropic(CHAT_MODEL),
     ...CHAT_SETTINGS,
+    experimental_download: loadNoUrls,
     messages: [
       {
         role: 'system',
