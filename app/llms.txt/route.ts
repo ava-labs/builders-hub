@@ -1,4 +1,4 @@
-import { documentation, academy, integration, blog } from '@/lib/source';
+import { documentation, integration, blog, publicAcademyPages } from '@/lib/source';
 
 // Helper to group pages by top-level section
 function groupPagesBySection(pages: Array<{ url: string; data: { title: string; description?: string } }>) {
@@ -38,7 +38,7 @@ export async function GET() {
 
   // Get all pages from each source
   const docPages = documentation.getPages();
-  const academyPages = academy.getPages();
+  const academyPages = publicAcademyPages();
   const integrationPages = integration.getPages();
   const blogPages = blog.getPages();
 

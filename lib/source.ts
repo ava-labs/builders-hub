@@ -1,4 +1,5 @@
 import { createMDXSource } from 'fumadocs-mdx/runtime/next';
+import { withoutTeam1 } from '@/lib/auth/normalize-path';
 import {
   type InferMetaType,
   type InferPageType,
@@ -96,6 +97,10 @@ export const academy = loader({
   },
   source: createMDXSource(course, courseMeta as any),
 });
+
+/** The Academy pages any reader may have: every page but the Team1 course's, which needs a role (lib/auth/roles.ts).
+ *  The text exports, the search index and the MCP tools answer with no session, so they read this list. */
+export const publicAcademyPages = () => withoutTeam1(academy.getPages());
 
 export function getAcademyTree(prefix: string) {
   const fullTree = academy.pageTree;

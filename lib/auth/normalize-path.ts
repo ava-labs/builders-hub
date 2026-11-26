@@ -36,3 +36,8 @@ export function normalizePathname(pathname: string): string {
 export function isTeam1Slug(slug: readonly string[] | undefined): boolean {
   return normalizePathname((slug ?? []).join('/')).split('/')[1] === 'team1';
 }
+
+/** The pages any reader may have: all but the Team1 Academy's. For a list that is served with no session. */
+export function withoutTeam1<P extends { slugs: readonly string[] }>(pages: readonly P[]): P[] {
+  return pages.filter((page) => !isTeam1Slug(page.slugs));
+}
