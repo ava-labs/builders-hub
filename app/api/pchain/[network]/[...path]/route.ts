@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { EXPLORER_API_BASE, isPchainNetwork } from "@/lib/pchain-explorer";
+import { BAD_PATH, upstreamPath } from "@/lib/explorer-proxy-path";
 import { softStatus } from "@/lib/explorer-soft-status";
 
 // Server-side proxy to the P-chain explorer API (plain HTTP on an IP). The
@@ -49,7 +50,8 @@ export async function GET(
     return NextResponse.json({ error: `unknown network '${network}'` }, { status: 404 });
   }
 
-  const resource = (path ?? []).map(encodeURIComponent).join("/");
+  const resource = upstreamPath(path);
+  if (resource === null) return NextResponse.json(BAD_PATH.body, BAD_PATH.init);
   const search = req.nextUrl.search; // forward ?limit=, ?before=, ?q=, …
   const upstream = `${EXPLORER_API_BASE}/api/${network}/${resource}${search}`;
 
