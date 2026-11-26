@@ -161,6 +161,10 @@ const usage = (chainId: number) =>
 const quoted = (xs: readonly string[]) => xs.map((s) => `'${s}'`).join(", ");
 /** a quoted word, as a slug is; a quoted date is a DateTime */
 const WORD = /^'([a-z][\w-]*)'$/i;
+/** what a window's start or end does not hold outside a string. Each WITH writes it into a comparison beside its
+    other filters (block_time >= start), so a word or a sign that ends the comparison, an alias or a query of its own
+    would change what the WITH reads */
+const NOT_A_TIME = /\b(OR|AND|NOT|XOR|IN|AS|IS|BETWEEN|LIKE|ILIKE|SELECT|FROM|WITH|GLOBAL)\b|[<>=!?:]/i;
 /** a date in quotes is a DateTime, so the price's hour before it can be taken */
 const time = (a: string) => (/^'[^']*'$/.test(a) ? `toDateTime(${a})` : a);
 
@@ -220,6 +224,10 @@ export function expandMacros(sql: string, chainId: number): Expanded {
   }
   if (close < 0) return { ok: false, error: `$${name}( is not closed: ${usage(chainId)}` };
   const args = [open, ...cuts].map((at, j) => sql.slice(at + 1, cuts[j] ?? close).trim()).filter((a, _j, all) => a !== "" || all.length > 1);
+  // read with its strings blanked, so a word inside a quoted date is text
+  const wrong = [open, ...cuts].map((at, j) => blank.slice(at + 1, cuts[j] ?? close)).find((a) => NOT_A_TIME.test(a));
+  if (wrong !== undefined)
+    return { ok: false, error: `$${name} takes a time for the window's start and its end, such as now() - INTERVAL 7 DAY, toStartOfDay(now()) or a date in quotes: no comparison, AND, OR, AS or SELECT in it` };
   const slugs = macro.slugs();
   // a slug comes last, a quoted word; the start and the end come first
   const last = args[args.length - 1];

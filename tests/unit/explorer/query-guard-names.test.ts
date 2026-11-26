@@ -89,6 +89,20 @@ describe('text ClickHouse would read another way than the guard', () => {
     expect(error(`SELECT 'Trader Joe\u2019s' AS dex, count() AS n FROM raw_blocks WHERE chain_id = 43114 AND ${W}`)).toBe('');
   });
 
+  it("is refused for a shorthand's window that is more than a time, which would change what its WITH reads", () => {
+    const TIME = /takes a time for the window's start and its end/;
+    const sends = 'SELECT count() AS n FROM ictt_sends';
+    expect(error(`$ICTT(now() - INTERVAL 1 DAY OR 1 = 1) ${sends}`)).toMatch(TIME);
+    expect(error(`$ICTT(now() - INTERVAL 1 DAY, now() AND 1) ${sends}`)).toMatch(TIME);
+    expect(error(`$ICTT(toDateTime(if((43114 AS chain_id) > 0, 0, 0))) ${sends}`)).toMatch(TIME);
+    expect(error(`$ICTT((SELECT min(block_time) FROM raw_logs)) ${sends}`)).toMatch(TIME);
+    expect(error(`$DEX(now() - INTERVAL 1 DAY OR true) SELECT count() AS n FROM legs`)).toMatch(TIME);
+    // a time as a writer writes it, and a word inside a quoted date, still pass
+    expect(error(`$ICTT(toStartOfDay(now()) - INTERVAL 7 DAY, toStartOfDay(now())) ${sends}`)).toBe('');
+    expect(error(`$ICTT('2026-01-01 00:00:00') ${sends}`)).toBe('');
+    expect(error(`$ICTT() SELECT count() AS n FROM ictt_bridges`)).toBe('');
+  });
+
   it('is refused past the length cap before any other check reads it', () => {
     const long = `SELECT 1 FROM raw_blocks WHERE ${'address IN ('.repeat(20_000)}`;
     const start = performance.now();
