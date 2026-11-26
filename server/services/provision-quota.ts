@@ -5,7 +5,8 @@ import { prisma } from '@/prisma/prisma';
 /*
  * Daily per-account caps on what Builder Hub provisions with its own service
  * credentials: Quick L1 deployments (a managed validator node and contracts on
- * Fuji, signed by the Quick L1 service) and managed testnet nodes.
+ * Fuji, signed by the Quick L1 service), managed testnet nodes and managed
+ * testnet relayers.
  *
  * Counted in the database, so the cap holds across serverless instances and
  * restarts, unlike the per-minute burst limit in lib/rateLimit.ts, which lives
@@ -13,7 +14,7 @@ import { prisma } from '@/prisma/prisma';
  * upstream service, accepted or not, as the burst limit counts attempts too.
  */
 
-export type ProvisionKind = 'quick-l1-deploy' | 'managed-testnet-node';
+export type ProvisionKind = 'quick-l1-deploy' | 'managed-testnet-node' | 'managed-testnet-relayer';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -21,6 +22,11 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const LIMITS: Record<ProvisionKind, { env: string; fallback: number; noun: string }> = {
   'quick-l1-deploy': { env: 'QUICK_L1_DAILY_DEPLOYS', fallback: 10, noun: 'Quick L1 deployments' },
   'managed-testnet-node': { env: 'MANAGED_TESTNET_NODES_DAILY_CREATES', fallback: 10, noun: 'managed testnet nodes' },
+  'managed-testnet-relayer': {
+    env: 'MANAGED_TESTNET_RELAYERS_DAILY_CREATES',
+    fallback: 10,
+    noun: 'managed testnet relayers',
+  },
 };
 
 export function dailyProvisionLimit(kind: ProvisionKind): number {

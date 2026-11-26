@@ -1,22 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { readJsonBody } from '@/lib/api/json-body';
-import { getUserId, jsonOk, jsonError } from './utils';
+import { getUserId, jsonOk, jsonError, relayerUrlError } from './utils';
 import { RelayerServiceURLs } from './constants';
 import { Relayer } from './types';
+import { reserveDailyProvision, retryAfterSeconds } from '@/server/services/provision-quota';
 
-// Each config goes to the relayer service as sent, so keys other than these four pass through.
+/* A relayer config names two chain IDs and the two URLs that the relayer service connects to. The service gets
+   these four fields and no other key. An ID is base58 text of an ID's length, and a URL is a public http(s) or
+   ws(s) address: the service runs inside the cluster, so it must not be sent to a private or local host. */
+const MAX_CONFIGS = 10;
+const chainId = z.string().regex(/^[1-9A-HJ-NP-Za-km-z]{30,60}$/);
 const createRelayerSchema = z.object({
   configs: z
     .array(
-      z.looseObject({
-        subnetId: z.string().optional(),
-        blockchainId: z.string().optional(),
-        rpcUrl: z.string().optional(),
-        wsUrl: z.string().optional(),
+      z.strictObject({
+        subnetId: chainId,
+        blockchainId: chainId,
+        rpcUrl: z.string().max(500),
+        wsUrl: z.string().max(500),
       }),
     )
-    .optional(),
+    .min(1)
+    .max(MAX_CONFIGS),
 });
 
 /**
@@ -101,19 +107,21 @@ async function handleCreateRelayer(request: NextRequest): Promise<NextResponse> 
   try {
     const body = await readJsonBody(request, createRelayerSchema);
     if (!body) {
-      return jsonError(400, 'Invalid request body');
+      return jsonError(400, 'Send 1 to 10 configs, each with subnetId, blockchainId, rpcUrl and wsUrl');
     }
     const { configs } = body;
 
-    if (!configs || !Array.isArray(configs) || configs.length === 0) {
-      return jsonError(400, 'Configs array is required and must not be empty');
+    for (const config of configs) {
+      const urlError = relayerUrlError(config);
+      if (urlError) return jsonError(400, urlError);
     }
 
-    // Validate configs
-    for (const config of configs) {
-      if (!config.subnetId || !config.blockchainId || !config.rpcUrl || !config.wsUrl) {
-        return jsonError(400, 'Each config must have subnetId, blockchainId, rpcUrl, and wsUrl');
-      }
+    // Daily cap per account (MANAGED_TESTNET_RELAYERS_DAILY_CREATES), counted on every attempt sent to the service.
+    const quota = await reserveDailyProvision(userId!, 'managed-testnet-relayer');
+    if (!quota.allowed) {
+      const response = jsonError(429, quota.message);
+      response.headers.set('retry-after', retryAfterSeconds(quota.resetAt));
+      return response;
     }
 
     // Make the request to Builder Hub API to create relayer
