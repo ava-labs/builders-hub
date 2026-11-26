@@ -107,7 +107,7 @@ describe('POST /api/managed-testnet-nodes daily cap', () => {
 
   beforeEach(() => {
     getUserNodes.mockResolvedValue([]);
-    getBlockchainInfo.mockResolvedValue({ blockchainName: 'My Chain', vmId: SUBNET_EVM_VM_ID });
+    getBlockchainInfo.mockResolvedValue({ blockchainName: 'My Chain', vmId: SUBNET_EVM_VM_ID, subnetId: valid.subnetId });
   });
 
   it('answers 429 and never calls the node service when the cap is reached', async () => {
@@ -129,5 +129,16 @@ describe('POST /api/managed-testnet-nodes daily cap', () => {
 
     expect(res.status).toBe(429);
     expect(reserveDailyProvision).not.toHaveBeenCalled();
+  });
+
+  it('refuses a blockchain that is not on the subnet, before it spends a daily slot', async () => {
+    getBlockchainInfo.mockResolvedValue({ blockchainName: 'Other', vmId: SUBNET_EVM_VM_ID, subnetId: 'another-subnet' });
+
+    const res = (await createNode(post('https://builders-hub.test/api/managed-testnet-nodes', valid))) as NextResponse;
+
+    expect(res.status).toBe(400);
+    expect((await res.json()).message).toBe('This blockchain is not on this subnet.');
+    expect(reserveDailyProvision).not.toHaveBeenCalled();
+    expect(builderHubAddNode).not.toHaveBeenCalled();
   });
 });

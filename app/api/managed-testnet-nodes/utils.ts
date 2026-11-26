@@ -22,6 +22,16 @@ export async function getUserId(): Promise<{ userId: string | null; error?: Next
       ),
     };
   }
+  // A session before the terms are accepted has no account row (its id is "pending_<email>"), so it can own nothing.
+  if (session.user.id.startsWith('pending_')) {
+    return {
+      userId: null,
+      error: NextResponse.json(
+        { error: 'Account required', message: 'Finish sign-up to use managed testnet nodes' },
+        { status: 403 },
+      ),
+    };
+  }
   return { userId: session.user.id };
 }
 
