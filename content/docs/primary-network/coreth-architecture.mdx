@@ -34,14 +34,15 @@ Chain-specific config lives at:
 
 ```json title="~/.avalanchego/configs/chains/C/config.json"
 {
-  "apis": ["web3", "net", "price", "chain", "tx", "subscription", "avalanche"],
+  "apis": ["web3", "net", "txpool", "price", "chain", "tx", "subscription", "filter", "logs", "avalanche", "trace"],
   "pruning-enabled": true,
   "state-sync-enabled": true
 }
 ```
 
 Key knobs:
-- `apis`: List of RPC method groups to serve. The node does not serve groups that you do not list. `eth-apis` is deprecated, and the next release removes it.
+- `apis`: List of RPC method groups to serve. The node does not serve groups that you do not list, including groups that later releases add. The example above is the default list. Since v1.15.3, `eth_getLogs` is in the `logs` group and the polling filter methods (`eth_newFilter`, `eth_getFilterChanges` and the rest) are in the `filter` group, so a config that sets `apis` must list both to keep serving them. The `db` and `profile` groups are disabled by default. See [Available APIs](https://github.com/ava-labs/avalanchego/blob/v1.15.3/vms/saevm/cchain/config.md#available-apis) for every group and its methods. `eth-apis` was removed in v1.15.2, and the node ignores it with a warning.
+- `Gas-Used` response header: since v1.15.3, an HTTP response from `/ext/bc/C/rpc` carries a `Gas-Used` header with the total gas used by every `eth_call` in the request, batches included. The header is omitted if no `eth_call` completed, and WebSocket connections do not set it.
 - `pruning-enabled`: Enable state trie pruning.
 - `state-sync-enabled`: Allow state sync bootstrap instead of full replay.
 - For all C-Chain options and defaults, see the [C-Chain config reference](https://github.com/ava-labs/avalanchego/blob/master/vms/evm/imp/cchain/config.md).

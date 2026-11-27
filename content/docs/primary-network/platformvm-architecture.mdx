@@ -71,7 +71,7 @@ An L1's validator manager contract decides who validates the L1, and the P-Chain
 ## P-Chain APIs
 
 - Exposed at `/ext/bc/P` with namespaces such as `platform.getBlock`, `platform.getCurrentValidators`, `platform.issueTx`, `platform.getSubnets`, `platform.getBlockchains`. The full set is in the [P-Chain API reference](/docs/rpcs/p-chain).
-- Helicon adds no new methods, but [`platform.getCurrentValidators`](/docs/rpcs/p-chain#platformgetcurrentvalidators) gains three fields on auto-renewed validators: `validatorAuthority`, `nextPeriod` and `autoCompoundRewardShares`. They are absent on every other validator, so their presence identifies an auto-renewed validation.
+- Helicon adds no new methods, but [`platform.getCurrentValidators`](/docs/rpcs/p-chain#platformgetcurrentvalidators) gains fields on auto-renewed validators: `validatorAuthority`, `nextPeriod` and `autoCompoundRewardShares`, and, from AvalancheGo v1.15.2, `restakedValidationRewards` and `restakedDelegateeRewards` (nAVAX restaked into `weight` over all completed cycles). They are absent on every other validator, so their presence identifies an auto-renewed validation.
 - Health and metrics are surfaced via the node-level `/ext/health` and `/ext/metrics`.
 
 ## Configuration

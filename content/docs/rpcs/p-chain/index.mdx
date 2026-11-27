@@ -609,6 +609,8 @@ platform.getCurrentValidators({
         },
         nextPeriod: string,
         autoCompoundRewardShares: string,
+        restakedValidationRewards: string,
+        restakedDelegateeRewards: string,
         delegatorCount: string,
         delegatorWeight: string,
         delegators: []{
@@ -676,6 +678,11 @@ platform.getCurrentValidators({
       `nextPeriod`, and `weight` **grows** by whatever share of the rewards was auto-compounded (capped at
       `MaxValidatorStake`). `txID` stays the same across renewals, so do not treat a changed `endTime` as a
       new validator.
+  - `restakedValidationRewards` and `restakedDelegateeRewards` are returned only for auto-renewed
+    validators. They are the rewards, in nAVAX, restaked into `weight` over all completed cycles.
+    `weight` is the stake in the `AddAutoRenewedValidatorTx` plus both values.
+    - `restakedValidationRewards` is the restaked part of the rewards earned from staking.
+    - `restakedDelegateeRewards` is the restaked part of the rewards earned from delegations.
   - `delegatorCount` is the number of delegators on this validator.
     Omitted if `subnetID` is not the Primary Network.
   - `delegatorWeight` is total weight of delegators on this validator.
@@ -790,6 +797,8 @@ curl -X POST --data '{
         },
         "nextPeriod": "172800",
         "autoCompoundRewardShares": "500000",
+        "restakedValidationRewards": "0",
+        "restakedDelegateeRewards": "0",
         "delegatorCount": "0",
         "delegatorWeight": "0",
         "delegators": []
